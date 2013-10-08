@@ -101,6 +101,7 @@ int main(int argc, char *argv[]) {
   cout<<"2 - 2-pole balancing, velocity info provided"<<endl;
   cout<<"3 - 2-pole balancing, no velocity info provided (non-markov)"<<endl;
   cout<<"4 - XOR"<<endl;
+  cout<<"5 - Memory Evolution"<<endl;
   cout<<"Number: ";
 
   cin>>choice;
@@ -118,6 +119,9 @@ int main(int argc, char *argv[]) {
       break;
     case 4:
       p=xor_test(100);
+      break;
+    case 5:
+      p = memory_test(1000);
       break;
     default:
       cout<<"Not an available option."<<endl;
