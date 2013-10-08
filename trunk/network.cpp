@@ -178,7 +178,16 @@ bool Network::activate() {
 		++abortcount;
 
 		if (abortcount==20) {
-			return false;
+			for(curnode=all_nodes.begin();curnode!=all_nodes.end();++curnode) {
+				std::cout <<(*curnode)->node_id<< " :: "<<(*curnode)->active_flag ;  //This will tell us if it has any active inputs
+				if ((int)(*curnode)->incoming.size() == 0) {
+					std::cout << " NO incoming connections";
+
+				}
+				std::cout << std::endl;
+			}
+			std::cout << " Net not activating"<<std::endl;
+			//return false;
 			//cout<<"Inputs disconnected from output!"<<endl;
 		}
 		//std::cout<<"Outputs are off"<<std::endl;

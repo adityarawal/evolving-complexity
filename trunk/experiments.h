@@ -41,6 +41,12 @@ Population *xor_test(int gens);
 bool xor_evaluate(Organism *org);
 int xor_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes);
 
+//The memory evolution routines *************************
+Population *memory_test(int gens);
+bool memory_test(Organism *org);
+int memory_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes);
+
+
 //Single pole balancing evolution routines ***************************
 Population *pole1_test(int gens); 
 bool pole1_evaluate(Organism *org);

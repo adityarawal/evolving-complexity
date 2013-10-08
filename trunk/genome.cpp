@@ -1435,7 +1435,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 		return false;
 
 	//Disabled the gene
-	(*thegene)->enable=false;
+	//(*thegene)->enable=false;
 
 	//Extract the link
 	thelink=(*thegene)->lnk;
@@ -3100,7 +3100,7 @@ void NEAT::print_Genome_tofile(Genome *g,const char *filename) {
 
 	//ofstream oFile(filename,ios::out);
 
-    std::string file = "nero/data/neat/";
+    std::string file = ""; //"nero/data/neat/";
     file += filename;
     //strcpyl(file, 100, "nero/data/neat/", filename, 0);
 	std::ofstream oFile(file.c_str());
