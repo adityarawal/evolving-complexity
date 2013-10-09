@@ -150,7 +150,7 @@ bool memory_evaluate(Organism *org) {
 
   int net_depth; //The max depth of the network to be activated
   int relax; //Activates until relaxation
-  int steps_before_recall = 9; //Number of steps after which memory is required
+  int steps_before_recall = 10; //Number of steps after which memory is required
 
   int expected_out; //expected output for each input
 
@@ -166,7 +166,7 @@ bool memory_evaluate(Organism *org) {
 
   errorsum = 0;
   net=org->net;
-  net_depth=net->max_depth();
+  //net_depth=net->max_depth();
   //Load and activate the network on each input
   for(int r = 0; r < num_trials; r++) {
         
