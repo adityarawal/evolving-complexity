@@ -138,9 +138,9 @@ bool memory_evaluate(Organism *org) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[1]; //1-bit input
+  double in[2]; //1-bit input
   
-  double this_out[2]; //The current output
+  double this_out[1]; //The current output
   int count;
   double errorsum;
 
@@ -150,11 +150,11 @@ bool memory_evaluate(Organism *org) {
 
   int net_depth; //The max depth of the network to be activated
   int relax; //Activates until relaxation
-  int steps_before_recall = 10; //Number of steps after which memory is required
+  int steps_before_recall = 1; //Number of steps after which memory is required
 
   int expected_out; //expected output for each input
 
-  int num_trials = 10;
+  int num_trials = 4;
 
   //Creating a copy so that we can change its genome during lifetime
  
@@ -170,13 +170,33 @@ bool memory_evaluate(Organism *org) {
   //Load and activate the network on each input
   for(int r = 0; r < num_trials; r++) {
         
-        //50% show 1 and 50% show 0 
-        if(r < num_trials/2)
-                in[0] = 1.0;
-        else
-                in[0] = 0.0;
+        ////50% show 1 and 50% show 0 
+        //if(r < num_trials/2)
+        //        in[0] = -1.0;
+        //else
+        //        in[0] = 1.0;
 
-        expected_out = (int)in[0];
+        if (r == 0) {
+                in[0] = 1.0; //Input number
+                in[1] = 1.0; //Store signal
+                expected_out = in[0];
+        }
+        else if (r == 1) {
+                in[0] = 2.0;
+                in[1] = 1.0;
+                expected_out = in[0];
+        }
+        else if (r == 2) {
+                in[0] = 3;
+                in[1] = 1.0;
+                expected_out = in[0];
+        }
+        else if (r == 3) {
+                in[0] = 4;
+                in[1] = 1.0;
+                expected_out = in[0];
+        }
+
 
         ////Relax net and get output
         //success=net->activate();
@@ -211,9 +231,30 @@ bool memory_evaluate(Organism *org) {
                 }
         }
 
-        if(maxcount != expected_out) {
-                errorsum += 1.0;
+        //if(maxcount != expected_out) {
+        //        errorsum += 1.0;
+        //}
+        if (out[maxcount] <0.25) {
+                if (expected_out != 1){
+                        errorsum += 1.0;
+                }
         }
+        else if (out[maxcount] < 0.5) {
+                if (expected_out != 2){
+                        errorsum += 1.0;
+                }
+        }
+        else if (out[maxcount] < 0.75) {
+                if (expected_out != 3){
+                        errorsum += 1.0;
+                }
+        }
+        else if (out[maxcount] <= 1) {
+                if (expected_out != 4){
+                        errorsum += 1.0;
+                }
+        }
+
   }
         
   //Fitness = Task Fitness - Network Size penalty
