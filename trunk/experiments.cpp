@@ -138,7 +138,7 @@ bool memory_evaluate(Organism *org) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[2]; //1-bit input
+  double in[3]; //3-bit input - Input number, Store Signal and Bias
   
   double this_out[1]; //The current output
   int count;
@@ -151,10 +151,11 @@ bool memory_evaluate(Organism *org) {
   int net_depth; //The max depth of the network to be activated
   int relax; //Activates until relaxation
   int steps_before_recall = 1; //Number of steps after which memory is required
-
+ 
+  int total_time_steps = 100; 
   int expected_out; //expected output for each input
 
-  int num_trials = 4;
+  int num_trials = 1;
 
   //Creating a copy so that we can change its genome during lifetime
  
@@ -176,84 +177,127 @@ bool memory_evaluate(Organism *org) {
         //else
         //        in[0] = 1.0;
 
-        if (r == 0) {
-                in[0] = 1.0; //Input number
-                in[1] = 1.0; //Store signal
-                expected_out = in[0];
-        }
-        else if (r == 1) {
-                in[0] = 2.0;
-                in[1] = 1.0;
-                expected_out = in[0];
-        }
-        else if (r == 2) {
-                in[0] = 3;
-                in[1] = 1.0;
-                expected_out = in[0];
-        }
-        else if (r == 3) {
-                in[0] = 4;
-                in[1] = 1.0;
-                expected_out = in[0];
-        }
+        //if (r == 0) {
+        //        in[0] = 3.0; //Input number
+        //        in[1] = 1.0; //Store signal (1 - Off, 2 - On)
+        //        expected_out = 1; //1 - Off
+        //}
+        //else if (r == 1) {
+        //        in[0] = 4.0;
+        //        in[1] = 1.0;
+        //        expected_out = 1;
+        //}
+        //else if (r == 2) {
+        //        in[0] = 5.0;
+        //        in[1] = 1.0;
+        //        expected_out = 1;
+        //}
+        //else if (r == 3) {
+        //        in[0] = 3.0;
+        //        in[1] = 2.0;
+        //        expected_out = in[0];
+        //}
+        //else if (r == 4) {
+        //        in[0] = 4.0;
+        //        in[1] = 2.0;
+        //        expected_out = in[0];
+        //}
+        //else if (r == 5) {
+        //        in[0] = 5.0;
+        //        in[1] = 2.0;
+        //        expected_out = in[0];
+        //}
 
 
         ////Relax net and get output
         //success=net->activate();
 
+        in[0] = 1.0; //First input is Bias signal
+        //Second input is the number to be stored
+        if (randfloat() < 0.5) {
+                in[1] = 3.0;
+        }
+        else {
+                in[1] = 4.0;
+        }
+        in[2] = 2.0; //Second input is the store signal (2 - Store, 1 - Don't Store)
+        expected_out = in[1];
+
         //use depth to ensure relaxation
-        for (relax=0;relax< steps_before_recall; relax++) {
+        for (relax=0;relax< total_time_steps; relax++) {
                 net->load_sensors(in);
                 success=net->activate();
                 for (count = 0 ; count < net->outputs.size(); count++) {
                         this_out[count]=(net->outputs[count])->activation;
                 }
-                in[0] = 3; //Input is now don't care
+                if (this_out[0] <0.5) {//Only one output node
+                        if (expected_out != 3){
+                                errorsum += 1.0;
+                        }
+                }
+                else {
+                        if (expected_out != 4){
+                                errorsum += 1.0;
+                        }
+                }
+                if (randfloat() < 0.5) { //Input number can be either 3 or 4 (for now)
+                        in[1] = 3.0;
+                }
+                else {
+                        in[1] = 4.0;
+                }
+                if (randfloat() < 0.5) {
+                        in[2] = 1.0; //Don't store, expected_out doesn't change
+                }
+                else {
+                        in[2] = 2.0; //Store
+                        expected_out = in[1];//Expected Output equals input
+                }
         }
 
-        //Moment of reckoning for agent. Recall
-        for (count = 0 ; count < net->outputs.size(); count++) {
-                out[count]=(net->outputs[count])->activation;
-        }
+        ////Moment of reckoning for agent. Recall
+        //for (count = 0 ; count < net->outputs.size(); count++) {
+        //        out[count]=(net->outputs[count])->activation;
+        //}
         
         net->flush();
 
 
-        double max = -500;
-        int maxcount = 0;
+        //double max = -500;
+        //int maxcount = 0;
 
-        //If input (few time steps earlier) was 0, then out[0] > out[1] 
-        //If input (few time steps earlier) was 1, then out[1] > out[0] 
-        for(count = 0; count < num_output_nodes; count++) {
-                if(out[count] > max) {
-                        max = out[count];
-                        maxcount = count;
-                }
-        }
+        ////If input (few time steps earlier) was 0, then out[0] > out[1] 
+        ////If input (few time steps earlier) was 1, then out[1] > out[0] 
+        //for(count = 0; count < num_output_nodes; count++) {
+        //        if(out[count] > max) {
+        //                max = out[count];
+        //                maxcount = count;
+        //        }
+        //}
 
         //if(maxcount != expected_out) {
         //        errorsum += 1.0;
         //}
-        if (out[maxcount] <0.25) {
-                if (expected_out != 1){
-                        errorsum += 1.0;
-                }
-        }
-        else if (out[maxcount] < 0.5) {
-                if (expected_out != 2){
-                        errorsum += 1.0;
-                }
-        }
-        else if (out[maxcount] < 0.75) {
-                if (expected_out != 3){
-                        errorsum += 1.0;
-                }
-        }
-        else if (out[maxcount] <= 1) {
-                if (expected_out != 4){
-                        errorsum += 1.0;
-                }
-        }
+        //if (out[maxcount] <0.25) {
+        //        if (expected_out != 1){
+        //                errorsum += 1.0;
+        //        }
+        //}
+        //else if (out[maxcount] < 0.5) {
+        //        if (expected_out != 3){
+        //                errorsum += 1.0;
+        //        }
+        //}
+        //else if (out[maxcount] < 0.75) {
+        //        if (expected_out != 4){
+        //                errorsum += 1.0;
+        //        }
+        //}
+        //else if (out[maxcount] <= 1) {
+        //        if (expected_out != 5){
+        //                errorsum += 1.0;
+        //        }
+        //}
 
   }
         
@@ -263,7 +307,7 @@ bool memory_evaluate(Organism *org) {
   int task_fitness_weight = 100;
   int size_penalty_weight = 0;
   if (success) {
-    org->error=errorsum/num_trials;
+    org->error=errorsum/total_time_steps;
     if (network_size > opt_network_size) {
             org->fitness = (1 - org->error)*task_fitness_weight - (network_size-opt_network_size)*size_penalty_weight;
     }
@@ -283,7 +327,7 @@ bool memory_evaluate(Organism *org) {
   #endif
 
   //if (errorsum<0.05) { 
-  if (org->error<0.1) {
+  if (org->error==0.0) {
 
         org->winner = true;
   }
