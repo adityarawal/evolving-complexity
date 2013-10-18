@@ -11,10 +11,10 @@ import sys
 import networkx as nx
 import matplotlib.pyplot as plt
 
-def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, graph_layout,
+def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, graph_layout,
                node_size=1600, node_alpha=0.3,
                node_text_size=12,
-               edge_color='blue', edge_alpha=0.3, edge_tickness=1,
+               edge_alpha=0.3, edge_tickness=1,
                edge_text_pos=0.3,
                text_font='sans-serif'):
 
@@ -26,6 +26,8 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, graph_la
     # add edges
     for edge in graph:
         G.add_edge(edge[0], edge[1])
+        if edge[0] == edge[1]:
+                print 'Self Loop in Node:', edge[0], edge[1]
 
     # these are different layouts for the network you may try
     # shell seems to work best
@@ -38,12 +40,12 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, graph_la
                 graph_pos=nx.random_layout(G)
             else:
                 graph_pos=nx.shell_layout(G)
-   
+  
     # draw graph
     nx.draw_networkx_nodes(G,graph_pos,node_id_list, node_size, 
                            node_color_list)
     nx.draw_networkx_edges(G,graph_pos,width=edge_tickness,
-                           alpha=edge_alpha,edge_color=edge_color)
+                           alpha=edge_alpha,edge_color=edge_color_list)
     nx.draw_networkx_labels(G, graph_pos,font_size=node_text_size,
                             font_family=text_font)
 
@@ -60,13 +62,14 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, graph_la
 if __name__ == '__main__':
         node_id_list = [] 
         node_color_list =[]
+        edge_color_list = []
         edge_dict = dict()
         neat_fname = str(sys.argv[1])
         f_rd = open (neat_fname, 'r')
         hidden_nodes = []
         input_nodes = []
         output_nodes = []
-        bias_nodes = [] 
+        bias_nodes = []
         print 'Input node is Blue'
         print 'Hidden node is Gray'
         print 'Bias node is Green'
@@ -96,7 +99,18 @@ if __name__ == '__main__':
                         words = line.strip().split()
                         edge_tuple = (words[2], words[3])
                         edge_weight = (words[4])
-                        edge_dict[edge_tuple] = edge_weight
+                        gene_enable_flag = words[-1]
+                        gene_recur_flag = words[5]
+                        if edge_tuple in edge_dict.keys():
+                                print 'Parallel Edge', edge_tuple, 'Gene enable flag', gene_enable_flag, 'Gene recur flag', gene_recur_flag
+                                continue
+                        if gene_enable_flag=='1': #Store the gene only if it is enabled
+                                if gene_recur_flag == '1':
+                                        edge_color_list += ['red']
+                                else:
+                                        edge_color_list += ['blue']
+                                edge_dict[edge_tuple] = edge_weight
+                                
                 else:
                         continue
 
@@ -141,12 +155,11 @@ if __name__ == '__main__':
                 #labels += [edge_dict[edges]] #[List of weights] #Uncomment this to visualize weights
 
 
-        draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, 
+        draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, 
                                   graph_layout='shell', #None, shell, spring, spectral, random
                                   node_size=1600, 
                                   node_alpha=0.3,
                                   node_text_size=12,
-                                  edge_color='blue', 
                                   edge_alpha=0.3,
                                   edge_tickness=1,
                                   edge_text_pos=0.3,

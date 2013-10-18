@@ -1435,7 +1435,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 		return false;
 
 	//Disabled the gene
-	//(*thegene)->enable=false;
+	(*thegene)->enable=false;
 
 	//Extract the link
 	thelink=(*thegene)->lnk;
@@ -1700,7 +1700,6 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
 					count=0;
 					recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
-
 					//ADDED: CONSIDER connections out of outputs recurrent
 					if (((nodep1->type)==OUTPUT)||
 						((nodep2->type)==OUTPUT))
