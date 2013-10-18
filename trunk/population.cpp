@@ -582,6 +582,7 @@ bool Population::epoch(int generation) {
 			highest_fitness=((*(((*curspecies)->organisms).begin()))->orig_fitness);
 			highest_last_changed=0;
 			std::cout<<"NEW POPULATION RECORD FITNESS: "<<highest_fitness<<std::endl;
+                        print_to_file_by_species("record_fitness_genome");
 		}
 	else {
 		++highest_last_changed;

@@ -138,7 +138,7 @@ bool memory_evaluate(Organism *org) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[3]; //3-bit input - Input number, Store Signal and Bias
+  double in[2]; //2-bit input - Input number,  and Bias
   
   double this_out[1]; //The current output
   int count;
@@ -152,10 +152,10 @@ bool memory_evaluate(Organism *org) {
   int relax; //Activates until relaxation
   int steps_before_recall = 1; //Number of steps after which memory is required
  
-  int total_time_steps = 100; 
+  int total_time_steps = 10; 
   int expected_out; //expected output for each input
 
-  int num_trials = 1;
+  int num_trials = 10;
 
   //Creating a copy so that we can change its genome during lifetime
  
@@ -214,45 +214,55 @@ bool memory_evaluate(Organism *org) {
 
         in[0] = 1.0; //First input is Bias signal
         //Second input is the number to be stored
-        if (randfloat() < 0.5) {
-                in[1] = 3.0;
+        if (r % 2 == 0) {//For even trials
+                in[1] = -1.0;
         }
-        else {
-                in[1] = 4.0;
+        else {//For odd trials
+                in[1] = 1.0;
         }
-        in[2] = 2.0; //Second input is the store signal (2 - Store, 1 - Don't Store)
+        //in[2] = 2.0; //Second input is the store signal (2 - Store, 1 - Don't Store)
         expected_out = in[1];
 
         //use depth to ensure relaxation
         for (relax=0;relax< total_time_steps; relax++) {
                 net->load_sensors(in);
                 success=net->activate();
+                if (!success) {
+                        org->error = 1;
+                        break;
+                }
                 for (count = 0 ; count < net->outputs.size(); count++) {
                         this_out[count]=(net->outputs[count])->activation;
                 }
                 if (this_out[0] <0.5) {//Only one output node
-                        if (expected_out != 3){
+                        if (expected_out != -1){
                                 errorsum += 1.0;
                         }
                 }
                 else {
-                        if (expected_out != 4){
+                        if (expected_out != 1){
                                 errorsum += 1.0;
                         }
                 }
-                if (randfloat() < 0.5) { //Input number can be either 3 or 4 (for now)
-                        in[1] = 3.0;
+                if (randfloat() <0.5) {
+                        in[1] = randfloat() * 5 - 10;
                 }
                 else {
-                        in[1] = 4.0;
+                        in[1] = randfloat() * 5 + 5;
                 }
-                if (randfloat() < 0.5) {
-                        in[2] = 1.0; //Don't store, expected_out doesn't change
-                }
-                else {
-                        in[2] = 2.0; //Store
-                        expected_out = in[1];//Expected Output equals input
-                }
+                //if (randfloat() < 0.5) { //Input number can be either 3 or 4 (for now)
+                //        in[1] = 3.0;
+                //}
+                //else {
+                //        in[1] = 4.0;
+                //}
+                //if (randfloat() < 0.5) {
+                //        in[2] = 1.0; //Don't store, expected_out doesn't change
+                //}
+                //else {
+                //        in[2] = 2.0; //Store
+                //        expected_out = in[1];//Expected Output equals input
+                //}
         }
 
         ////Moment of reckoning for agent. Recall
@@ -306,14 +316,27 @@ bool memory_evaluate(Organism *org) {
   int opt_network_size = 5;
   int task_fitness_weight = 100;
   int size_penalty_weight = 0;
+  int recurrence_reward = 10;
   if (success) {
-    org->error=errorsum/total_time_steps;
+
+    org->error=errorsum/(total_time_steps*num_trials);
     if (network_size > opt_network_size) {
             org->fitness = (1 - org->error)*task_fitness_weight - (network_size-opt_network_size)*size_penalty_weight;
     }
     else {
             org->fitness = (1 - org->error)*task_fitness_weight ;
     }
+    //Code to reward recurrent networks 
+    std::vector<Gene*>::iterator curgene;
+    for(curgene=(org->gnome->genes).begin();curgene!=(org->gnome->genes).end();curgene++) {
+    	//But skip links that are already recurrent
+    	//(We want to check back through the forward flow of signals only
+    	if (((*curgene)->lnk->is_recurrent)) {
+                org->fitness += recurrence_reward;
+                break;
+    	}
+    }
+
   }
   else {
     //The network is flawed (shouldnt happen)
@@ -327,7 +350,7 @@ bool memory_evaluate(Organism *org) {
   #endif
 
   //if (errorsum<0.05) { 
-  if (org->error==0.0) {
+  if (org->fitness>=110.0) {
 
         org->winner = true;
   }

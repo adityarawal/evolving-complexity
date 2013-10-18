@@ -187,7 +187,7 @@ bool Network::activate() {
 				std::cout << std::endl;
 			}
 			std::cout << " Net not activating"<<std::endl;
-			//return false;
+			return false;
 			//cout<<"Inputs disconnected from output!"<<endl;
 		}
 		//std::cout<<"Outputs are off"<<std::endl;

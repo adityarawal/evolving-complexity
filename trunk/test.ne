@@ -17,9 +17,9 @@ mutate_node_trait_prob 0.1
 mutate_link_weights_prob 0.9
 mutate_toggle_enable_prob 0.00
 mutate_gene_reenable_prob 0.000
-mutate_add_node_prob 0.03
+mutate_add_node_prob 0.005
 mutate_add_link_prob 0.05
-interspecies_mate_rate 0.001
+interspecies_mate_rate 0.01
 mate_multipoint_prob 0.6
 mate_multipoint_avg_prob 0.4
 mate_singlepoint_prob 0.0

@@ -104,8 +104,8 @@ int main(int argc, char *argv[]) {
   cout<<"5 - Memory Evolution"<<endl;
   cout<<"Number: ";
 
-  cin>>choice;
-
+  //cin>>choice;
+  choice = 5;
   switch ( choice )
     {
     case 1:
