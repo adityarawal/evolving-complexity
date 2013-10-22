@@ -26,8 +26,6 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_col
     # add edges
     for edge in graph:
         G.add_edge(edge[0], edge[1])
-        if edge[0] == edge[1]:
-                print 'Self Loop in Node:', edge[0], edge[1]
 
     # these are different layouts for the network you may try
     # shell seems to work best
@@ -40,7 +38,7 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_col
                 graph_pos=nx.random_layout(G)
             else:
                 graph_pos=nx.shell_layout(G)
-  
+ 
     # draw graph
     nx.draw_networkx_nodes(G,graph_pos,node_id_list, node_size, 
                            node_color_list)
@@ -97,7 +95,9 @@ if __name__ == '__main__':
                                 sys.exit()
                 elif 'gene' in line: #(gene   <trait_number>   <from_node_id>   <to_node_id>   <connection_weight>   <recur_flag>   <gene_id>   <mutation_number>   <enable_flag>)
                         words = line.strip().split()
-                        edge_tuple = (words[2], words[3])
+                        from_node = words[2]
+                        to_node = words[3]
+                        edge_tuple = (from_node, to_node)
                         edge_weight = (words[4])
                         gene_enable_flag = words[-1]
                         gene_recur_flag = words[5]
@@ -105,6 +105,9 @@ if __name__ == '__main__':
                                 print 'Parallel Edge', edge_tuple, 'Gene enable flag', gene_enable_flag, 'Gene recur flag', gene_recur_flag
                                 continue
                         if gene_enable_flag=='1': #Store the gene only if it is enabled
+                                if from_node == to_node:
+                                        print 'Self Loop in Node:', from_node , to_node
+                                        continue
                                 if gene_recur_flag == '1':
                                         edge_color_list += ['red']
                                 else:
@@ -152,7 +155,7 @@ if __name__ == '__main__':
         labels = []
         for edges in edge_dict:
                 graph += [edges]#List tuples containing edges
-                #labels += [edge_dict[edges]] #[List of weights] #Uncomment this to visualize weights
+                labels += [edge_dict[edges]] #[List of weights] #Uncomment this to visualize weights
 
 
         draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, 

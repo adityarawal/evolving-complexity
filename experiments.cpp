@@ -244,12 +244,13 @@ bool memory_evaluate(Organism *org) {
                                 errorsum += 1.0;
                         }
                 }
-                if (randfloat() <0.5) {
-                        in[1] = randfloat() * 5 - 10;
-                }
-                else {
-                        in[1] = randfloat() * 5 + 5;
-                }
+                in[1] = -4.3;
+                //if (randfloat() <0.5) {
+                //        in[1] = randfloat() * 5 - 10;
+                //}
+                //else {
+                //        in[1] = randfloat() * 5 + 5;
+                //}
                 //if (randfloat() < 0.5) { //Input number can be either 3 or 4 (for now)
                 //        in[1] = 3.0;
                 //}
@@ -316,7 +317,7 @@ bool memory_evaluate(Organism *org) {
   int opt_network_size = 5;
   int task_fitness_weight = 100;
   int size_penalty_weight = 0;
-  int recurrence_reward = 10;
+  int recurrence_reward = 0;
   if (success) {
 
     org->error=errorsum/(total_time_steps*num_trials);
@@ -350,7 +351,7 @@ bool memory_evaluate(Organism *org) {
   #endif
 
   //if (errorsum<0.05) { 
-  if (org->fitness>=110.0) {
+  if (org->fitness>=100.0) {
 
         org->winner = true;
   }
