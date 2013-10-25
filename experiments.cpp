@@ -138,7 +138,7 @@ bool memory_evaluate(Organism *org) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[2]; //2-bit input - Input number,  and Bias
+  double in[3]; //3-bit input - Bias, number, Store Signal
   
   double this_out[1]; //The current output
   int count;
@@ -152,7 +152,7 @@ bool memory_evaluate(Organism *org) {
   int relax; //Activates until relaxation
   int steps_before_recall = 1; //Number of steps after which memory is required
  
-  int total_time_steps = 10; 
+  int total_time_steps = 100; 
   int expected_out; //expected output for each input
 
   int num_trials = 10;
@@ -170,61 +170,27 @@ bool memory_evaluate(Organism *org) {
   //net_depth=net->max_depth();
   //Load and activate the network on each input
   for(int r = 0; r < num_trials; r++) {
-        
-        ////50% show 1 and 50% show 0 
-        //if(r < num_trials/2)
-        //        in[0] = -1.0;
-        //else
-        //        in[0] = 1.0;
-
-        //if (r == 0) {
-        //        in[0] = 3.0; //Input number
-        //        in[1] = 1.0; //Store signal (1 - Off, 2 - On)
-        //        expected_out = 1; //1 - Off
-        //}
-        //else if (r == 1) {
-        //        in[0] = 4.0;
-        //        in[1] = 1.0;
-        //        expected_out = 1;
-        //}
-        //else if (r == 2) {
-        //        in[0] = 5.0;
-        //        in[1] = 1.0;
-        //        expected_out = 1;
-        //}
-        //else if (r == 3) {
-        //        in[0] = 3.0;
-        //        in[1] = 2.0;
-        //        expected_out = in[0];
-        //}
-        //else if (r == 4) {
-        //        in[0] = 4.0;
-        //        in[1] = 2.0;
-        //        expected_out = in[0];
-        //}
-        //else if (r == 5) {
-        //        in[0] = 5.0;
-        //        in[1] = 2.0;
-        //        expected_out = in[0];
-        //}
-
-
-        ////Relax net and get output
-        //success=net->activate();
 
         in[0] = 1.0; //First input is Bias signal
-        //Second input is the number to be stored
-        if (r % 2 == 0) {//For even trials
-                in[1] = -1.0;
-        }
-        else {//For odd trials
-                in[1] = 1.0;
-        }
-        //in[2] = 2.0; //Second input is the store signal (2 - Store, 1 - Don't Store)
-        expected_out = in[1];
 
         //use depth to ensure relaxation
         for (relax=0;relax< total_time_steps; relax++) {
+                 //AND GATE - Second input is the number to be stored
+                 if (randfloat() <0.5) {
+                         in[1] = -1.0;
+                 }
+                 else {
+                         in[1] = 1.0;
+                 }
+                 if (randfloat() <0.5) {
+                         in[2] = 2.0;
+                         expected_out = in[1];
+                 }
+                 else {
+                         in[2] = 0.0;
+                         expected_out = 0;
+                }
+                //cout << "Inputs: "<<in[1]<<" "<<in[2]<<" Output: ";
                 net->load_sensors(in);
                 success=net->activate();
                 if (!success) {
@@ -234,35 +200,80 @@ bool memory_evaluate(Organism *org) {
                 for (count = 0 ; count < net->outputs.size(); count++) {
                         this_out[count]=(net->outputs[count])->activation;
                 }
-                if (this_out[0] <0.5) {//Only one output node
+                //cout <<this_out[0]<<endl;
+                if (this_out[0] <0.33) {
                         if (expected_out != -1){
                                 errorsum += 1.0;
                         }
                 }
-                else {
+                else if (this_out[0] < 0.67) {
                         if (expected_out != 1){
                                 errorsum += 1.0;
                         }
                 }
-                in[1] = -4.3;
+                else if (this_out[0] <= 1.0) {
+                        if (expected_out != 0){
+                                errorsum += 1.0;
+                        }
+                }
+                //double max = -1000.0;
+                //int maxcount = 0;
+                //for(count = 0; count < num_output_nodes; count++) {
+                //        if(this_out[count] > max) {
+                //                max = this_out[count];
+                //                maxcount = count;
+                //        }
+                //}
+                //if (maxcount==0) {//Output Node 0 corresponds to input value of -1 
+                //        if (expected_out != -1){
+                //                errorsum += 1.0;
+                //        }
+                //}
+                //else {//Output Node 1 corresponds to input value of 1
+                //        if (expected_out != 1){
+                //                errorsum += 1.0;
+                //        }
+                //}
                 //if (randfloat() <0.5) {
                 //        in[1] = randfloat() * 5 - 10;
                 //}
                 //else {
                 //        in[1] = randfloat() * 5 + 5;
                 //}
-                //if (randfloat() < 0.5) { //Input number can be either 3 or 4 (for now)
-                //        in[1] = 3.0;
+                //if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
+                //        in[1] = -1.0;
                 //}
                 //else {
-                //        in[1] = 4.0;
+                //        in[1] = 1.0;
                 //}
-                //if (randfloat() < 0.5) {
-                //        in[2] = 1.0; //Don't store, expected_out doesn't change
+                //if (randfloat() > 0.3) {
+                //        in[3] = 0.0; //Don't store, expected_out doesn't change
+                //        if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
+                //                in[1] = 0.0;
+                //                in[2] = 1.0;
+                //        }
+                //        else {
+                //                in[1] = 1.0;
+                //                in[2] = 0.0;
+                //        }
                 //}
                 //else {
-                //        in[2] = 2.0; //Store
-                //        expected_out = in[1];//Expected Output equals input
+                       // if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
+                       //         in[1] = 0.0;
+                       //         in[2] = 1.0;
+                       // }
+                       // else {
+                       //         in[1] = 1.0;
+                       //         in[2] = 0.0;
+                       // }
+                       // if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
+                       //         in[3] = 0.0; //Don't Store
+                       //         expected_out = 0;//Expected Output equals input
+                       // }
+                       // else {
+                       //         in[3] = 1.0; //Store
+                       //         expected_out = 1;//Expected Output equals input
+                       // }
                 //}
         }
 
