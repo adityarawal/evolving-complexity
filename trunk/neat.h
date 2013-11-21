@@ -109,6 +109,12 @@ namespace NEAT {
 	// When not right-shifted, the steepened slope is closest to a linear
 	// ascent as possible between -0.5 and 0.5
 	extern double fsigmoid(double,double,double);
+	
+        
+	// Tanh FUNCTION ********************************
+	// This is a signmoidal activation function, which is an S-shaped squashing function
+	// It smoothly limits the amplitude of the output of a neuron to between -1 and 1
+        extern double ftanh(double,double,double);
 
 	// Hebbian Adaptation Function
 	// Based on equations in Floreano & Urzelai 2000
