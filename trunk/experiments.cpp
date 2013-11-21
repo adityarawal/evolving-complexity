@@ -138,7 +138,7 @@ bool memory_evaluate(Organism *org) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[2]; //2-bit input - Bias, number
+  double in[3]; //2-bit input - Bias, number
   
   double this_out[1]; //The current output
   int count;
@@ -173,7 +173,17 @@ bool memory_evaluate(Organism *org) {
 
         in[0] = 1.0; //First input is Bias signal
 
+        //in[1] = 0.308254;
+        //
+        //if (in[1] < 0.33) { 
+        //        expected_out = -1;
+        //}
+        //else if (in[1] < 0.67) {
+        //        expected_out = 1;
+        //}
+        //in[2] = -1;
         in[1] = 1;
+        in[2] = 1; //Recall
         expected_out = in[1];
         //use depth to ensure relaxation
         for (relax=0;relax< total_time_steps; relax++) {
@@ -188,16 +198,28 @@ bool memory_evaluate(Organism *org) {
                         this_out[count]=(net->outputs[count])->activation;
                 }
                 //cout <<this_out[0]<<endl;
-                if (this_out[0] <0.5) {
-                        if (expected_out != -1){
+                if (in[2] == 1) {//Recall is ON
+                        if (this_out[0] <0.33) {
+                                if (expected_out != -1){//Expected out is always 1 or -1
+                                        errorsum += 1.0;
+                                }
+                        }
+                        else if (this_out[0] <= 0.67) {//Expected out is always 1 or -1
+                                if (expected_out != 1){
+                                        errorsum += 1.0;
+                                }
+                        }
+                        else {
+                                errorsum += 1.0;
+                        }
+
+                }
+                else {//Recall is OFF
+                        if (this_out[0] <= 0.67){
                                 errorsum += 1.0;
                         }
                 }
-                else if (this_out[0] <= 1.0) {
-                        if (expected_out != 1){
-                                errorsum += 1.0;
-                        }
-                }
+
                 if (randfloat() <0.33) {
                         if (randfloat() < 0.5) {
                                 in[1] = -1.0;
@@ -210,6 +232,60 @@ bool memory_evaluate(Organism *org) {
                 else {
                         in[1] = 0.0;
                 }
+                if (randfloat() < 0.5) {
+                        in[2] = 1;//Recall
+                }
+                else {
+                        in[2] = 0; //Recall
+                }
+                // //AND GATE - Second input is the number to be stored
+                // if (randfloat() <0.5) {
+                //         in[1] = -1.0;
+                // }
+                // else {
+                //         in[1] = 1.0;
+                // }
+                // if (randfloat() <0.3) {
+                //         in[2] = 1.0;
+                //         expected_out = in[1];
+                // }
+                // else {
+                //         in[2] = 0.0;
+                //}
+                //double rand_num = randfloat();
+                //if (rand_num < 0.33) {
+                //        in[1] = 0.308254; //Value from the trained switch
+                //        expected_out = -1;
+                //        in[2] = -1;
+                //}
+                //else if (rand_num < 0.67) {
+                //        in[1] = 0.483135;//Value from the trained switch
+                //        expected_out = 1;
+                //        in[2] = 1;
+                //}
+                //else{
+                //        if (randfloat() < 0.5) {//Don't care output from the switch
+                //                in[1] = 0.939128;//Value from the trained switch
+                //                in[2] = 1;
+                //        }
+                //        else{
+                //                in[1] = 0.880309;//Value from the trained switch
+                //                in[2] = -1;
+                //        }
+                //}
+                //if (randfloat() <0.5) {
+                //        in[1] = -1.0;
+                //}
+                //else {
+                //        in[1] = 1.0;
+                //}
+                //if (randfloat() <0.3) {
+                //        in[2] = 2.0;
+                //        expected_out = in[1];
+                //}
+                //else {
+                //        in[2] = 0.0;
+                //}
                 //double max = -1000.0;
                 //int maxcount = 0;
                 //for(count = 0; count < num_output_nodes; count++) {
@@ -270,7 +346,6 @@ bool memory_evaluate(Organism *org) {
                        // }
                 //}
         }
-
         ////Moment of reckoning for agent. Recall
         //for (count = 0 ; count < net->outputs.size(); count++) {
         //        out[count]=(net->outputs[count])->activation;
