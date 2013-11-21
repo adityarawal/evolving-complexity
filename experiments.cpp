@@ -138,9 +138,9 @@ bool memory_evaluate(Organism *org) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[4]; //2-bit input - Bias, number
+  double in[2]; //2-bit input - Bias, number
   
-  double this_out[3]; //The current output
+  double this_out[1]; //The current output
   int count;
   double errorsum;
 
@@ -152,10 +152,10 @@ bool memory_evaluate(Organism *org) {
   int relax; //Activates until relaxation
   int steps_before_recall = 1; //Number of steps after which memory is required
  
-  int total_time_steps = 10; 
+  int total_time_steps = 1000; 
   int expected_out; //expected output for each input
 
-  int num_trials = 100;
+  int num_trials = 10;
 
   //Creating a copy so that we can change its genome during lifetime
  
@@ -164,7 +164,7 @@ bool memory_evaluate(Organism *org) {
   //cout<<"DEPTH: "<<net_depth<<endl;
 
   double random;
-
+  double max_decay = 0.1;//The output can decay by this maximum value when the input is 0  
   errorsum = 0;
   net=org->net;
   //net_depth=net->max_depth();
@@ -173,194 +173,50 @@ bool memory_evaluate(Organism *org) {
 
         in[0] = 1.0; //First input is Bias signal
 
-        in[1] = 0;
-        in[2] = 0;
-        in[3] = 0;
-        char a_or_b;
-        char x_or_y;
-        char w_or_z;
-        double rand_num =randfloat();
-        if (rand_num < 0.5) {
-               in[1] = 1;
-               a_or_b = 'a';
-        }
-        else { 
-               in[1] = -1;
-               a_or_b = 'b';
-        }
+        in[1] = 1;
         //expected_out = in[1];
         double previous_out = 0.0;
         //use depth to ensure relaxation
-        
-        for (relax=0;relax< randfloat() * total_time_steps; relax++) {
+        for (relax=0;relax< total_time_steps; relax++) {
+                //cout << "Inputs: "<<in[1]<<" "<<in[2]<<" Output: ";
                 net->load_sensors(in);
                 success=net->activate();
                 if (!success) {
                         org->error = 1;
                         break;
                 }
-                in[1] = 0;
-                in[2] = 0;
-                in[3] = 0;
-        }
-        rand_num =randfloat();
-        if (rand_num < 0.5) {
-               in[2] = 1;
-               x_or_y = 'x';
-        }
-        else { 
-               in[2] = -1;
-               x_or_y = 'y';
-        }
-        if (a_or_b == 'a' && x_or_y == 'x') {
-                expected_out = 0;
-        }
-        else if (a_or_b == 'a' && x_or_y == 'y'){ 
-                expected_out = 1;
-        }
-        else if (a_or_b == 'b' && x_or_y == 'x'){ 
-                expected_out = 2;
-        }
-        else if (a_or_b == 'b' && x_or_y == 'y'){ 
-                expected_out = 3;
-        }
-        else {
-                cout <<"ERRRRRRRRRRRRRR "<<endl;
-                exit(0);
-        }
-        for (relax=0;relax< randfloat() * total_time_steps; relax++) {
-                net->load_sensors(in);
-                success=net->activate();
-                if (!success) {
-                        org->error = 1;
-                        break;
+                for (count = 0 ; count < net->outputs.size(); count++) {
+                        this_out[count]=(net->outputs[count])->activation;
                 }
-                in[1] = 0;
-                in[2] = 0;
-                in[3] = 0;
-        }
-        rand_num =randfloat();
-        if (rand_num < 0.5) {
-               in[3] = 1;
-               w_or_z = 'w';
-        }
-        else { 
-               in[3] = -1;
-               w_or_z = 'z';
-        }
-        if (a_or_b == 'a' && x_or_y == 'x' && w_or_z == 'w') {
-                expected_out = 0;
-        }
-        else if (a_or_b == 'a' && x_or_y == 'y' && w_or_z == 'w'){ 
-                expected_out = 1;
-        }
-        else if (a_or_b == 'b' && x_or_y == 'x' && w_or_z == 'w'){ 
-                expected_out = 2;
-        }
-        else if (a_or_b == 'b' && x_or_y == 'y' && w_or_z == 'w'){ 
-                expected_out = 3;
-        }
-        else if (a_or_b == 'a' && x_or_y == 'x' && w_or_z == 'z') {
-                expected_out = 4;
-        }
-        else if (a_or_b == 'a' && x_or_y == 'y' && w_or_z == 'z'){ 
-                expected_out = 5;
-        }
-        else if (a_or_b == 'b' && x_or_y == 'x' && w_or_z == 'z'){ 
-                expected_out = 6;
-        }
-        else if (a_or_b == 'b' && x_or_y == 'y' && w_or_z == 'z'){ 
-                expected_out = 7;
-        }
-        else {
-                cout <<"ERRRRRRRRRRRRRR "<<endl;
-                exit(0);
-        }
-        for (relax=0;relax< randfloat() * total_time_steps; relax++) {
-                net->load_sensors(in);
-                success=net->activate();
-                if (!success) {
-                        org->error = 1;
-                        break;
+                //cout <<this_out[0]<<endl;
+                if (in[1] == 1){
+                        if (this_out[0] <= previous_out) {
+                                errorsum += 1.0;
+                        }
                 }
-                in[1] = 0;
-                in[2] = 0;
-                in[3] = 0;
-        }
-        //Check output
-        for (count = 0 ; count < net->outputs.size(); count++) {
-                this_out[count]=(net->outputs[count])->activation;
-        }
-        if (this_out[0] < 0.5 && this_out[1] < 0.5 && this_out[2] < 0.5) {
-                if (expected_out != 0){
-                        errorsum += 1.0;
+                else if (in[1] == -1) {
+                        if (this_out[0] >= previous_out) {
+                                errorsum += 1.0;
+                        }
                 }
-        }
-        else if (this_out[0] < 0.5 && this_out[1] >= 0.5 && this_out[2] < 0.5) {
-                if (expected_out != 1){
-                        errorsum += 1.0;
+                else {
+                        if (!((previous_out-this_out[0] >=0))){// && (previous_out-this_out[0] <=max_decay))) {
+                                errorsum += 1.0;
+                        }
                 }
-        }
-        else if (this_out[0] >= 0.5 && this_out[1] < 0.5 && this_out[2] < 0.5)  {
-                if (expected_out != 2){
-                        errorsum += 1.0;
+                double rand_num =randfloat(); 
+                if (rand_num < 0.33) {
+                        in[1] = -1.0;
                 }
-        }
-        else if (this_out[0] >= 0.5 && this_out[1] >= 0.5 && this_out[2] < 0.5) {
-                if (expected_out != 3){
-                        errorsum += 1.0;
+                else if (rand_num < 0.67)  {
+                        in[1] = 1.0;
                 }
-        }
-        else if (this_out[0] < 0.5 && this_out[1] < 0.5 && this_out[2] >= 0.5) {
-                if (expected_out != 4){
-                        errorsum += 1.0;
+                else {
+                        in[1] = 0.0;
                 }
+                previous_out = this_out[0]; 
+           
         }
-        else if (this_out[0] < 0.5 && this_out[1] >= 0.5 && this_out[2] >= 0.5) {
-                if (expected_out != 5){
-                        errorsum += 1.0;
-                }
-        }
-        else if (this_out[0] >= 0.5 && this_out[1] < 0.5 && this_out[2] >= 0.5)  {
-                if (expected_out != 6){
-                        errorsum += 1.0;
-                }
-        }
-        else if (this_out[0] >= 0.5 && this_out[1] >= 0.5 && this_out[2] >= 0.5) {
-                if (expected_out != 7){
-                        errorsum += 1.0;
-                }
-        }
-
-
-        //double max = -1000.0;
-        //int maxcount = 0;
-        //for(count = 0; count < num_output_nodes; count++) {
-        //        if(this_out[count] > max) {
-        //                max = this_out[count];
-        //                maxcount = count;
-        //        }
-        //}
-        //if (maxcount==0) { 
-        //        if (expected_out != 0){
-        //                errorsum += 1.0;
-        //        }
-        //}
-        //else if (maxcount==1){
-        //        if (expected_out != 1){
-        //                errorsum += 1.0;
-        //        }
-        //}
-        //else if (maxcount==2){
-        //        if (expected_out != 2){
-        //                errorsum += 1.0;
-        //        }
-        //}
-        //else { 
-        //        if (expected_out != 3){
-        //                errorsum += 1.0;
-        //        }
-        //}
 
         net->flush();
   }
