@@ -474,6 +474,13 @@ double NEAT::fsigmoid(double activesum,double slope,double constant) {
 	return (1/(1+(exp(-(slope*activesum))))); //Compressed
 }
 
+double NEAT::ftanh(double activesum,double slope,double constant) {
+
+        double exp_2x =  exp(2*(slope*activesum));
+	//Tanh
+	return (exp_2x -1 )/(exp_2x+1); //Compressed
+}
+
 double NEAT::oldhebbian(double weight, double maxweight, double active_in, double active_out, double hebb_rate, double pre_rate, double post_rate) {
 
 	bool neg=false;

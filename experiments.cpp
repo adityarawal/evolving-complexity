@@ -138,9 +138,9 @@ bool memory_evaluate(Organism *org) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[3]; //3-bit input - Bias, number, Store Signal
+  double in[4]; //2-bit input - Bias, number
   
-  double this_out[1]; //The current output
+  double this_out[3]; //The current output
   int count;
   double errorsum;
 
@@ -152,10 +152,10 @@ bool memory_evaluate(Organism *org) {
   int relax; //Activates until relaxation
   int steps_before_recall = 1; //Number of steps after which memory is required
  
-  int total_time_steps = 100; 
+  int total_time_steps = 10; 
   int expected_out; //expected output for each input
 
-  int num_trials = 10;
+  int num_trials = 100;
 
   //Creating a copy so that we can change its genome during lifetime
  
@@ -173,154 +173,196 @@ bool memory_evaluate(Organism *org) {
 
         in[0] = 1.0; //First input is Bias signal
 
+        in[1] = 0;
+        in[2] = 0;
+        in[3] = 0;
+        char a_or_b;
+        char x_or_y;
+        char w_or_z;
+        double rand_num =randfloat();
+        if (rand_num < 0.5) {
+               in[1] = 1;
+               a_or_b = 'a';
+        }
+        else { 
+               in[1] = -1;
+               a_or_b = 'b';
+        }
+        //expected_out = in[1];
+        double previous_out = 0.0;
         //use depth to ensure relaxation
-        for (relax=0;relax< total_time_steps; relax++) {
-                 //AND GATE - Second input is the number to be stored
-                 if (randfloat() <0.5) {
-                         in[1] = -1.0;
-                 }
-                 else {
-                         in[1] = 1.0;
-                 }
-                 if (randfloat() <0.5) {
-                         in[2] = 2.0;
-                         expected_out = in[1];
-                 }
-                 else {
-                         in[2] = 0.0;
-                         expected_out = 0;
-                }
-                //cout << "Inputs: "<<in[1]<<" "<<in[2]<<" Output: ";
+        
+        for (relax=0;relax< randfloat() * total_time_steps; relax++) {
                 net->load_sensors(in);
                 success=net->activate();
                 if (!success) {
                         org->error = 1;
                         break;
                 }
-                for (count = 0 ; count < net->outputs.size(); count++) {
-                        this_out[count]=(net->outputs[count])->activation;
+                in[1] = 0;
+                in[2] = 0;
+                in[3] = 0;
+        }
+        rand_num =randfloat();
+        if (rand_num < 0.5) {
+               in[2] = 1;
+               x_or_y = 'x';
+        }
+        else { 
+               in[2] = -1;
+               x_or_y = 'y';
+        }
+        if (a_or_b == 'a' && x_or_y == 'x') {
+                expected_out = 0;
+        }
+        else if (a_or_b == 'a' && x_or_y == 'y'){ 
+                expected_out = 1;
+        }
+        else if (a_or_b == 'b' && x_or_y == 'x'){ 
+                expected_out = 2;
+        }
+        else if (a_or_b == 'b' && x_or_y == 'y'){ 
+                expected_out = 3;
+        }
+        else {
+                cout <<"ERRRRRRRRRRRRRR "<<endl;
+                exit(0);
+        }
+        for (relax=0;relax< randfloat() * total_time_steps; relax++) {
+                net->load_sensors(in);
+                success=net->activate();
+                if (!success) {
+                        org->error = 1;
+                        break;
                 }
-                //cout <<this_out[0]<<endl;
-                if (this_out[0] <0.33) {
-                        if (expected_out != -1){
-                                errorsum += 1.0;
-                        }
+                in[1] = 0;
+                in[2] = 0;
+                in[3] = 0;
+        }
+        rand_num =randfloat();
+        if (rand_num < 0.5) {
+               in[3] = 1;
+               w_or_z = 'w';
+        }
+        else { 
+               in[3] = -1;
+               w_or_z = 'z';
+        }
+        if (a_or_b == 'a' && x_or_y == 'x' && w_or_z == 'w') {
+                expected_out = 0;
+        }
+        else if (a_or_b == 'a' && x_or_y == 'y' && w_or_z == 'w'){ 
+                expected_out = 1;
+        }
+        else if (a_or_b == 'b' && x_or_y == 'x' && w_or_z == 'w'){ 
+                expected_out = 2;
+        }
+        else if (a_or_b == 'b' && x_or_y == 'y' && w_or_z == 'w'){ 
+                expected_out = 3;
+        }
+        else if (a_or_b == 'a' && x_or_y == 'x' && w_or_z == 'z') {
+                expected_out = 4;
+        }
+        else if (a_or_b == 'a' && x_or_y == 'y' && w_or_z == 'z'){ 
+                expected_out = 5;
+        }
+        else if (a_or_b == 'b' && x_or_y == 'x' && w_or_z == 'z'){ 
+                expected_out = 6;
+        }
+        else if (a_or_b == 'b' && x_or_y == 'y' && w_or_z == 'z'){ 
+                expected_out = 7;
+        }
+        else {
+                cout <<"ERRRRRRRRRRRRRR "<<endl;
+                exit(0);
+        }
+        for (relax=0;relax< randfloat() * total_time_steps; relax++) {
+                net->load_sensors(in);
+                success=net->activate();
+                if (!success) {
+                        org->error = 1;
+                        break;
                 }
-                else if (this_out[0] < 0.67) {
-                        if (expected_out != 1){
-                                errorsum += 1.0;
-                        }
+                in[1] = 0;
+                in[2] = 0;
+                in[3] = 0;
+        }
+        //Check output
+        for (count = 0 ; count < net->outputs.size(); count++) {
+                this_out[count]=(net->outputs[count])->activation;
+        }
+        if (this_out[0] < 0.5 && this_out[1] < 0.5 && this_out[2] < 0.5) {
+                if (expected_out != 0){
+                        errorsum += 1.0;
                 }
-                else if (this_out[0] <= 1.0) {
-                        if (expected_out != 0){
-                                errorsum += 1.0;
-                        }
+        }
+        else if (this_out[0] < 0.5 && this_out[1] >= 0.5 && this_out[2] < 0.5) {
+                if (expected_out != 1){
+                        errorsum += 1.0;
                 }
-                //double max = -1000.0;
-                //int maxcount = 0;
-                //for(count = 0; count < num_output_nodes; count++) {
-                //        if(this_out[count] > max) {
-                //                max = this_out[count];
-                //                maxcount = count;
-                //        }
-                //}
-                //if (maxcount==0) {//Output Node 0 corresponds to input value of -1 
-                //        if (expected_out != -1){
-                //                errorsum += 1.0;
-                //        }
-                //}
-                //else {//Output Node 1 corresponds to input value of 1
-                //        if (expected_out != 1){
-                //                errorsum += 1.0;
-                //        }
-                //}
-                //if (randfloat() <0.5) {
-                //        in[1] = randfloat() * 5 - 10;
-                //}
-                //else {
-                //        in[1] = randfloat() * 5 + 5;
-                //}
-                //if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
-                //        in[1] = -1.0;
-                //}
-                //else {
-                //        in[1] = 1.0;
-                //}
-                //if (randfloat() > 0.3) {
-                //        in[3] = 0.0; //Don't store, expected_out doesn't change
-                //        if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
-                //                in[1] = 0.0;
-                //                in[2] = 1.0;
-                //        }
-                //        else {
-                //                in[1] = 1.0;
-                //                in[2] = 0.0;
-                //        }
-                //}
-                //else {
-                       // if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
-                       //         in[1] = 0.0;
-                       //         in[2] = 1.0;
-                       // }
-                       // else {
-                       //         in[1] = 1.0;
-                       //         in[2] = 0.0;
-                       // }
-                       // if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
-                       //         in[3] = 0.0; //Don't Store
-                       //         expected_out = 0;//Expected Output equals input
-                       // }
-                       // else {
-                       //         in[3] = 1.0; //Store
-                       //         expected_out = 1;//Expected Output equals input
-                       // }
-                //}
+        }
+        else if (this_out[0] >= 0.5 && this_out[1] < 0.5 && this_out[2] < 0.5)  {
+                if (expected_out != 2){
+                        errorsum += 1.0;
+                }
+        }
+        else if (this_out[0] >= 0.5 && this_out[1] >= 0.5 && this_out[2] < 0.5) {
+                if (expected_out != 3){
+                        errorsum += 1.0;
+                }
+        }
+        else if (this_out[0] < 0.5 && this_out[1] < 0.5 && this_out[2] >= 0.5) {
+                if (expected_out != 4){
+                        errorsum += 1.0;
+                }
+        }
+        else if (this_out[0] < 0.5 && this_out[1] >= 0.5 && this_out[2] >= 0.5) {
+                if (expected_out != 5){
+                        errorsum += 1.0;
+                }
+        }
+        else if (this_out[0] >= 0.5 && this_out[1] < 0.5 && this_out[2] >= 0.5)  {
+                if (expected_out != 6){
+                        errorsum += 1.0;
+                }
+        }
+        else if (this_out[0] >= 0.5 && this_out[1] >= 0.5 && this_out[2] >= 0.5) {
+                if (expected_out != 7){
+                        errorsum += 1.0;
+                }
         }
 
-        ////Moment of reckoning for agent. Recall
-        //for (count = 0 ; count < net->outputs.size(); count++) {
-        //        out[count]=(net->outputs[count])->activation;
-        //}
-        
-        net->flush();
 
-
-        //double max = -500;
+        //double max = -1000.0;
         //int maxcount = 0;
-
-        ////If input (few time steps earlier) was 0, then out[0] > out[1] 
-        ////If input (few time steps earlier) was 1, then out[1] > out[0] 
         //for(count = 0; count < num_output_nodes; count++) {
-        //        if(out[count] > max) {
-        //                max = out[count];
+        //        if(this_out[count] > max) {
+        //                max = this_out[count];
         //                maxcount = count;
         //        }
         //}
-
-        //if(maxcount != expected_out) {
-        //        errorsum += 1.0;
+        //if (maxcount==0) { 
+        //        if (expected_out != 0){
+        //                errorsum += 1.0;
+        //        }
         //}
-        //if (out[maxcount] <0.25) {
+        //else if (maxcount==1){
         //        if (expected_out != 1){
         //                errorsum += 1.0;
         //        }
         //}
-        //else if (out[maxcount] < 0.5) {
+        //else if (maxcount==2){
+        //        if (expected_out != 2){
+        //                errorsum += 1.0;
+        //        }
+        //}
+        //else { 
         //        if (expected_out != 3){
         //                errorsum += 1.0;
         //        }
         //}
-        //else if (out[maxcount] < 0.75) {
-        //        if (expected_out != 4){
-        //                errorsum += 1.0;
-        //        }
-        //}
-        //else if (out[maxcount] <= 1) {
-        //        if (expected_out != 5){
-        //                errorsum += 1.0;
-        //        }
-        //}
 
+        net->flush();
   }
         
   //Fitness = Task Fitness - Network Size penalty
