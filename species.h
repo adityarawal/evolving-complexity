@@ -86,7 +86,16 @@ namespace NEAT {
 		//Perform mating and mutation to form next generation
 		bool reproduce(int generation, Population *pop,std::vector<Species*> &sorted_species);
 
-		// *** Real-time methods *** 
+		//Perform mating and mutation to form next generation (Aditya-NSGA-2)
+		bool reproduce_multiobj(int generation, Population *pop);
+		
+                //Binary tournament selection
+                Organism* binary_tournament_select(int size);
+                
+                //Compare two organisms based NSGA-2 definition
+                bool org1_wins_org2(Organism* org1, Organism* org2);
+                
+                // *** Real-time methods *** 
 
 		//Place organisms in this species in order by their fitness
 		bool rank();

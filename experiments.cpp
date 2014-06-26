@@ -15,6 +15,7 @@
 */
 #include "experiments.h"
 #include <cstring>
+#include <math.h>
 
 //#define NO_SCREEN_OUT 
 //Perform evolution on digit recognition task, for gens generations
@@ -132,15 +133,238 @@ Population *memory_test(int gens) {
     return pop;
 
 }
+int toBin(double v, int num_bin) {
+	if(v==1.0) {
+                v=0.999;
+        }
+        else {
+                v =v+0.0001;//To avoid spurious error due to inaccuracy of double
+        }
+        return (int)((v)*(double)num_bin);//type casting to integer floors the number
+}
 
+double BintoValue(int v, int num_bin) {
+        return (double)(((double)(v)/(double)num_bin)+0.0001);//type casting to integer floors the number
+}
+
+double log_anybase(double value, int base) {
+        return (double) log(value)/log((double) base);
+}
+
+class histogram
+{
+        std::vector<int> bin_count;
+        std::vector<int> num_bins;
+        std::vector<double> granularity;
+        int total;
+  
+        public:
+        void initialize1d(std::vector<double> x, int x_num_bins) {
+                num_bins.push_back(x_num_bins);
+        	granularity.push_back((double)(1/num_bins[0]));
+        	for (int i=0; i<num_bins[0]; i++) { 
+                        bin_count.push_back(0);  //Initializing
+                }
+                for (int i=0; i<x.size(); i++) {
+                        bin_count[toBin(x[i], num_bins[0])]++;//Incrementing bin count
+                }
+        	total=x.size();
+        }
+        void initialize2d(std::vector<double> x, std::vector<double> y,int x_num_bins, int y_num_bins) {
+        	num_bins.push_back(x_num_bins);
+        	num_bins.push_back(y_num_bins);
+                granularity.push_back(1.0/(double)x_num_bins);
+                granularity.push_back(1.0/(double)y_num_bins);
+        	for (int i=0; i<num_bins[0]*num_bins[1]; i++) { 
+                        bin_count.push_back(0);  //Initializing
+                }
+        	for(int i=0;i<x.size();i++) {
+        		bin_count[toBin2d(x[i],y[i])]++;
+        	}
+        	total=x.size();
+        }
+        int toBin2d(double x,double y) {
+        	if(x==1.0) x=0.999;
+        	if(y==1.0) y=0.999;
+        	return toBin(x, num_bins[0])*num_bins[1]+toBin(y, num_bins[1]);
+        }
+        
+        double probability(double x,double y) {
+        	return ((double)bin_count[toBin2d(x,y)])/((double)total);///(granularity[0]*granularity[1]);
+        }
+        
+        //int toBin(double v, int num_bin) {
+        //	if(v==1.0) {
+        //                v=0.999;
+        //        }
+        //        else {
+        //                v =v+0.0001;//To avoid spurious error due to inaccuracy of double
+        //        }
+        //        return (int)((v)*(double)num_bin);//type casting to integer floors the number
+        //}
+        double probability(double v) {
+        	return ((double)bin_count[toBin(v, num_bins[0])])/((double)total);///(granularity[0]);
+        }
+        void print_bin_counts() {
+                if (num_bins.size() > 1) {
+                        for (int i=0; i<num_bins[0]*num_bins[1]; i++) {
+                                std::cout<<i<<" "<<bin_count[i]<<std::endl;
+                        }
+                        std::cout<<endl;
+                }
+                else {
+                        for (int i=0; i<num_bins[0]; i++) {
+                                std::cout<<i<<" "<<bin_count[i]<<std::endl;
+                        }
+                        std::cout<<endl;
+                }
+        }
+        
+        static double mutual_inf(std::vector<double> xvals, std::vector<double> yvals, int x_num_bins, int y_num_bins) {
+        	histogram hxy;// = new histogram();
+        	histogram hx;// = new histogram();
+        	histogram hy;// = new histogram();
+        	hx.initialize1d(xvals,x_num_bins);
+        	hy.initialize1d(yvals,y_num_bins);
+        	hxy.initialize2d(xvals,yvals,x_num_bins, y_num_bins);
+                
+                //hx.print_bin_counts();
+                //hy.print_bin_counts();
+                //hxy.print_bin_counts();
+                
+                double granularity_x = (double) (1.0/(double) x_num_bins); 
+                double granularity_y = (double) (1.0/(double) y_num_bins); 
+                
+                double mi=0.0;
+        	for(double x=0.0000001;x<1.0;x=x+granularity_x) {//Starting with x=0.0000001 to avoid double inaccuracy
+        		for(double y=0.0000001;y<1.0;y=y+granularity_y) {
+        			double pxy=hxy.probability(x,y);
+        			double px=hx.probability(x);
+        			double py=hy.probability(y);
+        			if(px!=0.0 && py!=0.0 && pxy !=0.0)
+        				//mi+=pxy*((double)log2((double)(pxy/(px*py))));//*(0.05f*0.05f);
+        				mi+=pxy*(log_anybase((double)(pxy/(px*py)), y_num_bins));//Assumption: x_num_bins = y_num_bins;
+        		}
+        	}
+                if (mi > 1.0) {
+                        std::cout<<" MUTUAL INFORMATION IS MORE THAN : 1.0 "<<mi<<std::endl;//Assuming x_num_bins = y_num_bins
+                        exit(0);
+                }
+                //Scale mi between 0-1 by dividing by its maximum value
+                //mi = mi/log2((double)y_num_bins); //Assuming x_num_bins = y_num_bins
+        	return mi;		
+        }
+
+};
+	
+double compute_mutual_information(Network *net, int max_history, int min_history, int num_bin, int active_time_steps, std::vector< std::vector <double> > sequence_x, std::vector< std::vector <double> > sequence_y) {
+ 
+  double mutual_information = 0.0; 
+  double in[2]; //2-bit input - Bias, number (NEXT STEP: deduce the length using network)
+  double this_out[1]; //The current output(NEXT STEP: deduce the length using network net->outputs.size())
+  int step;
+
+  //int num_trials = 1000; 
+  //int active_time_steps = 2;
+  //int total_time_steps = active_time_steps*2; //Equivalent to one sequence. Network is flushed after each sequence (Assumption: total_time_steps > max_history)
+  int x_num_bins = num_bin; 
+  int y_num_bins = num_bin;
+  int count;
+  bool success;  //Check for successful activation
+
+  //std::vector< std::vector <double> > sequence_x;//Stores the sequence of input shown to the network (Assumes only ONE input node)
+  //std::vector< std::vector <double> > sequence_y;//Stores the sequence of output of the network. Starts at t=max_history (Assumes only ONE output node)
+  //std::vector<double> temp_sequence_x;//One for each trial
+  //std::vector<double> temp_sequence_y;//One for each trial
+
+  ////COLLECT DATA
+  //for(int r = 0; r < num_trials; r++) {
+  //        
+  //        in[0] = 1.0; //First input is Bias signal
+  //        
+  //        temp_sequence_x.clear();
+  //        temp_sequence_y.clear(); 
+  //        for (step=0;step< total_time_steps; step++) {
+  //                if (step < active_time_steps) {
+  //                     double rand_num =randfloat();
+  //                     ////For real inputs
+  //                     //in[1] = rand_num; 
+  //                     //temp_sequence_x.push_back(rand_num);
+  //                     //For Integer inputs
+  //                     if (rand_num < 0.5) {//That is the behavior of function round() 
+  //                            in[1] = -1.0;   //Equivalent to 0
+  //                            temp_sequence_x.push_back(0.0); //0 represent -1. Current assumption: Inputs are -1/1 and never 0
+  //                     }
+  //                     else {
+  //                            in[1] = 1.0;    //1 
+  //                            temp_sequence_x.push_back(1.0); //Current assumption: Inputs are -1/1 and never 0
+  //                     } 
+  //                }
+  //                else {//Not capturing inputs after active_time_steps
+  //                     in[1] = 0.0;
+  //                     temp_sequence_x.push_back(0.0); //0 represent -1. Current assumption: Works when history is exactly N step back (No history window) 
+  //                }
+  //                net->load_sensors(in);
+  //                success=net->activate();
+  //                if (!success) {
+  //                        //org->error = 1;
+  //                        //std::cout << "ADITYA:: In Compute Mutual Information, Net did not activate"<<std::endl;
+  //                }
+  //                for (count = 0 ; count < net->outputs.size(); count++) {
+  //                        this_out[count]=(net->outputs[count])->activation;
+  //                }
+  //                temp_sequence_y.push_back((double)(this_out[count]));//Assumes only ONE output node
+  //        }
+  //        sequence_x.push_back(temp_sequence_x);
+  //        sequence_y.push_back(temp_sequence_y);
+  //        net->flush();
+  //}
+
+  std::vector < std::vector <double> > X; //One list for each history step
+  std::vector < std::vector <double> > Y; //One list for each history step
+  std::vector <double> temp_X;
+
+  //Initialize X
+  for (int i=min_history; i<=max_history; i++) {//For each trial 
+          X.push_back(temp_X);
+          Y.push_back(temp_X);
+  }
+  //Rearrange data to get X(t-N) and corresponding Y values
+  //Note, the length of X(t-N) decreases with increasing N. For e.g X(t-1).size() > X(t-2).size() 
+  //Corresponding Y values also decrease with increasing N. 
+  for (int i=0; i<sequence_x.size(); i++) {//For each trial
+          int t = min_history; //Always one step delay
+          while (t <= max_history) { 
+                  for (int j=0; j<=active_time_steps-1; j++) {
+                          X[t-min_history].push_back(sequence_x[i][j]);//Store X for each history step in a separate vector
+                  }
+                  for (int j=0; j<=active_time_steps-1; j++) {
+                          Y[t-min_history].push_back(sequence_y[i][j]);//Store Y for each history step in a separate vector
+                  }
+                  t++;
+          }
+  }
+
+  //Compute Mutual Information between X and Y for each history step
+  //NEXT STEP: take care of zeroes
+  for (int i=0; i<X.size(); i++) {
+          if (X[i].size()!= Y[i].size()) {
+                  std::cout<<"ERROR:: X(t-N) and Y(t) lengths do no match"<<std::endl;
+                  exit(0);
+          }
+          mutual_information += histogram::mutual_inf(X[i], Y[i], x_num_bins, y_num_bins); //X(t-1), corresponding Y ... X(t-2), corresponding Y
+  }
+  return mutual_information;
+}
 
 bool memory_evaluate(Organism *org) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[3]; //2-bit input - Bias, number
+  double in[2]; //2-bit input - Bias, number
   
-  double this_out[1]; //The current output
+  std::vector<double> this_out; //The current output
+  std::vector<double> last_out; //Output in the last time step
   int count;
   double errorsum;
 
@@ -150,20 +374,26 @@ bool memory_evaluate(Organism *org) {
 
   int net_depth; //The max depth of the network to be activated
   int relax; //Activates until relaxation
-  int steps_before_recall = 1; //Number of steps after which memory is required
  
-  int total_time_steps = 100; 
-  int expected_out; //expected output for each input
+  std::vector<double> expected_out; //expected output for each input
 
   int num_trials = 10;
+  
+  //Parameters for the primary objective
+  int active_time_steps = 1000; //Duration of active input.    
+  int y_x_delay = 0; //Time Delay between Y and X. Output y is compared with x after these many time steps (compare Y(t) and X(t-y_x_delay))
+  int total_time_steps = active_time_steps + y_x_delay;
 
-  //Creating a copy so that we can change its genome during lifetime
- 
-  //TEST CODE: REMOVE
-  //cout<<"ACTIVATING: "<<org->gnome<<endl;
-  //cout<<"DEPTH: "<<net_depth<<endl;
-
-  double random;
+  //Parameters for information objective (Used to specify history window)
+  int max_history = 0;//Maximum time step in history
+  int min_history = 0;//Minimum time step in history
+  bool real_input = false;//Switch for real/integer inputs 
+  int num_bin = 2; //Real value from 0-1 is discretized into these bins
+  
+  std::vector< std::vector <double> > sequence_x;//Stores the sequence of input shown to the network (Assumes only ONE input node)
+  std::vector< std::vector <double> > sequence_y;//Stores the sequence of output of the network. Starts at t=max_history (Assumes only ONE output node)
+  std::vector<double> temp_sequence_x;//One for each trial
+  std::vector<double> temp_sequence_y;//One for each trial
 
   errorsum = 0;
   net=org->net;
@@ -171,225 +401,77 @@ bool memory_evaluate(Organism *org) {
   //Load and activate the network on each input
   for(int r = 0; r < num_trials; r++) {
 
-        in[0] = 1.0; //First input is Bias signal
+        temp_sequence_x.clear();
+        temp_sequence_y.clear(); 
+        expected_out.clear();
+        this_out.clear();
+        last_out.clear();
 
-        //in[1] = 0.308254;
-        //
-        //if (in[1] < 0.33) { 
-        //        expected_out = -1;
-        //}
-        //else if (in[1] < 0.67) {
-        //        expected_out = 1;
-        //}
-        //in[2] = -1;
-        in[1] = 1;
-        in[2] = 1; //Recall
-        expected_out = in[1];
-        //use depth to ensure relaxation
+        //Activate once to initialize the NN output value to 0.5
+        in[0] = 0.0; //First input is Bias signal
+        in[1] = 0.0;
+        net->load_sensors(in);
+        success=net->activate();
+
+        int count_1 = 0;
         for (relax=0;relax< total_time_steps; relax++) {
-                //cout << "Inputs: "<<in[1]<<" "<<in[2]<<" Output: ";
+                if (relax < active_time_steps) {//This is the time for active inputs (-1/1)
+                       double rand_num =randfloat();
+                       if(real_input) {
+                                in[1] = rand_num; 
+                                expected_out.push_back(rand_num);
+                       }
+                       else {
+                                if (rand_num >= 0.5) {
+                                       in[1] = 1;
+                                       temp_sequence_x.push_back(1.0);//One for each trial
+                                }
+                                else { 
+                                       in[1] = -1;
+                                       temp_sequence_x.push_back(0.0);//One for each trial
+                                }
+                                expected_out.push_back(in[1]);
+                       }
+                }
+                else {//Give zeros as input 
+                        std::cout<<"Error"<<endl; //No delay in this experiment
+                        exit(0);
+                        //in[1] = 0;
+                        //expected_out.push_back(count_1);
+                }
+       
+                //Save the last NN output before activating it
+                last_out.push_back((net->outputs[0])->activation);
+               
+                //Activate NN 
                 net->load_sensors(in);
                 success=net->activate();
                 if (!success) {
                         org->error = 1;
-                        break;
+			//std::cout << " Again Net not activating"<<std::endl;
+                        //std::ofstream outFile("not_activating",std::ios::out);
+                        //((org)->gnome)->print_to_file(outFile);
                 }
-                for (count = 0 ; count < net->outputs.size(); count++) {
-                        this_out[count]=(net->outputs[count])->activation;
+                
+                this_out.push_back((net->outputs[0])->activation);
+                
+                //TO Compute Mutual Info between X and Delta_Y. Not really useful for up/down 
+                //integration experiment since NEAT standalone finds a solution easily 
+                if (this_out[relax]-last_out[relax] > 0) {
+                        temp_sequence_y.push_back(1.0);
                 }
-                //cout <<this_out[0]<<endl;
-                if (in[2] == 1) {//Recall is ON
-                        if (this_out[0] <0.33) {
-                                if (expected_out != -1){//Expected out is always 1 or -1
-                                        errorsum += 1.0;
-                                }
-                        }
-                        else if (this_out[0] <= 0.67) {//Expected out is always 1 or -1
-                                if (expected_out != 1){
-                                        errorsum += 1.0;
-                                }
-                        }
-                        else {
-                                errorsum += 1.0;
-                        }
-
+                else if (this_out[relax]-last_out[relax] <= 0) {
+                        temp_sequence_y.push_back(0.0);
                 }
-                else {//Recall is OFF
-                        if (this_out[0] <= 0.67){
-                                errorsum += 1.0;
-                        }
-                }
-
-                if (randfloat() <0.33) {
-                        if (randfloat() < 0.5) {
-                                in[1] = -1.0;
-                        }
-                        else {
-                                in[1] = 1.0;
-                        }
-                        expected_out = in[1];//Expected out is always 1 or -1
-                }
-                else {
-                        in[1] = 0.0;
-                }
-                if (randfloat() < 0.5) {
-                        in[2] = 1;//Recall
-                }
-                else {
-                        in[2] = 0; //Recall
-                }
-                // //AND GATE - Second input is the number to be stored
-                // if (randfloat() <0.5) {
-                //         in[1] = -1.0;
-                // }
-                // else {
-                //         in[1] = 1.0;
-                // }
-                // if (randfloat() <0.3) {
-                //         in[2] = 1.0;
-                //         expected_out = in[1];
-                // }
-                // else {
-                //         in[2] = 0.0;
-                //}
-                //double rand_num = randfloat();
-                //if (rand_num < 0.33) {
-                //        in[1] = 0.308254; //Value from the trained switch
-                //        expected_out = -1;
-                //        in[2] = -1;
-                //}
-                //else if (rand_num < 0.67) {
-                //        in[1] = 0.483135;//Value from the trained switch
-                //        expected_out = 1;
-                //        in[2] = 1;
-                //}
-                //else{
-                //        if (randfloat() < 0.5) {//Don't care output from the switch
-                //                in[1] = 0.939128;//Value from the trained switch
-                //                in[2] = 1;
-                //        }
-                //        else{
-                //                in[1] = 0.880309;//Value from the trained switch
-                //                in[2] = -1;
-                //        }
-                //}
-                //if (randfloat() <0.5) {
-                //        in[1] = -1.0;
-                //}
-                //else {
-                //        in[1] = 1.0;
-                //}
-                //if (randfloat() <0.3) {
-                //        in[2] = 2.0;
-                //        expected_out = in[1];
-                //}
-                //else {
-                //        in[2] = 0.0;
-                //}
-                //double max = -1000.0;
-                //int maxcount = 0;
-                //for(count = 0; count < num_output_nodes; count++) {
-                //        if(this_out[count] > max) {
-                //                max = this_out[count];
-                //                maxcount = count;
-                //        }
-                //}
-                //if (maxcount==0) {//Output Node 0 corresponds to input value of -1 
-                //        if (expected_out != -1){
-                //                errorsum += 1.0;
-                //        }
-                //}
-                //else {//Output Node 1 corresponds to input value of 1
-                //        if (expected_out != 1){
-                //                errorsum += 1.0;
-                //        }
-                //}
-                //if (randfloat() <0.5) {
-                //        in[1] = randfloat() * 5 - 10;
-                //}
-                //else {
-                //        in[1] = randfloat() * 5 + 5;
-                //}
-                //if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
-                //        in[1] = -1.0;
-                //}
-                //else {
-                //        in[1] = 1.0;
-                //}
-                //if (randfloat() > 0.3) {
-                //        in[3] = 0.0; //Don't store, expected_out doesn't change
-                //        if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
-                //                in[1] = 0.0;
-                //                in[2] = 1.0;
-                //        }
-                //        else {
-                //                in[1] = 1.0;
-                //                in[2] = 0.0;
-                //        }
-                //}
-                //else {
-                       // if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
-                       //         in[1] = 0.0;
-                       //         in[2] = 1.0;
-                       // }
-                       // else {
-                       //         in[1] = 1.0;
-                       //         in[2] = 0.0;
-                       // }
-                       // if (randfloat() < 0.5) { //Input number can be either 1 or -1 (for now)
-                       //         in[3] = 0.0; //Don't Store
-                       //         expected_out = 0;//Expected Output equals input
-                       // }
-                       // else {
-                       //         in[3] = 1.0; //Store
-                       //         expected_out = 1;//Expected Output equals input
-                       // }
-                //}
         }
-        ////Moment of reckoning for agent. Recall
-        //for (count = 0 ; count < net->outputs.size(); count++) {
-        //        out[count]=(net->outputs[count])->activation;
-        //}
-        
-        net->flush();
-
-
-        //double max = -500;
-        //int maxcount = 0;
-
-        ////If input (few time steps earlier) was 0, then out[0] > out[1] 
-        ////If input (few time steps earlier) was 1, then out[1] > out[0] 
-        //for(count = 0; count < num_output_nodes; count++) {
-        //        if(out[count] > max) {
-        //                max = out[count];
-        //                maxcount = count;
-        //        }
-        //}
-
-        //if(maxcount != expected_out) {
-        //        errorsum += 1.0;
-        //}
-        //if (out[maxcount] <0.25) {
-        //        if (expected_out != 1){
-        //                errorsum += 1.0;
-        //        }
-        //}
-        //else if (out[maxcount] < 0.5) {
-        //        if (expected_out != 3){
-        //                errorsum += 1.0;
-        //        }
-        //}
-        //else if (out[maxcount] < 0.75) {
-        //        if (expected_out != 4){
-        //                errorsum += 1.0;
-        //        }
-        //}
-        //else if (out[maxcount] <= 1) {
-        //        if (expected_out != 5){
-        //                errorsum += 1.0;
-        //        }
-        //}
-
+        //Check output
+        for (int i = 0 ; i < active_time_steps; i++) {
+                if (expected_out[i]*((this_out[i])-last_out[i]) <= 0.0) { //Have different signs
+                                errorsum += 1.0;
+                }
+        }
+        sequence_x.push_back(temp_sequence_x);
+        sequence_y.push_back(temp_sequence_y);
   }
         
   //Fitness = Task Fitness - Network Size penalty
@@ -400,12 +482,12 @@ bool memory_evaluate(Organism *org) {
   int recurrence_reward = 0;
   if (success) {
 
-    org->error=errorsum/(total_time_steps*num_trials);
+    org->error=errorsum/(active_time_steps*num_trials);
     if (network_size > opt_network_size) {
-            org->fitness = (1 - org->error)*task_fitness_weight - (network_size-opt_network_size)*size_penalty_weight;
+            org->fitness1 = (1 - org->error)*task_fitness_weight - (network_size-opt_network_size)*size_penalty_weight;
     }
     else {
-            org->fitness = (1 - org->error)*task_fitness_weight ;
+            org->fitness1 = (1 - org->error)*task_fitness_weight ;
     }
     //Code to reward recurrent networks 
     std::vector<Gene*>::iterator curgene;
@@ -413,31 +495,41 @@ bool memory_evaluate(Organism *org) {
     	//But skip links that are already recurrent
     	//(We want to check back through the forward flow of signals only
     	if (((*curgene)->lnk->is_recurrent)) {
-                org->fitness += recurrence_reward;
+                org->fitness1 += recurrence_reward;
                 break;
     	}
     }
 
+    double mutual_information;
+    mutual_information = compute_mutual_information(net, max_history, min_history, num_bin, active_time_steps, sequence_x, sequence_y);
+    org->fitness2 = mutual_information*100.0/((double)(max_history-min_history+1)); //To scale it to 0-100
+    //org->fitness2 = org->fitness1; //To scale it to 0-100
   }
   else {
     //The network is flawed (shouldnt happen)
     errorsum=999.0;
-    org->fitness=0.001;
+    org->fitness1=0.001;
+    org->fitness2=0.001;
   }
 
+  if (org->fitness1>=100.00) {
+        org->winner = true;
+        std::cout<<"OBJECTIVE1 ACHIEVED:: WINNER FOUND"<<std::endl;
+  }
+  else{
+       org->winner = false;
+  }
+  if (org->fitness2>=100.0) {
+        //org->winner = true;
+        std::cout<<"OBJECTIVE2 ACHIEVED:: WINNER FOUND"<<std::endl;
+  }
+
+  
   #ifndef NO_SCREEN_OUT
   cout<<"Org "<<(org->gnome)->genome_id<<"                                     error: "<<org->error<<endl;
-  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness: "<<org->fitness<<endl;
+  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness1: "<<org->fitness1<<endl;
+  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness2: "<<org->fitness2<<endl;
   #endif
-
-  //if (errorsum<0.05) { 
-  if (org->fitness>=100.0) {
-
-        org->winner = true;
-  }
-
-  else
-       org->winner = false; 
 
   return org->winner;
 
@@ -511,7 +603,8 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   }
 
 //  if(generation <= 999)
-        pop->epoch(generation);
+        //pop->epoch(generation);
+        pop->epoch_multiobj(generation); //Aditya (NSGA-2)
 
   if (win) return 1;
   else return 0;
@@ -686,18 +779,18 @@ bool xor_evaluate(Organism *org) {
   
   if (success) {
     errorsum=(fabs(out[0])+fabs(1.0-out[1])+fabs(1.0-out[2])+fabs(out[3]));
-    org->fitness=pow((4.0-errorsum),2);
+    org->fitness1=pow((4.0-errorsum),2);
     org->error=errorsum;
   }
   else {
     //The network is flawed (shouldnt happen)
     errorsum=999.0;
-    org->fitness=0.001;
+    org->fitness1=0.001;
   }
 
   #ifndef NO_SCREEN_OUT
   cout<<"Org "<<(org->gnome)->genome_id<<"                                     error: "<<errorsum<<"  ["<<out[0]<<" "<<out[1]<<" "<<out[2]<<" "<<out[3]<<"]"<<endl;
-  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness: "<<org->fitness<<endl;
+  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness: "<<org->fitness1<<endl;
   #endif
 
   //  if (errorsum<0.05) { 
@@ -944,14 +1037,14 @@ bool pole1_evaluate(Organism *org) {
   thresh=numnodes*2;  //Max number of visits allowed per activation
   
   //Try to balance a pole now
-  org->fitness = go_cart(net,MAX_STEPS,thresh);
+  org->fitness1 = go_cart(net,MAX_STEPS,thresh);
 
 #ifndef NO_SCREEN_OUT
-  cout<<"Org "<<(org->gnome)->genome_id<<" fitness: "<<org->fitness<<endl;
+  cout<<"Org "<<(org->gnome)->genome_id<<" fitness: "<<org->fitness1<<endl;
 #endif
 
   //Decide if its a winner
-  if (org->fitness>=MAX_STEPS) { 
+  if (org->fitness1>=MAX_STEPS) { 
     org->winner=true;
     return true;
   }
@@ -1404,9 +1497,9 @@ int pole2_epoch(Population *pop,int generation,char *filename,bool velocity,
   if (thecart->MARKOV) {
     champ_fitness=0.0;
     for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
-      if (((*curorg)->fitness)>champ_fitness) {
+      if (((*curorg)->fitness1)>champ_fitness) {
 	champ=(*curorg);
-	champ_fitness=champ->fitness;
+	champ_fitness=champ->fitness1;
 	champgenes=champ->gnome->genes.size();
 	champnodes=champ->gnome->nodes.size();
 	winnernum=champ->gnome->genome_id;
@@ -1458,7 +1551,7 @@ int pole2_epoch(Population *pop,int generation,char *filename,bool velocity,
     //Extract the champ
     cout<<"Champ chosen from Species "<<(*curspecies)->id<<endl;
     champ=(*curspecies)->get_champ();
-    champ_fitness=champ->fitness;
+    champ_fitness=champ->fitness1;
     cout<<"Champ is organism #"<<champ->gnome->genome_id<<endl;
     cout<<"Champ fitness: "<<champ_fitness<<endl;
     winnernum=champ->gnome->genome_id;
@@ -1514,7 +1607,7 @@ int pole2_epoch(Population *pop,int generation,char *filename,bool velocity,
 	oFile<<"(generalization = "<<score<<" )"<<endl;
 	oFile<<"generation= "<<generation<<endl;
         (champ->gnome)->print_to_file(oFile);
-	champ_fitness=champ->fitness;
+	champ_fitness=champ->fitness1;
 	champgenes=champ->gnome->genes.size();
 	champnodes=champ->gnome->nodes.size();
 	winnernum=champ->gnome->genome_id;
@@ -1522,13 +1615,13 @@ int pole2_epoch(Population *pop,int generation,char *filename,bool velocity,
       }
       else {
 	cout<<"The champ couldn't generalize"<<endl;
-	champ->fitness=champ_fitness; //Restore the champ's fitness
+	champ->fitness1=champ_fitness; //Restore the champ's fitness
       }
     }
     else {
       cout<<"The champ failed the 100,000 test :("<<endl;
-      cout<<"made score "<<champ->fitness<<endl;
-      champ->fitness=champ_fitness; //Restore the champ's fitness
+      cout<<"made score "<<champ->fitness1<<endl;
+      champ->fitness1=champ_fitness; //Restore the champ's fitness
     }
   }
   
@@ -1567,14 +1660,14 @@ bool pole2_evaluate(Organism *org,bool velocity, CartPole *thecart) {
   //org->net->flush_check();
 
   //Try to balance a pole now
-  org->fitness = thecart->evalNet(net,thresh);
+  org->fitness1 = thecart->evalNet(net,thresh);
 
 #ifndef NO_SCREEN_OUT
   if (org->pop_champ_child)
     cout<<" <<DUPLICATE OF CHAMPION>> ";
 
   //Output to screen
-  cout<<"Org "<<(org->gnome)->genome_id<<" fitness: "<<org->fitness;
+  cout<<"Org "<<(org->gnome)->genome_id<<" fitness: "<<org->fitness1;
   cout<<" ("<<(org->gnome)->genes.size();
   cout<<" / "<<(org->gnome)->nodes.size()<<")";
   cout<<"   ";
@@ -1587,7 +1680,7 @@ bool pole2_evaluate(Organism *org,bool velocity, CartPole *thecart) {
   if (org->pop_champ_child) {
     cout<<org->gnome<<endl;
     //DEBUG CHECK
-    if (org->high_fit>org->fitness) {
+    if (org->high_fit>org->fitness1) {
       cout<<"ALERT: ORGANISM DAMAGED"<<endl;
       print_Genome_tofile(org->gnome,"failure_champ_genome");
       cin>>pause;
@@ -1596,7 +1689,7 @@ bool pole2_evaluate(Organism *org,bool velocity, CartPole *thecart) {
 
   //Decide if its a winner, in Markov Case
   if (thecart->MARKOV) {
-    if (org->fitness>=(thecart->maxFitness-1)) { 
+    if (org->fitness1>=(thecart->maxFitness-1)) { 
       org->winner=true;
       return true;
     }
@@ -1607,8 +1700,8 @@ bool pole2_evaluate(Organism *org,bool velocity, CartPole *thecart) {
   }
   //if doing the long test non-markov 
   else if (thecart->nmarkov_long) {
-    if (org->fitness>=99999) { 
-      //if (org->fitness>=9000) { 
+    if (org->fitness1>=99999) { 
+      //if (org->fitness1>=9000) { 
       org->winner=true;
       return true;
     }
@@ -1618,7 +1711,7 @@ bool pole2_evaluate(Organism *org,bool velocity, CartPole *thecart) {
     }
   }
   else if (thecart->generalization_test) {
-    if (org->fitness>=999) {
+    if (org->fitness1>=999) {
       org->winner=true;
       return true;
     }
