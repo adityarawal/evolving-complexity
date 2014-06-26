@@ -63,8 +63,10 @@ namespace NEAT {
 		int winnergen; //An integer that when above zero tells when the first winner appeared
 
 		// ******* When do we need to delta code? *******
-		double highest_fitness;  //Stagnation detector
-		int highest_last_changed; //If too high, leads to delta coding
+		double highest_fitness1;  //Stagnation detector
+		double highest_fitness2;  //Stagnation detector
+		int highest_last_changed1; //If too high, leads to delta coding
+		int highest_last_changed2; //If too high, leads to delta coding
 
 		// Separate the Organisms into species
 		bool speciate();
@@ -87,8 +89,15 @@ namespace NEAT {
 		// Turnover the population to a new generation using fitness 
 		// The generation argument is the next generation
 		bool epoch(int generation);
-
-		// *** Real-time methods *** 
+	
+                //**  Aditya (NSGA-2)Adding new functions **//        
+                bool epoch_multiobj(int generation);
+                bool p_dominates_q (Organism* p, Organism* q);
+                void assign_crowding_distance (std::vector<Organism*>, int num_obj);
+                std::vector< std::vector<Organism*> > assign_domination_fronts();
+                std::vector <double> compute_fitness_range();
+		
+                // *** Real-time methods *** 
 
 		// Places the organisms in species in order from best to worst fitness 
 		bool rank_within_species();
@@ -122,6 +131,14 @@ namespace NEAT {
 		
 
 	};
+        //Sort organisms by their fitness objective 1
+	bool order_org_fitness1(Organism *x, Organism *y); //Aditya (NSGA-2)
+
+        //Sort organisms by their fitness objective 2
+	bool order_org_fitness2(Organism *x, Organism *y); //Aditya (NSGA-2)
+
+        //Sort organisms by their crowding distance  
+	bool order_org_crowd_dist(Organism *x, Organism *y); //Aditya (NSGA-2)
 
 } // namespace NEAT
 

@@ -17,9 +17,12 @@
 
 using namespace NEAT;
 
-Organism::Organism(double fit, Genome *g,int gen, const char* md) {
-	fitness=fit;
-	orig_fitness=fitness;
+Organism::Organism(double fit1, double fit2, Genome *g,int gen, const char* md) {
+	fitness1=fit1;//(Aditya: for NSGA-2)
+	fitness2=fit2;//(Aditya: for NSGA-2)
+	orig_fitness=fitness1;//(Aditya: for NSGA-2)
+        front_num = -1;//(Aditya: for NSGA-2)
+        crowd_dist = 0.0;//(Aditya: for NSGA-2)
 	gnome=g;
 	net=gnome->genesis(gnome->genome_id);
 	species=0;  //Start it in no Species
@@ -52,8 +55,11 @@ Organism::Organism(double fit, Genome *g,int gen, const char* md) {
 
 Organism::Organism(const Organism& org)
 {
-	fitness = org.fitness;
-	orig_fitness = org.orig_fitness;
+	fitness1 = org.fitness1; //(Aditya: for NSGA-2)
+	fitness2 = org.fitness2;//(Aditya: for NSGA-2)
+	orig_fitness = org.orig_fitness;//(Aditya: for NSGA-2)
+        front_num = org.front_num; //(Aditya: for NSGA-2)
+        crowd_dist = org.crowd_dist; //(Aditya: for NSGA-2)
 	gnome = new Genome(*(org.gnome));	// Associative relationship
 	//gnome = org.gnome->duplicate(org.gnome->genome_id);
 	net = new Network(*(org.net)); // Associative relationship
@@ -106,7 +112,7 @@ bool Organism::write_to_file(std::ostream &outFile) {
 	
 	char tempbuf2[1024];
 	if(modified == true) {
-		sprintf(tempbuf2, "/* Organism #%d Fitness: %f Time: %d */\n", (gnome)->genome_id, fitness, time_alive);
+		sprintf(tempbuf2, "/* Organism #%d Fitness: %f Time: %d */\n", (gnome)->genome_id, fitness1, fitness2, time_alive);
 	} else {
 		sprintf(tempbuf2, "/* %s */\n", metadata);
 	}
@@ -137,10 +143,10 @@ bool Organism::write_to_file(std::ostream &outFile) {
 //return 1;
 //}
 
-bool NEAT::order_orgs(Organism *x, Organism *y) {
-	return (x)->fitness > (y)->fitness;
+bool NEAT::order_orgs(Organism *x, Organism *y) {//(Aditya: for NSGA-2)
+	return (x)->fitness1 > (y)->fitness1;
 }
 
-bool NEAT::order_orgs_by_adjusted_fit(Organism *x, Organism *y) {
-	return (x)->fitness / (x->species)->organisms.size()  > (y)->fitness / (y->species)->organisms.size();
+bool NEAT::order_orgs_by_adjusted_fit(Organism *x, Organism *y) {//(Aditya: for NSGA-2)
+	return (x)->fitness1 / (x->species)->organisms.size()  > (y)->fitness1 / (y->species)->organisms.size();
 }

@@ -77,9 +77,9 @@ Organism *Species::get_champ() {
 	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
 		//TODO: Remove DEBUG code
 		//cout<<"searching for champ...looking at org "<<(*curorg)->gnome->genome_id<<" fitness: "<<(*curorg)->fitness<<endl;
-		if (((*curorg)->fitness)>champ_fitness) {
+		if (((*curorg)->fitness1)>champ_fitness) {
 			thechamp=(*curorg);
-			champ_fitness=thechamp->fitness;
+			champ_fitness=thechamp->fitness1;
 		}
 	}
 
@@ -165,7 +165,7 @@ bool Species::print_to_file(std::ofstream &outFile) {
   for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
 
     //Put the fitness for each organism in a comment
-    outFile<<std::endl<<"/* Organism #"<<((*curorg)->gnome)->genome_id<<" Fitness: "<<(*curorg)->fitness<<" Error: "<<(*curorg)->error<<" */"<<std::endl;
+    outFile<<std::endl<<"/* Organism #"<<((*curorg)->gnome)->genome_id<<" Fitness1: "<<(*curorg)->fitness1<<" Fitness2: "<<(*curorg)->fitness2<<" Error: "<<(*curorg)->error<<" */"<<std::endl;
 
     //If it is a winner, mark it in a comment
     if ((*curorg)->winner) outFile<<"/* ##------$ WINNER "<<((*curorg)->gnome)->genome_id<<" SPECIES #"<<id<<" $------## */"<<std::endl;
@@ -199,7 +199,7 @@ bool Species::print_to_file(std::ostream &outFile) {
 		//Put the fitness for each organism in a comment
 		//outFile<<std::endl<<"/* Organism #"<<((*curorg)->gnome)->genome_id<<" Fitness: "<<(*curorg)->fitness<<" Error: "<<(*curorg)->error<<" */"<<std::endl;
 		char tempbuf2[1024];
-		sprintf(tempbuf2, "/* Organism #%d Fitness: %f Time: %d */\n", ((*curorg)->gnome)->genome_id, (*curorg)->fitness, (*curorg)->time_alive);
+		sprintf(tempbuf2, "/* Organism #%d Fitness1: %d Fitness2: %f Time: %d */\n", ((*curorg)->gnome)->genome_id, (*curorg)->fitness1, (*curorg)->fitness2, (*curorg)->time_alive);
 		outFile << tempbuf2;
 
 		//If it is a winner, mark it in a comment
@@ -261,82 +261,82 @@ bool Species::print_to_file(std::ostream &outFile) {
 //return true;
 //}
 
-void Species::adjust_fitness() {
-	std::vector<Organism*>::iterator curorg;
-
-	int num_parents;
-	int count;
-
-	int age_debt; 
-
-	//std::cout<<"Species "<<id<<" last improved "<<(age-age_of_last_improvement)<<" steps ago when it moved up to "<<max_fitness_ever<<std::endl;
-
-	age_debt=(age-age_of_last_improvement+1)-NEAT::dropoff_age;
-
-	if (age_debt==0) age_debt=1;
-
-	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
-
-		//Remember the original fitness before it gets modified
-		(*curorg)->orig_fitness=(*curorg)->fitness;
-
-		//Make fitness decrease after a stagnation point dropoff_age
-		//Added an if to keep species pristine until the dropoff point
-		//obliterate is used in competitive coevolution to mark stagnation
-		//by obliterating the worst species over a certain age
-		if ((age_debt>=1)||obliterate) {
-
-			//Possible graded dropoff
-			//((*curorg)->fitness)=((*curorg)->fitness)*(-atan(age_debt));
-
-			//Extreme penalty for a long period of stagnation (divide fitness by 100)
-			((*curorg)->fitness)=((*curorg)->fitness)*0.01;
-			//std::cout<<"OBLITERATE Species "<<id<<" of age "<<age<<std::endl;
-			//std::cout<<"dropped fitness to "<<((*curorg)->fitness)<<std::endl;
-		}
-
-		//Give a fitness boost up to some young age (niching)
-		//The age_significance parameter is a system parameter
-		//  if it is 1, then young species get no fitness boost
-		if (age<=10) ((*curorg)->fitness)=((*curorg)->fitness)*NEAT::age_significance; 
-
-		//Do not allow negative fitness
-		if (((*curorg)->fitness)<0.0) (*curorg)->fitness=0.0001; 
-
-		//Share fitness with the species
-		(*curorg)->fitness=((*curorg)->fitness)/(organisms.size());
-
-	}
-
-	//Sort the population and mark for death those after survival_thresh*pop_size
-	//organisms.qsort(order_orgs);
-	std::sort(organisms.begin(), organisms.end(), order_orgs);
-
-	//Update age_of_last_improvement here
-	if (((*(organisms.begin()))->orig_fitness)> 
-	    max_fitness_ever) {
-	  age_of_last_improvement=age;
-	  max_fitness_ever=((*(organisms.begin()))->orig_fitness);
-	}
-
-	//Decide how many get to reproduce based on survival_thresh*pop_size
-	//Adding 1.0 ensures that at least one will survive
-	num_parents=(int) floor((NEAT::survival_thresh*((double) organisms.size()))+1.0);
-	
-	//Mark for death those who are ranked too low to be parents
-	curorg=organisms.begin();
-	(*curorg)->champion=true;  //Mark the champ as such
-	for(count=1;count<=num_parents;count++) {
-	  if (curorg!=organisms.end())
-	    ++curorg;
-	}
-	while(curorg!=organisms.end()) {
-	  (*curorg)->eliminate=true;  //Mark for elimination
-	  //std::std::cout<<"marked org # "<<(*curorg)->gnome->genome_id<<" fitness = "<<(*curorg)->fitness<<std::std::endl;
-	  ++curorg;
-	}             
-
-}
+//void Species::adjust_fitness() {
+//	std::vector<Organism*>::iterator curorg;
+//
+//	int num_parents;
+//	int count;
+//
+//	int age_debt; 
+//
+//	//std::cout<<"Species "<<id<<" last improved "<<(age-age_of_last_improvement)<<" steps ago when it moved up to "<<max_fitness_ever<<std::endl;
+//
+//	age_debt=(age-age_of_last_improvement+1)-NEAT::dropoff_age;
+//
+//	if (age_debt==0) age_debt=1;
+//
+//	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
+//
+//		//Remember the original fitness before it gets modified
+//		(*curorg)->orig_fitness=(*curorg)->fitness;
+//
+//		//Make fitness decrease after a stagnation point dropoff_age
+//		//Added an if to keep species pristine until the dropoff point
+//		//obliterate is used in competitive coevolution to mark stagnation
+//		//by obliterating the worst species over a certain age
+//		if ((age_debt>=1)||obliterate) {
+//
+//			//Possible graded dropoff
+//			//((*curorg)->fitness)=((*curorg)->fitness)*(-atan(age_debt));
+//
+//			//Extreme penalty for a long period of stagnation (divide fitness by 100)
+//			((*curorg)->fitness)=((*curorg)->fitness)*0.01;
+//			//std::cout<<"OBLITERATE Species "<<id<<" of age "<<age<<std::endl;
+//			//std::cout<<"dropped fitness to "<<((*curorg)->fitness)<<std::endl;
+//		}
+//
+//		//Give a fitness boost up to some young age (niching)
+//		//The age_significance parameter is a system parameter
+//		//  if it is 1, then young species get no fitness boost
+//		if (age<=10) ((*curorg)->fitness)=((*curorg)->fitness)*NEAT::age_significance; 
+//
+//		//Do not allow negative fitness
+//		if (((*curorg)->fitness)<0.0) (*curorg)->fitness=0.0001; 
+//
+//		//Share fitness with the species
+//		(*curorg)->fitness=((*curorg)->fitness)/(organisms.size());
+//
+//	}
+//
+//	//Sort the population and mark for death those after survival_thresh*pop_size
+//	//organisms.qsort(order_orgs);
+//	std::sort(organisms.begin(), organisms.end(), order_orgs);
+//
+//	//Update age_of_last_improvement here
+//	if (((*(organisms.begin()))->orig_fitness)> 
+//	    max_fitness_ever) {
+//	  age_of_last_improvement=age;
+//	  max_fitness_ever=((*(organisms.begin()))->orig_fitness);
+//	}
+//
+//	//Decide how many get to reproduce based on survival_thresh*pop_size
+//	//Adding 1.0 ensures that at least one will survive
+//	num_parents=(int) floor((NEAT::survival_thresh*((double) organisms.size()))+1.0);
+//	
+//	//Mark for death those who are ranked too low to be parents
+//	curorg=organisms.begin();
+//	(*curorg)->champion=true;  //Mark the champ as such
+//	for(count=1;count<=num_parents;count++) {
+//	  if (curorg!=organisms.end())
+//	    ++curorg;
+//	}
+//	while(curorg!=organisms.end()) {
+//	  (*curorg)->eliminate=true;  //Mark for elimination
+//	  //std::std::cout<<"marked org # "<<(*curorg)->gnome->genome_id<<" fitness = "<<(*curorg)->fitness<<std::std::endl;
+//	  ++curorg;
+//	}             
+//
+//}
 
 double Species::compute_average_fitness() {
 	std::vector<Organism*>::iterator curorg;
@@ -346,7 +346,7 @@ double Species::compute_average_fitness() {
 	//int pause; //DEBUG: Remove
 
 	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
-		total+=(*curorg)->fitness;
+		total+=(*curorg)->fitness1;
 		//std::cout<<"new total "<<total<<std::endl; //DEBUG: Remove
 	}
 
@@ -365,8 +365,8 @@ double Species::compute_max_fitness() {
 	std::vector<Organism*>::iterator curorg;
 
 	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
-		if (((*curorg)->fitness)>max)
-			max=(*curorg)->fitness;
+		if (((*curorg)->fitness1)>max)
+			max=(*curorg)->fitness1;
 	}
 
 	max_fitness=max;
@@ -402,6 +402,260 @@ double Species::count_offspring(double skim) {
 
 	return skim;
 
+}
+
+bool Species::org1_wins_org2(Organism* org1, Organism* org2) {
+        if ((org1->front_num < 0) ||(org1->front_num < 0))  {//For verification purpose
+                std::cout<<"ERROR: Incorrect front number"<<std::endl;
+                exit(0);
+        }
+        if (org1->front_num < org2->front_num) {//Lower numbered fronts are more dominant
+                return true;
+        }
+        else if (org1->front_num > org2->front_num) {
+                return false;
+        }
+        else if (org1->front_num == org2->front_num) {
+                if (org1->crowd_dist > org2->crowd_dist) {
+                        return true;
+                }
+                else if (org1->crowd_dist < org2->crowd_dist) {
+                        return false;
+                }
+                else if (org1->crowd_dist == org2->crowd_dist){//Doesn't matter whether we return true or false
+                        return true;
+                }
+        }
+                
+}
+
+Organism* Species::binary_tournament_select(int size) {
+	
+        std::vector<Organism*>::iterator curorg;
+        Organism* org1; 
+        Organism* org2;
+        int orgnum;
+        int orgcount;
+
+        //RANDOM PARENT CHOOSER
+	orgnum=rand()%size; //Random integer between 0 and size-1
+        curorg=organisms.begin();
+	for(orgcount=0;orgcount<orgnum;orgcount++){
+		++curorg;                       
+        }
+        org1 = (*curorg);//organisms[orgnum];
+        //RANDOM PARENT CHOOSER
+	orgnum=rand()%size; //Random integer between 0 and size-1
+	curorg=organisms.begin();
+	for(orgcount=0;orgcount<orgnum;orgcount++){
+		++curorg;                       
+        }
+        org2 = (*curorg);//organisms[orgnum];
+
+        if (org1_wins_org2(org1, org2)) {
+                return org1;
+        }
+        else {
+                return org2; 
+        }
+}
+
+bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - NSGA2)
+	int count;
+	std::vector<Organism*>::iterator curorg;
+
+	int poolsize;  //The number of Organisms in the old generation
+
+	Organism *mom; //Parent Organisms
+	Organism *dad;
+	Organism *baby;  //The new Organism
+
+	Genome *new_genome;  //For holding baby's genes
+
+	std::vector<Species*>::iterator curspecies;  //For adding baby
+
+	double randmult;
+
+	Network *net_analogue;  //For adding link to test for recurrency
+	int pause;
+
+	bool outside;
+
+	bool found;  //When a Species is found
+
+	bool champ_done=false; //Flag the preservation of the champion  
+
+	int giveup; //For giving up finding a mate outside the species
+
+	bool mut_struct_baby;
+	bool mate_baby;
+
+	//The weight mutation power is species specific depending on its age
+	double mut_power=NEAT::weight_mut_power;
+
+        if (organisms.size()!= NEAT::pop_size/2) {//For verification purposes
+                std::cout<<"ERROR- mismatch in organism size and NEAT::pop_size/2"<<std::endl;
+                exit(0);
+        }
+        expected_offspring = organisms.size();//Number of new organisms that will be generated here
+        poolsize = organisms.size();//Size of the parent population used for binary tournament selection
+
+        for (count= 0; count <expected_offspring; count++) { //Create NEAT::pop_size/2 new offsprings
+		
+		mut_struct_baby=false;
+		mate_baby=false;
+		outside=false;
+
+
+                //Mutate only 
+		if (randfloat()<NEAT::mutate_only_prob) {
+
+			//Choose the parent
+                        mom = binary_tournament_select(poolsize);
+
+			new_genome=(mom->gnome)->duplicate(count);
+
+			//Do the mutation depending on probabilities of 
+			//various mutations
+
+			if (randfloat()<NEAT::mutate_add_node_prob) {
+				//std::cout<<"mutate add node"<<std::endl;
+				new_genome->mutate_add_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
+				mut_struct_baby=true;
+			}
+			else if (randfloat()<NEAT::mutate_add_link_prob) {
+				//std::cout<<"mutate add link"<<std::endl;
+				net_analogue=new_genome->genesis(generation);
+				new_genome->mutate_add_link(pop->innovations,pop->cur_innov_num,NEAT::newlink_tries);
+				delete net_analogue;
+				mut_struct_baby=true;
+			}
+			//NOTE:  A link CANNOT be added directly after a node was added because the phenotype
+			//       will not be appropriately altered to reflect the change
+			else {
+				//If we didn't do a structural mutation, we do the other kinds
+
+				if (randfloat()<NEAT::mutate_random_trait_prob) {
+					//std::cout<<"mutate random trait"<<std::endl;
+					new_genome->mutate_random_trait();
+				}
+				if (randfloat()<NEAT::mutate_link_trait_prob) {
+					//std::cout<<"mutate_link_trait"<<std::endl;
+					new_genome->mutate_link_trait(1);
+				}
+				if (randfloat()<NEAT::mutate_node_trait_prob) {
+					//std::cout<<"mutate_node_trait"<<std::endl;
+					new_genome->mutate_node_trait(1);
+				}
+				if (randfloat()<NEAT::mutate_link_weights_prob) {
+					//std::cout<<"mutate_link_weights"<<std::endl;
+					new_genome->mutate_link_weights(mut_power,1.0,GAUSSIAN);
+				}
+				if (randfloat()<NEAT::mutate_toggle_enable_prob) {
+					//std::cout<<"mutate toggle enable"<<std::endl;
+					new_genome->mutate_toggle_enable(1);
+
+				}
+				if (randfloat()<NEAT::mutate_gene_reenable_prob) {
+					//std::cout<<"mutate gene reenable"<<std::endl;
+					new_genome->mutate_gene_reenable();
+				}
+			}
+
+			baby=new Organism(0.0, 0.0, new_genome,generation);
+                }
+
+                //Crossover and Mutate
+                else {
+			//Choose parents
+                        mom = binary_tournament_select(poolsize);
+                        dad = binary_tournament_select(poolsize);
+
+			//Perform mating based on probabilities of differrent mating types
+			if (randfloat()<NEAT::mate_multipoint_prob) { 
+				new_genome=(mom->gnome)->mate_multipoint(dad->gnome,count,mom->fitness1,dad->fitness1,outside);
+			}
+			else if (randfloat()<(NEAT::mate_multipoint_avg_prob/(NEAT::mate_multipoint_avg_prob+NEAT::mate_singlepoint_prob))) {
+				new_genome=(mom->gnome)->mate_multipoint_avg(dad->gnome,count,mom->fitness1,dad->fitness1,outside);
+			}
+			else {
+				new_genome=(mom->gnome)->mate_singlepoint(dad->gnome,count);
+			}
+
+			mate_baby=true;
+
+			//Determine whether to mutate the baby's Genome
+			//This is done randomly or if the mom and dad are the same organism
+			if ((randfloat()>NEAT::mate_only_prob)||
+				((dad->gnome)->genome_id==(mom->gnome)->genome_id)||
+				(((dad->gnome)->compatibility(mom->gnome))==0.0))
+			{
+				//Do the mutation depending on probabilities of 
+				//various mutations
+				if (randfloat()<NEAT::mutate_add_node_prob) {
+					new_genome->mutate_add_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
+					//  std::cout<<"mutate_add_node: "<<new_genome<<std::endl;
+					mut_struct_baby=true;
+				}
+				else if (randfloat()<NEAT::mutate_add_link_prob) {
+					net_analogue=new_genome->genesis(generation);
+					new_genome->mutate_add_link(pop->innovations,pop->cur_innov_num,NEAT::newlink_tries);
+					delete net_analogue;
+					//std::cout<<"mutate_add_link: "<<new_genome<<std::endl;
+					mut_struct_baby=true;
+				}
+				else {
+					//Only do other mutations when not doing sturctural mutations
+
+					if (randfloat()<NEAT::mutate_random_trait_prob) {
+						new_genome->mutate_random_trait();
+						//std::cout<<"..mutate random trait: "<<new_genome<<std::endl;
+					}
+					if (randfloat()<NEAT::mutate_link_trait_prob) {
+						new_genome->mutate_link_trait(1);
+						//std::cout<<"..mutate link trait: "<<new_genome<<std::endl;
+					}
+					if (randfloat()<NEAT::mutate_node_trait_prob) {
+						new_genome->mutate_node_trait(1);
+						//std::cout<<"mutate_node_trait: "<<new_genome<<std::endl;
+					}
+					if (randfloat()<NEAT::mutate_link_weights_prob) {
+						new_genome->mutate_link_weights(mut_power,1.0,GAUSSIAN);
+						//std::cout<<"mutate_link_weights: "<<new_genome<<std::endl;
+					}
+					if (randfloat()<NEAT::mutate_toggle_enable_prob) {
+						new_genome->mutate_toggle_enable(1);
+						//std::cout<<"mutate_toggle_enable: "<<new_genome<<std::endl;
+					}
+					if (randfloat()<NEAT::mutate_gene_reenable_prob) {
+						new_genome->mutate_gene_reenable(); 
+						//std::cout<<"mutate_gene_reenable: "<<new_genome<<std::endl;
+					}
+				}
+
+				//Create the baby
+				baby=new Organism(0.0, 0.0, new_genome,generation);
+
+			}
+			else {
+				//Create the baby without mutating first
+				baby=new Organism(0.0, 0.0, new_genome,generation);
+			}
+
+		}
+
+		//Add the baby to its proper Species
+		//If it doesn't fit a Species, create a new one
+		baby->mut_struct_baby=mut_struct_baby;
+		baby->mate_baby=mate_baby;
+
+		curspecies=(pop->species).begin();//Only one species in NSGA-2
+		(*curspecies)->add_Organism(baby);
+		baby->species=(*curspecies);  //Point organism to its species
+
+        }   
+
+	return true;
 }
 
 bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &sorted_species) {
@@ -462,6 +716,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
 	
 	//Check for a mistake
+        std::cout<<"Aditya: Total Expected offsprings "<<expected_offspring<<std::endl; //Aditya:for debug
 	if ((expected_offspring>0)&&
 		(organisms.size()==0)) {
 			//    std::cout<<"ERROR:  ATTEMPT TO REPRODUCE OUT OF EMPTY SPECIES"<<std::endl;
@@ -469,6 +724,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 		}
 
 		poolsize=organisms.size()-1;
+                std::cout<<"Aditya: Pool Size "<<poolsize<<std::endl; //Aditya:for debug
 
 		thechamp=(*(organisms.begin()));
 
@@ -515,7 +771,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 					}
 				}
 
-				baby=new Organism(0.0,new_genome,generation);
+				baby=new Organism(0.0, 0.0, new_genome,generation);
 
 				if ((thechamp->super_champ_offspring) == 1) {
 					if (thechamp->pop_champ) {
@@ -535,7 +791,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
 					new_genome=(mom->gnome)->duplicate(count);
 
-					baby=new Organism(0.0,new_genome,generation);  //Baby is just like mommy
+					baby=new Organism(0.0, 0.0, new_genome,generation);  //Baby is just like mommy
 
 					champ_done=true;
 
@@ -619,7 +875,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 						}
 					}
 
-					baby=new Organism(0.0,new_genome,generation);
+					baby=new Organism(0.0, 0.0, new_genome,generation);
 
 				}
 
@@ -665,7 +921,6 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 					//spin=(*curorg)->fitness;
 					//while(spin<marble) {
 					//++curorg;
-					//}
 
 					////Keep the wheel spinning
 					//spin+=(*curorg)->fitness;
@@ -781,12 +1036,12 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 					}
 
 					//Create the baby
-					baby=new Organism(0.0,new_genome,generation);
+					baby=new Organism(0.0, 0.0, new_genome,generation);
 
 				}
 				else {
 					//Create the baby without mutating first
-					baby=new Organism(0.0,new_genome,generation);
+					baby=new Organism(0.0, 0.0, new_genome,generation);
 				}
 
 			}

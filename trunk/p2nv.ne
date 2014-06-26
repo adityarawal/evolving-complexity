@@ -7,7 +7,7 @@ recur_prob 0.05
 disjoint_coeff 1.0
 excess_coeff 1.0
 mutdiff_coeff 3.0
-compat_thresh 4.0
+compat_thresh 100000.0
 age_significance 1.0
 survival_thresh 0.4
 mutate_only_prob 0.25
@@ -25,9 +25,9 @@ mate_multipoint_avg_prob 0.4
 mate_singlepoint_prob 0.0
 mate_only_prob 0.2
 recur_only_prob 0.2
-pop_size 1000
-dropoff_age 15
+pop_size 200
+dropoff_age 150
 newlink_tries 20
-print_every 10
+print_every 100
 babies_stolen 0
 num_runs 1

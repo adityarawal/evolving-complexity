@@ -33,9 +33,14 @@ namespace NEAT {
 	class Organism {
 
 	public:
-		double fitness;  //A measure of fitness for the Organism
+		double fitness1;  //A measure of fitness for the Organism (Aditya: for NSGA-2)
+		double fitness2;  //A measure of fitness for the Organism (Aditya: for NSGA-2)
 		double orig_fitness;  //A fitness measure that won't change during adjustments
-		double error;  //Used just for reporting purposes
+		int front_num;  // front number to which organism belongs (Aditya: for NSGA-2)
+		double crowd_dist;  //Crowding distance of the organism within the front (Aditya: for NSGA-2)
+		std::vector<Organism*> domination_list;  //Organisms dominated by this org (Aditya: for NSGA-2)
+	        int num_dominant; //Number of organisms which dominate this organism
+                double error;  //Used just for reporting purposes
 		bool winner;  //Win marker (if needed for a particular task)
 		Network *net;  //The Organism's phenotype
 		Genome *gnome; //The Organism's genotype 
@@ -65,7 +70,7 @@ namespace NEAT {
 		bool print_to_file(char *filename);   
 		bool write_to_file(std::ostream &outFile);
 
-		Organism(double fit, Genome *g, int gen, const char* md = 0);
+		Organism(double fit1, double fit2, Genome *g, int gen, const char* md = 0);
 		Organism(const Organism& org);	// Copy Constructor
 		~Organism();
 
