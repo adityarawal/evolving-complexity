@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
   //***********RANDOM SETUP***************//
   /* Seed the random-number generator with current time so that
       the numbers will be different every time we run.    */
-  srand( (unsigned)time( NULL ) );
+  srand( getpid() );//Aditya: To ensure multiple simultaneous runs can be fired on condor 
 
   if (argc != 2) {
     cerr << "A NEAT parameters file (.ne file) is required to run the experiments!" << endl;
