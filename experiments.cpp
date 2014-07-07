@@ -134,7 +134,7 @@ Population *memory_test(int gens) {
 
 }
 int toBin(double v, int num_bin) {
-	if(v==1.0) {
+	if(v>0.999) {
                 v=0.999;
         }
         else {
@@ -184,8 +184,8 @@ class histogram
         	total=x.size();
         }
         int toBin2d(double x,double y) {
-        	if(x==1.0) x=0.999;
-        	if(y==1.0) y=0.999;
+        	if(x>0.999) x=0.999;
+        	if(y>0.999) y=0.999;
         	return toBin(x, num_bins[0])*num_bins[1]+toBin(y, num_bins[1]);
         }
         
@@ -357,17 +357,15 @@ double compute_mutual_information(Network *net, int max_history, int min_history
   return mutual_information;
 }
 
-bool memory_evaluate(Organism *org) {
+bool memory_evaluate(Organism *org, int generation) {
   Network *net;
   int num_output_nodes = org->net->outputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
   double in[2]; //2-bit input - Bias, number
   
   std::vector<double> this_out; //The current output
-  std::vector<double> last_out; //Output in the last time step
   int count;
   double errorsum;
-
   bool success;  //Check for successful activation
   int numnodes;  /* Used to figure out how many nodes
 		    should be visited during activation */
@@ -377,19 +375,24 @@ bool memory_evaluate(Organism *org) {
  
   std::vector<double> expected_out; //expected output for each input
 
-  int num_trials = 10;
+  int num_trials = 1000;
   
   //Parameters for the primary objective
-  int active_time_steps = 1000; //Duration of active input.    
-  int y_x_delay = 0; //Time Delay between Y and X. Output y is compared with x after these many time steps (compare Y(t) and X(t-y_x_delay))
+  int active_time_steps = 10; //Duration of active input.    
+  int y_x_delay = 1; //Time Delay between Y and X. Output y is compared with x after these many time steps (compare Y(t) and X(t-y_x_delay))
   int total_time_steps = active_time_steps + y_x_delay;
+  bool real_input = true;//Switch for real/integer inputs 
 
   //Parameters for information objective (Used to specify history window)
-  int max_history = 0;//Maximum time step in history
-  int min_history = 0;//Minimum time step in history
-  bool real_input = false;//Switch for real/integer inputs 
-  int num_bin = 2; //Real value from 0-1 is discretized into these bins
+  int max_history = 1;//Maximum time step in history
+  int min_history = 1;//Minimum time step in history
+  int num_bin = 4; //Real value from 0-1 is discretized into these bins
   
+  //Print to file for plotting these parameters
+  if (generation == 1) {
+          std::cout<<"y_x_delay: "<<y_x_delay<<" active_time_steps: "<<active_time_steps<<" num_bin: "<<num_bin<<std::endl;  
+  }
+
   std::vector< std::vector <double> > sequence_x;//Stores the sequence of input shown to the network (Assumes only ONE input node)
   std::vector< std::vector <double> > sequence_y;//Stores the sequence of output of the network. Starts at t=max_history (Assumes only ONE output node)
   std::vector<double> temp_sequence_x;//One for each trial
@@ -405,21 +408,16 @@ bool memory_evaluate(Organism *org) {
         temp_sequence_y.clear(); 
         expected_out.clear();
         this_out.clear();
-        last_out.clear();
 
-        //Activate once to initialize the NN output value to 0.5
-        in[0] = 0.0; //First input is Bias signal
-        in[1] = 0.0;
-        net->load_sensors(in);
-        success=net->activate();
+        in[0] = 1.0; //First input is Bias signal
 
-        int count_1 = 0;
         for (relax=0;relax< total_time_steps; relax++) {
                 if (relax < active_time_steps) {//This is the time for active inputs (-1/1)
                        double rand_num =randfloat();
                        if(real_input) {
                                 in[1] = rand_num; 
                                 expected_out.push_back(rand_num);
+                                temp_sequence_x.push_back(rand_num);//One for each trial
                        }
                        else {
                                 if (rand_num >= 0.5) {
@@ -433,15 +431,9 @@ bool memory_evaluate(Organism *org) {
                                 expected_out.push_back(in[1]);
                        }
                 }
-                else {//Give zeros as input 
-                        std::cout<<"Error"<<endl; //No delay in this experiment
-                        exit(0);
-                        //in[1] = 0;
-                        //expected_out.push_back(count_1);
+                else {//Give zeros as input (Do not sample output during non-active outputs) 
+                        in[1] = 0;
                 }
-       
-                //Save the last NN output before activating it
-                last_out.push_back((net->outputs[0])->activation);
                
                 //Activate NN 
                 net->load_sensors(in);
@@ -453,25 +445,23 @@ bool memory_evaluate(Organism *org) {
                         //((org)->gnome)->print_to_file(outFile);
                 }
                 
-                this_out.push_back((net->outputs[0])->activation);
+                this_out.push_back((net->outputs[0])->activation); //Assume single NN output node
+                temp_sequence_y.push_back((net->outputs[0])->activation); //TO Compute Mutual Info between X and Y
                 
-                //TO Compute Mutual Info between X and Delta_Y. Not really useful for up/down 
-                //integration experiment since NEAT standalone finds a solution easily 
-                if (this_out[relax]-last_out[relax] > 0) {
-                        temp_sequence_y.push_back(1.0);
-                }
-                else if (this_out[relax]-last_out[relax] <= 0) {
-                        temp_sequence_y.push_back(0.0);
-                }
         }
         //Check output
         for (int i = 0 ; i < active_time_steps; i++) {
-                if (expected_out[i]*((this_out[i])-last_out[i]) <= 0.0) { //Have different signs
-                                errorsum += 1.0;
+                if (toBin(expected_out[i], num_bin) != toBin(this_out[i+y_x_delay], num_bin)) { //Have different signs
+                                errorsum += std::abs(expected_out[i]-this_out[i+y_x_delay]);
+                                //std::cout<<" Wrong: "<<expected_out[i]<<" "<<this_out[i+y_x_delay]<<std::endl;
+                }
+                else {
+                                //std::cout<<" Right: "<<expected_out[i]<<" "<<this_out[i+y_x_delay]<<std::endl;
                 }
         }
         sequence_x.push_back(temp_sequence_x);
         sequence_y.push_back(temp_sequence_y);
+        net->flush();
   }
         
   //Fitness = Task Fitness - Network Size penalty
@@ -512,7 +502,7 @@ bool memory_evaluate(Organism *org) {
     org->fitness2=0.001;
   }
 
-  if (org->fitness1>=100.00) {
+  if (org->fitness1>=99.900) {
         org->winner = true;
         std::cout<<"OBJECTIVE1 ACHIEVED:: WINNER FOUND"<<std::endl;
   }
@@ -550,7 +540,7 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
 
 //    if(generation <= 994)
-      temp_win = memory_evaluate(*curorg);      
+      temp_win = memory_evaluate(*curorg, generation);      
   //  else
     //  temp_win = digit_test(*curorg);
 
