@@ -257,7 +257,7 @@ class histogram
 
 };
 	
-double compute_mutual_information(Network *net, int max_history, int min_history, int num_bin, int active_time_steps, std::vector< std::vector <double> > sequence_x, std::vector< std::vector <double> > sequence_y) {
+double compute_mutual_information(Network *net, int max_history, int min_history, int num_bin, int y_x_delay, int active_time_steps, std::vector< std::vector <double> > sequence_x, std::vector< std::vector <double> > sequence_y) {
  
   double mutual_information = 0.0; 
   double in[2]; //2-bit input - Bias, number (NEXT STEP: deduce the length using network)
@@ -338,7 +338,7 @@ double compute_mutual_information(Network *net, int max_history, int min_history
                   for (int j=0; j<=active_time_steps-1; j++) {
                           X[t-min_history].push_back(sequence_x[i][j]);//Store X for each history step in a separate vector
                   }
-                  for (int j=0; j<=active_time_steps-1; j++) {
+                  for (int j=y_x_delay; j<=active_time_steps+y_x_delay-1; j++) {
                           Y[t-min_history].push_back(sequence_y[i][j]);//Store Y for each history step in a separate vector
                   }
                   t++;
@@ -378,15 +378,15 @@ bool memory_evaluate(Organism *org, int generation) {
   int num_trials = 1000;
   
   //Parameters for the primary objective
-  int active_time_steps = 10; //Duration of active input.    
-  int y_x_delay = 1; //Time Delay between Y and X. Output y is compared with x after these many time steps (compare Y(t) and X(t-y_x_delay))
+  int active_time_steps = 3; //Duration of active input.    
+  int y_x_delay = 3; //Time Delay between Y and X. Output y is compared with x after these many time steps (compare Y(t) and X(t-y_x_delay))
   int total_time_steps = active_time_steps + y_x_delay;
-  bool real_input = true;//Switch for real/integer inputs 
+  bool real_input = false;//Switch for real/integer inputs 
 
   //Parameters for information objective (Used to specify history window)
-  int max_history = 1;//Maximum time step in history
-  int min_history = 1;//Minimum time step in history
-  int num_bin = 4; //Real value from 0-1 is discretized into these bins
+  int max_history = 3;//Maximum time step in history
+  int min_history = 3;//Minimum time step in history
+  int num_bin = 2; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
   
   //Print to file for plotting these parameters
   if (generation == 1) {
@@ -423,12 +423,13 @@ bool memory_evaluate(Organism *org, int generation) {
                                 if (rand_num >= 0.5) {
                                        in[1] = 1;
                                        temp_sequence_x.push_back(1.0);//One for each trial
+                                       expected_out.push_back(1.0);
                                 }
                                 else { 
                                        in[1] = -1;
                                        temp_sequence_x.push_back(0.0);//One for each trial
+                                       expected_out.push_back(0.0);
                                 }
-                                expected_out.push_back(in[1]);
                        }
                 }
                 else {//Give zeros as input (Do not sample output during non-active outputs) 
@@ -491,7 +492,7 @@ bool memory_evaluate(Organism *org, int generation) {
     }
 
     double mutual_information;
-    mutual_information = compute_mutual_information(net, max_history, min_history, num_bin, active_time_steps, sequence_x, sequence_y);
+    mutual_information = compute_mutual_information(net, max_history, min_history, num_bin, y_x_delay, active_time_steps, sequence_x, sequence_y);
     org->fitness2 = mutual_information*100.0/((double)(max_history-min_history+1)); //To scale it to 0-100
     //org->fitness2 = org->fitness1; //To scale it to 0-100
   }
@@ -522,7 +523,6 @@ bool memory_evaluate(Organism *org, int generation) {
   #endif
 
   return org->winner;
-
 }
 
 int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes) {
