@@ -12,8 +12,8 @@ import fnmatch
 import numpy
 
 str1 = 'overall_average'
-max_gen = 500
-plot_gen = 500 
+max_gen = 1000
+plot_gen = 1000 
 run_complete_str = ['Generation '+str(max_gen), 'WINNER IS']
 max_fitness = 100 
 parameter_str = 'y_x_delay'
@@ -85,21 +85,26 @@ if __name__ == "__main__":
         mean_fitness1_list = mean_fitness(dirname, 12) #Primary fitness in NEAT + Mutual Info
         mean_fitness2_list = mean_fitness(dirname, 15) #Secondary fitness (Mutual Info)
         t = arange(0, len(mean_fitness1_list), 1)
-        plot(t[0:plot_gen], mean_fitness1_list[0:plot_gen], label='NEAT + Mutual Info Primary Fitness')
+        plot(t[0:plot_gen], mean_fitness1_list[0:plot_gen], label='NEAT + Mutual Info Primary Fitness(ReLu)')
         plot(t[0:plot_gen], mean_fitness2_list[0:plot_gen], label='Secondary Fitness')
         
 
         if len(sys.argv) > 2: #Single Objective NEAT with/without speciation 
                 dirname = str(sys.argv[2])
-                mean_fitness3_list = mean_fitness(dirname, 7) #Primary fitness in NEAT + Mutual Info
-                plot(t[0:plot_gen], mean_fitness3_list[0:plot_gen], label='NEAT only Fitness')
+                print dirname
+                mean_fitness3_list = mean_fitness(dirname, 7) #Original NEAT fitness
+                plot(t[0:plot_gen], mean_fitness3_list[0:plot_gen], label='NEAT only Fitness (Sigmoid)')
 
+        if len(sys.argv) > 3: #Single Objective NEAT with/without speciation 
+                dirname = str(sys.argv[3])
+                print dirname
+                mean_fitness4_list = mean_fitness(dirname, 12) #Primary fitness in NEAT + Mutual Info
+                plot(t[0:plot_gen], mean_fitness4_list[0:plot_gen], label='NEAT + MI Primary Fitness (Sigmoid)')
 
         
         legend(loc='center right', prop={'size':14})
         xlabel('Generations',fontsize=18)
         ylabel('Highest Fitness in a Generation (Mean of 30 runs)',fontsize=18)
-        print y_x_delay
         title('y_x_delay = ' + str(y_x_delay) + ', active_steps = ' + str(active_time_steps) + ', num_bin = ' + str(num_bin),fontsize=16, fontweight="bold")
         tick_params(labelsize=14)
         grid(True)
