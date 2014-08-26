@@ -109,7 +109,9 @@ namespace NEAT {
 	// When not right-shifted, the steepened slope is closest to a linear
 	// ascent as possible between -0.5 and 0.5
 	extern double fsigmoid(double,double,double);
-	
+
+        // Rectified Linear Unit        
+	extern double fReLu(double,double,double);
         
 	// Tanh FUNCTION ********************************
 	// This is a signmoidal activation function, which is an S-shaped squashing function

@@ -474,6 +474,15 @@ double NEAT::fsigmoid(double activesum,double slope,double constant) {
 	return (1/(1+(exp(-(slope*activesum))))); //Compressed
 }
 
+double NEAT::fReLu(double activesum,double slope,double constant) {
+	if (activesum <= 0) {
+                return 0;
+        }
+        else {
+                return activesum;
+        }
+}
+
 double NEAT::ftanh(double activesum,double slope,double constant) {
 
         double exp_2x =  exp(2*(slope*activesum));
