@@ -12,8 +12,8 @@ import fnmatch
 import numpy
 
 str1 = 'overall_average'
-max_gen = 1000
-plot_gen = 1000 
+max_gen = 1000 
+plot_gen = 200 
 run_complete_str = ['Generation '+str(max_gen), 'WINNER IS']
 max_fitness = 100 
 parameter_str = 'y_x_delay'
@@ -92,14 +92,20 @@ if __name__ == "__main__":
         if len(sys.argv) > 2: #Single Objective NEAT with/without speciation 
                 dirname = str(sys.argv[2])
                 print dirname
-                mean_fitness3_list = mean_fitness(dirname, 7) #Original NEAT fitness
-                plot(t[0:plot_gen], mean_fitness3_list[0:plot_gen], label='NEAT only Fitness (Sigmoid)')
+                mean_fitness3_list = mean_fitness(dirname, 7) #7 Original NEAT fitness
+                plot(t[0:plot_gen], mean_fitness3_list[0:plot_gen], label='NEAT with Species (ReLu)')
 
         if len(sys.argv) > 3: #Single Objective NEAT with/without speciation 
                 dirname = str(sys.argv[3])
                 print dirname
-                mean_fitness4_list = mean_fitness(dirname, 12) #Primary fitness in NEAT + Mutual Info
-                plot(t[0:plot_gen], mean_fitness4_list[0:plot_gen], label='NEAT + MI Primary Fitness (Sigmoid)')
+                mean_fitness4_list = mean_fitness(dirname, 7) #7 Original NEAT fitness
+                plot(t[0:plot_gen], mean_fitness4_list[0:plot_gen], label='NEAT with Species (Sigmoid)')
+
+        if len(sys.argv) > 4: #Single Objective NEAT with/without speciation 
+                dirname = str(sys.argv[4])
+                print dirname
+                mean_fitness5_list = mean_fitness(dirname, 12) #Primary fitness in NEAT + Mutual Info
+                plot(t[0:plot_gen], mean_fitness5_list[0:plot_gen], label='NEAT w/o Species (ReLu)')
 
         
         legend(loc='center right', prop={'size':14})
