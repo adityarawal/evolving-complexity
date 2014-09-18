@@ -12,7 +12,7 @@ import fnmatch
 import numpy
 
 str1 = 'overall_average'
-max_gen = 1000 
+max_gen = 500 
 plot_gen = 200 
 run_complete_str = ['Generation '+str(max_gen), 'WINNER IS']
 max_fitness = 100 
@@ -92,14 +92,14 @@ if __name__ == "__main__":
         if len(sys.argv) > 2: #Single Objective NEAT with/without speciation 
                 dirname = str(sys.argv[2])
                 print dirname
-                mean_fitness3_list = mean_fitness(dirname, 7) #7 Original NEAT fitness
+                mean_fitness3_list = mean_fitness(dirname, 12) #7 Original NEAT fitness
                 plot(t[0:plot_gen], mean_fitness3_list[0:plot_gen], label='NEAT with Species (ReLu)')
 
         if len(sys.argv) > 3: #Single Objective NEAT with/without speciation 
                 dirname = str(sys.argv[3])
                 print dirname
                 mean_fitness4_list = mean_fitness(dirname, 7) #7 Original NEAT fitness
-                plot(t[0:plot_gen], mean_fitness4_list[0:plot_gen], label='NEAT with Species (Sigmoid)')
+                plot(t[0:plot_gen], mean_fitness4_list[0:plot_gen], label='NEAT with Species (Multiobj)')
 
         if len(sys.argv) > 4: #Single Objective NEAT with/without speciation 
                 dirname = str(sys.argv[4])
