@@ -22,7 +22,7 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_col
     G=nx.DiGraph() #Directed Graph
     #G=nx.Graph()  #Undirected Graph
     #G.add_weighted_edges_from([(1,2,0.5), (3,1,0.75)])
-    
+   
     # add edges
     for edge in graph:
         G.add_edge(edge[0], edge[1])
@@ -48,7 +48,7 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_col
     # draw graph
     nx.draw_networkx_nodes(G,graph_pos,node_id_list, node_size, 
                            node_color_list)
-    nx.draw_networkx_edges(G,graph_pos,width=edge_tickness,
+    nx.draw_networkx_edges(G,graph_pos, edgelist=graph, width=edge_tickness,
                            alpha=edge_alpha,edge_color=edge_color_list)
     nx.draw_networkx_labels(G, graph_pos,font_size=node_text_size,
                             font_family=text_font)
@@ -107,6 +107,7 @@ if __name__ == '__main__':
                         edge_weight = (words[4])
                         gene_enable_flag = words[-1]
                         gene_recur_flag = words[5]
+                        edge_color = None
                         if edge_tuple in edge_dict.keys():
                                 print 'Parallel Edge', edge_tuple, 'Gene enable flag', gene_enable_flag, 'Gene recur flag', gene_recur_flag
                                 continue
@@ -115,10 +116,11 @@ if __name__ == '__main__':
                                         print 'Self Loop in Node:', from_node , to_node
                                         continue
                                 if gene_recur_flag == '1':
-                                        edge_color_list += ['red']
+                                        edge_color = 'red'
+                                        print 'Recurrent Link in:', from_node, to_node
                                 else:
-                                        edge_color_list += ['blue']
-                                edge_dict[edge_tuple] = edge_weight
+                                        edge_color = 'blue'
+                                edge_dict[edge_tuple] = [edge_weight, edge_color]
                                 
                 else:
                         continue
@@ -161,7 +163,8 @@ if __name__ == '__main__':
         labels = []
         for edges in edge_dict:
                 graph += [edges]#List tuples containing edges
-                labels += [edge_dict[edges]] #[List of weights] #Uncomment this to visualize weights
+                labels += [edge_dict[edges][0]] #[List of weights] #Uncomment this to visualize weights
+                edge_color_list += [edge_dict[edges][1]] #[List of weights] #Uncomment this to visualize weights
 
 
         draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, 

@@ -257,7 +257,7 @@ class histogram
         	for(double x=0.0000001;x<1.0;x=x+granularity_x) {//Starting with x=0.0000001 to avoid double inaccuracy
                         double px=hx.probability(x);
                         if (px == 1) {//Diversity experiment (to ensure neuron value is not fixed)
-                                entropy = 1;
+                                entropy = 0;
                         }
                         else if(px!=0.0) {
         			entropy+=(-1.0)*px*(log_anybase(px, x_num_bins));
@@ -331,22 +331,15 @@ double compute_standev_scaled(int num_bin, int y_x_delay, int active_time_steps,
   return standev_scaled;
 }
 
-double compute_entropy(int num_bin, int y_x_delay, int active_time_steps, std::vector< std::vector <double> > sequence_x) {
+double compute_entropy(int num_bin, int y_x_delay, int active_time_steps, std::vector <double> sequence_x) {
 
-  std::vector <double> X; //One list for each history step
   double entropy; 
 
-  //Join data from all the trials into a single vector list 
-  for (int i=0; i<sequence_x.size(); i++) {//For each trial
-          for (int j=y_x_delay; j<=active_time_steps-1; j++) {
-                  X.push_back(sequence_x[i][j]);//Store X for each history step in a separate vector
-          }
-  }
-  entropy = histogram::entropy(X, num_bin);
+  entropy = histogram::entropy(sequence_x, num_bin);
   return entropy;
 }
 
-double compute_mutual_information(Network *net, int max_history, int min_history, int num_bin, int y_x_delay, int active_time_steps, std::vector< std::vector <double> > sequence_x, std::vector< std::vector <double> > sequence_y) {
+double compute_mutual_information(int max_history, int min_history, int num_bin, int y_x_delay, int active_time_steps, std::vector <double> sequence_x, std::vector <double> sequence_y) {
  
   double mutual_information = 0.0; 
   double in[2]; //2-bit input - Bias, number (NEXT STEP: deduce the length using network)
@@ -361,89 +354,40 @@ double compute_mutual_information(Network *net, int max_history, int min_history
   int count;
   bool success;  //Check for successful activation
 
-  //std::vector< std::vector <double> > sequence_x;//Stores the sequence of input shown to the network (Assumes only ONE input node)
-  //std::vector< std::vector <double> > sequence_y;//Stores the sequence of output of the network. Starts at t=max_history (Assumes only ONE output node)
-  //std::vector<double> temp_sequence_x;//One for each trial
-  //std::vector<double> temp_sequence_y;//One for each trial
 
-  ////COLLECT DATA
-  //for(int r = 0; r < num_trials; r++) {
-  //        
-  //        in[0] = 1.0; //First input is Bias signal
-  //        
-  //        temp_sequence_x.clear();
-  //        temp_sequence_y.clear(); 
-  //        for (step=0;step< total_time_steps; step++) {
-  //                if (step < active_time_steps) {
-  //                     double rand_num =randfloat();
-  //                     ////For real inputs
-  //                     //in[1] = rand_num; 
-  //                     //temp_sequence_x.push_back(rand_num);
-  //                     //For Integer inputs
-  //                     if (rand_num < 0.5) {//That is the behavior of function round() 
-  //                            in[1] = -1.0;   //Equivalent to 0
-  //                            temp_sequence_x.push_back(0.0); //0 represent -1. Current assumption: Inputs are -1/1 and never 0
-  //                     }
-  //                     else {
-  //                            in[1] = 1.0;    //1 
-  //                            temp_sequence_x.push_back(1.0); //Current assumption: Inputs are -1/1 and never 0
-  //                     } 
-  //                }
-  //                else {//Not capturing inputs after active_time_steps
-  //                     in[1] = 0.0;
-  //                     temp_sequence_x.push_back(0.0); //0 represent -1. Current assumption: Works when history is exactly N step back (No history window) 
-  //                }
-  //                net->load_sensors(in);
-  //                success=net->activate();
-  //                if (!success) {
-  //                        //org->error = 1;
-  //                        //std::cout << "ADITYA:: In Compute Mutual Information, Net did not activate"<<std::endl;
-  //                }
-  //                for (count = 0 ; count < net->outputs.size(); count++) {
-  //                        this_out[count]=(net->outputs[count])->activation;
-  //                }
-  //                temp_sequence_y.push_back((double)(this_out[count]));//Assumes only ONE output node
-  //        }
-  //        sequence_x.push_back(temp_sequence_x);
-  //        sequence_y.push_back(temp_sequence_y);
-  //        net->flush();
-  //}
-
-  std::vector < std::vector <double> > X; //One list for each history step
-  std::vector < std::vector <double> > Y; //One list for each history step
-  std::vector <double> temp_X;
-
-  //Initialize X
-  for (int i=min_history; i<=max_history; i++) {//For each trial 
-          X.push_back(temp_X);
-          Y.push_back(temp_X);
-  }
-  //Rearrange data to get X(t-N) and corresponding Y values
-  //Note, the length of X(t-N) decreases with increasing N. For e.g X(t-1).size() > X(t-2).size() 
-  //Corresponding Y values also decrease with increasing N. 
-  for (int i=0; i<sequence_x.size(); i++) {//For each trial
-          int t = min_history; //Always one step delay
-          while (t <= max_history) { 
-                  for (int j=y_x_delay; j<=active_time_steps-1; j++) {
-                          X[t-min_history].push_back(sequence_x[i][j]);//Store X for each history step in a separate vector
-                  }
-                  for (int j=y_x_delay; j<=active_time_steps-1; j++) {
-                          Y[t-min_history].push_back(sequence_y[i][j]);//Store Y for each history step in a separate vector
-                  }
-                  t++;
-          }
-  }
-
-  //Compute Mutual Information between X and Y for each history step
-  //NEXT STEP: take care of zeroes
-  for (int i=0; i<X.size(); i++) {
-          if (X[i].size()!= Y[i].size()) {
-                  std::cout<<"ERROR:: X(t-N) and Y(t) lengths do no match"<<std::endl;
-                  exit(0);
-          }
-          mutual_information += histogram::mutual_inf(X[i], Y[i], x_num_bins, y_num_bins); //X(t-1), corresponding Y ... X(t-2), corresponding Y
-  }
+  mutual_information += histogram::mutual_inf(sequence_x, sequence_y, x_num_bins, y_num_bins); //
   return mutual_information;
+}
+
+void op_ip_mutual_info (std::vector< std::vector<double> > input_sequences, std::vector< std::vector< std::vector <double> > > output_sequences, int y_x_delay, int num_bin, int active_time_steps, int max_history, int min_history) {
+          
+          for (int i=0; i<=output_sequences.size()-1; i++) {//For each output node 
+                  for (int j=0; j<=y_x_delay; j++) {//For each history step
+                          std::vector<double> input, output;
+                          for (int k = 0; k <= input_sequences.size()-1; k++) { //For each trial
+
+                                  //Align input, output for different history steps from all the trials
+                                  std::vector<double>::const_iterator ip_first = input_sequences[k].begin();
+                                  std::vector<double>::const_iterator ip_last  = input_sequences[k].begin()+(input_sequences[k].size()) - j;
+                                  std::vector<double> trial_input(ip_first, ip_last);
+                                  input.insert(input.end(), trial_input.begin(), trial_input.end() );
+                                  
+                                  std::vector<double>::const_iterator op_first = output_sequences[i][k].begin() + j;
+                                  std::vector<double>::const_iterator op_last  = output_sequences[i][k].end();
+                                  std::vector<double> trial_output(op_first, op_last);
+                                  output.insert(output.end(), trial_output.begin(), trial_output.end() );
+                          }
+                          if (input.size() != output.size()) {
+                                  std::cout<<" ERROR: Input and Output size mismatch in op_ip_mutual_info()"<<std::endl;
+                                  exit(0);
+                          }
+
+                          double temp = compute_mutual_information(max_history, min_history, num_bin, y_x_delay, active_time_steps, input, output);
+                          std::cout<<"Mutual Information between Output node: "<<i<<" and Input step: "<<j<<" = "<<temp<<std::endl;
+                          input.clear();
+                          output.clear();
+                  } 
+          }
 }
 
 bool memory_evaluate(Organism *org, int generation) {
@@ -452,8 +396,6 @@ bool memory_evaluate(Organism *org, int generation) {
   vector <double> out(num_output_nodes); //The outputs for the different inputs
   double in[2]; //2-bit input - Bias, number
   
-  std::vector<double> this_out; //The current output
-  std::vector<double> this_out1; //Second current output
   int count;
   double errorsum;
   bool success;  //Check for successful activation
@@ -461,15 +403,15 @@ bool memory_evaluate(Organism *org, int generation) {
 		    should be visited during activation */
 
   int net_depth; //The max depth of the network to be activated
-  int relax; //Activates until relaxation
+  int step; //Activates until relaxation
  
   std::vector<double> expected_out; //expected output for each input
 
-  int num_trials = 100;
+  int num_trials = 1000;
   
   //Parameters for the primary objective
   int active_time_steps = 100; //Duration of active input.    
-  int y_x_delay = 1; //Time Delay between Y and X. Output y is compared with x after these many time steps (compare Y(t) and X(t-y_x_delay))
+  int y_x_delay = 2; //Time Delay between Y and X. Output y is compared with x after these many time steps (compare Y(t) and X(t-y_x_delay))
   int total_time_steps = active_time_steps;// + y_x_delay;
   bool real_input = true;//Switch for real/integer inputs 
 
@@ -483,10 +425,24 @@ bool memory_evaluate(Organism *org, int generation) {
           std::cout<<"y_x_delay: "<<y_x_delay<<" active_time_steps: "<<active_time_steps<<" num_bin: "<<num_bin<<std::endl;  
   }
 
-  std::vector< std::vector <double> > sequence_x;//Stores the sequence of input shown to the network (Assumes only ONE input node)
-  std::vector< std::vector <double> > sequence_y;//Stores the sequence of output of the network. Starts at t=max_history (Assumes only ONE output node)
-  std::vector<double> temp_sequence_x;//One for each trial
-  std::vector<double> temp_sequence_y;//One for each trial
+  std::vector< std::vector <double> > input_sequences;//Stores the sequences of input values for each trial 
+  std::vector< std::vector < std::vector <double> > > output_sequences;//Sequences of values from each output node for every trial 
+  std::vector< std::vector <double> > active_output_sequences;//Stores when all output values are active (single vector for all the trials for a given output node) 
+  std::vector< std::vector <double> > this_out;//Stores the sequences of values from each output node in a single trial
+  std::vector <double> temp_sequence;
+  std::vector< std::vector <double> > temp2_sequence;
+
+  for (int i=0; i<=num_trials-1; i++) {//Initializing vector of vectors (For each trial) 
+          temp2_sequence.push_back(temp_sequence);
+          input_sequences.push_back(temp_sequence);
+  }
+  for (int i=0; i<=num_output_nodes-1; i++) {//Initializing vector of vectors (For each output node) 
+          output_sequences.push_back(temp2_sequence); //Vector of vector of vector
+          active_output_sequences.push_back(temp_sequence); //Vector of vector
+  }
+  for (int i=0; i<=num_output_nodes-1; i++) {//Initializing vector of vectors 
+          this_out.push_back(temp_sequence);
+  }
 
   errorsum = 0;
   net=org->net;
@@ -494,22 +450,21 @@ bool memory_evaluate(Organism *org, int generation) {
   //Load and activate the network on each input
   for(int r = 0; r < num_trials; r++) {
 
-        temp_sequence_x.clear();
-        temp_sequence_y.clear(); 
         expected_out.clear();
-        this_out.clear();
-        this_out1.clear();
+        for (int i=0; i<=num_output_nodes-1; i++) {//Initializing vector of vectors 
+                this_out[i].clear();
+        }
 
         in[0] = 1.0; //First input is Bias signal
 
-        for (relax=0;relax< total_time_steps; relax++) {
-                if (relax < active_time_steps) {//This is the time for active inputs (-1/1)
+        for (step=0;step< total_time_steps; step++) {
+                if (step < active_time_steps) {//This is the time for active inputs (-1/1)
                        double rand_num =randfloat();
                        if(real_input) {
                                 in[1] = rand_num; 
                                 expected_out.push_back(rand_num);
                                 //std::cout<<"Input: "<<rand_num<<" ";
-                                //temp_sequence_x.push_back(rand_num);//One for each trial
+                                input_sequences[r].push_back(rand_num);//One for each trial
                        }
                        else {
                                 if (rand_num >= 0.5) {
@@ -537,65 +492,78 @@ bool memory_evaluate(Organism *org, int generation) {
                         //std::ofstream outFile("not_activating",std::ios::out);
                         //((org)->gnome)->print_to_file(outFile);
                 }
-                this_out.push_back((net->outputs[0])->activation); //Assume single NN output node
-                this_out1.push_back((net->outputs[1])->activation); //Second output node
-                temp_sequence_x.push_back((net->outputs[0])->activation); //TO Compute Mutual Info between X and Y
-                temp_sequence_y.push_back((net->outputs[1])->activation); //TO Compute Mutual Info between X and Y
-                //std::cout<<" Output: "<<((net->outputs[0])->activation)  <<" "<< ((net->outputs[1])->activation) <<std::endl; 
+                //std::cout<<" Output: ";
+                for (int i=0; i<=num_output_nodes-1; i++) {//Storing output from each output node 
+                        this_out[i].push_back((net->outputs[i])->activation);
+                        //std::cout<<((net->outputs[i])->activation)<<" ";
+                }
+                //std::cout<<endl;
+                for (int i=0; i<=num_output_nodes-1; i++) {//Storing output from each output node (separately for each trial)
+                        output_sequences[i][r].push_back((net->outputs[i])->activation);
+                }
+                if (step >= y_x_delay) {//Storing when all outputs are active 
+                        for (int i=0; i<=num_output_nodes-1; i++) {
+                                active_output_sequences[i].push_back((net->outputs[i])->activation);
+                        }
+                }
                 
         }
         //Check output
-        for (int i = y_x_delay ; i < active_time_steps; i++) {
-                //if (toBin(expected_out[i-1], num_bin) != toBin(this_out[i], num_bin)) { //1 step old input
-                                errorsum += std::abs(expected_out[i-1]-this_out[i]);
+        for (int i = 0; i < active_time_steps; i++) {
+                for (int j=0; j<=num_output_nodes-1; j++) {//Check for error in active output nodes
+                        if (i>=j) {//Assumption: num_output_nodes-1 = y_x_delay
+                                errorsum += std::abs(expected_out[i-j]-this_out[j][i]);
+                                //std::cout<<" Error: "<<std::abs(expected_out[i-j]-this_out[j][i]);
+                        }
+                }
+                //std::cout<<endl;
+                //if (toBin(expected_out[i-1], num_bin) != toBin(this_out[i], num_bin)) { //Current input
                 //                std::cout<<" Wrong: "<<expected_out[i-1]<<" "<<toBin(this_out[i], num_bin)<<std::endl;
                 //}
-                //if (toBin(expected_out[i], num_bin) != toBin(this_out1[i], num_bin)) { //Current input 
-                                errorsum += std::abs(expected_out[i]-this_out1[i]);
-                //                std::cout<<" Wrong: "<<expected_out[i]<<" "<<toBin(this_out1[i], num_bin)<<std::endl;
-                //}
         } 
-        sequence_x.push_back(temp_sequence_x);
-        sequence_y.push_back(temp_sequence_y);
         net->flush();
   }
-  //Fitness = Task Fitness - Network Size penalty
-  int network_size = org -> net -> all_nodes.size(); //Network size is the number of nodes 
-  int opt_network_size = 5;
-  int task_fitness_weight = 100;
-  int size_penalty_weight = 0;
-  int recurrence_reward = 0;
+  //Fitness
   if (success) {
 
+    double mutual_information = 0.0;
+    double entropy = 0.0; //Entropy of each output node
+    int mi_count = 0;
+
     org->error=errorsum/(active_time_steps*num_trials);
-    if (network_size > opt_network_size) {
-            org->fitness1 = (1 - org->error)*task_fitness_weight - (network_size-opt_network_size)*size_penalty_weight;
-    }
-    else {
-            org->fitness1 = (1 - org->error)*task_fitness_weight ;
-    }
-    //Code to reward recurrent networks 
-    std::vector<Gene*>::iterator curgene;
-    for(curgene=(org->gnome->genes).begin();curgene!=(org->gnome->genes).end();curgene++) {
-    	//But skip links that are already recurrent
-    	//(We want to check back through the forward flow of signals only
-    	if (((*curgene)->lnk->is_recurrent)) {
-                org->fitness1 += recurrence_reward;
-                break;
-    	}
+    org->fitness1 = (1 - org->error)*100; 
+   
+    //Compute pairwise mutual information between all the output nodes
+    //Also, compute entropy of each variable 
+    for (int i=0; i<=num_output_nodes-1; i++) {
+            double temp;
+            temp = compute_entropy(num_bin, y_x_delay, active_time_steps, active_output_sequences[i]); //Ranges between 0-1
+            //for (int k=0; k<output_sequences[i].size(); k++) {
+            //        std::cout<<output_sequences[i][k]<<" ";
+            //}
+            //std::cout<<endl;
+            //std::cout<<i<<"  entropy: "<<temp<<std::endl;
+            entropy += temp;
+
+            for (int j=0; j<=num_output_nodes-1; j++) {
+                    if (i != j && j > i) {
+                            mi_count += 1; //Used for averaging mutual_information later
+                            temp = compute_mutual_information(max_history, min_history, num_bin, y_x_delay, active_time_steps, active_output_sequences[i], active_output_sequences[j]);
+                            //std::cout<<"Mutual Information "<<i<<" "<<j<<": "<<temp<<std::endl;
+                            mutual_information += temp;
+                    }
+            }
     }
 
-    double mutual_information;
-    double entropy_x, entropy_y;
-    mutual_information = compute_mutual_information(net, max_history, min_history, num_bin, y_x_delay, active_time_steps, sequence_x, sequence_y);
-    entropy_x = compute_entropy(num_bin, y_x_delay, active_time_steps, sequence_x); //Ranges between 0-1
-    entropy_y = compute_entropy(num_bin, y_x_delay, active_time_steps, sequence_y);
-    org->fitness2 = (((1-mutual_information) + entropy_x + entropy_y)/3)*100; //Minimize Mutual Info and Max variable entropy 
+    //std::cout<< "Total mutual_information: "<<mutual_information<<" "<<"Total entropy: "<<entropy<<std::endl;  
+    //Averaging
+    mutual_information = mutual_information/mi_count; //Scaling it back to 0-1
+    entropy = entropy/num_output_nodes;
+    org->fitness2 = (((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
 
     //org->fitness2 = mutual_information*100.0/((double)(max_history-min_history+1)); //To scale it to 0-100
-    //std::cout<<"Mutual Information: "<<mutual_information<<std::endl;
-    //std::cout<<"entropy_x: "<<entropy_x<<std::endl;
-    //std::cout<<"entropy_y: "<<entropy_y<<std::endl;
+    //std::cout<<"Mutual Information: "<<mutual_information<<" Entropy: "<<entropy<<" Fitness2: "<<org->fitness2<<std::endl;
+    //op_ip_mutual_info (input_sequences, output_sequences, y_x_delay, num_bin, active_time_steps, max_history, min_history);
     //exit(0);
     //org->fitness2 = org->fitness1; //To scale it to 0-100
   }
