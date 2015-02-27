@@ -37,7 +37,8 @@ namespace NEAT {
 	};
 
 	enum functype {
-		SIGMOID = 0
+		SIGMOID = 0,
+		RELU = 1
 	};
 
 	class Link;

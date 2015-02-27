@@ -15,6 +15,7 @@
 */
 #include "experiments.h"
 #include <cstring>
+#include <time.h>
 #include <math.h>
 
 //#define NO_SCREEN_OUT 
@@ -56,6 +57,32 @@ Population *memory_test(int gens) {
     cout<<"Reading in Genome id "<<id<<endl;
     start_genome=new Genome(id,iFile);
     iFile.close();
+    
+    //Read the Image data and output labels (digits) from text file
+    cout<<"Reading Image Data "<<endl;
+    ifstream dataFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/X.txt",ios::in);//Image Data
+    ifstream labelFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/Y.txt",ios::in);//Image Labels (Digits)
+    std::vector < vector < double > > input_data;
+    std::vector < double > temp_data;
+    std::vector < double > output_labels;
+    double temp1, temp2;
+
+    for (int i = 0; i < 12000; ++i) {//Number of training + validation + test examples
+            labelFile >> temp1;
+            //output_labels.push_back(temp1); //Store Labels
+            
+            input_data.push_back(temp_data); //Initializing the vector
+            input_data[i].push_back(1.0); //Inserting 1.0 for Bias node
+            for (int j = 0; j < 717; ++j) {//Non-zero features
+                    dataFile >> temp2;
+                    input_data[i].push_back(temp2); //Store Features
+            }
+    }
+    dataFile.close();
+    labelFile.close();
+    cout<<"Completed Reading Image Data, Number of examples: "<<input_data.size()<<" Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
+    cout<<"Also Inserted Ones at the start of each input image feature for bias node "<<endl;
+    
 
     for(expcount=0;expcount<NEAT::num_runs;expcount++) {
       //Spawn the Population
@@ -81,7 +108,7 @@ Population *memory_test(int gens) {
 	sprintf (temp, "gen_%d", gen);
 
 	//Check for success
-	if (memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes)) {
+	if (memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, output_labels)) {
 	  //	if (xor_epoch(pop,gen,fnamebuf->str(),winnernum,winnergenes,winnernodes)) {
 	  //Collect Stats on end of experiment
 	  evals[expcount]=NEAT::pop_size*(gen-1)+winnernum;
@@ -331,7 +358,7 @@ double compute_standev_scaled(int num_bin, int y_x_delay, int active_time_steps,
   return standev_scaled;
 }
 
-double compute_entropy(int num_bin, int y_x_delay, int active_time_steps, std::vector <double> sequence_x) {
+double compute_entropy(int num_bin,std::vector <double> sequence_x) {
 
   double entropy; 
 
@@ -339,20 +366,11 @@ double compute_entropy(int num_bin, int y_x_delay, int active_time_steps, std::v
   return entropy;
 }
 
-double compute_mutual_information(int max_history, int min_history, int num_bin, int y_x_delay, int active_time_steps, std::vector <double> sequence_x, std::vector <double> sequence_y) {
+double compute_mutual_information(int num_bin, std::vector <double> sequence_x, std::vector <double> sequence_y) {
  
   double mutual_information = 0.0; 
-  double in[2]; //2-bit input - Bias, number (NEXT STEP: deduce the length using network)
-  double this_out[1]; //The current output(NEXT STEP: deduce the length using network net->outputs.size())
-  int step;
-
-  //int num_trials = 1000; 
-  //int active_time_steps = 2;
-  //int total_time_steps = active_time_steps*2; //Equivalent to one sequence. Network is flushed after each sequence (Assumption: total_time_steps > max_history)
   int x_num_bins = num_bin; 
   int y_num_bins = num_bin;
-  int count;
-  bool success;  //Check for successful activation
 
 
   mutual_information += histogram::mutual_inf(sequence_x, sequence_y, x_num_bins, y_num_bins); //
@@ -382,7 +400,7 @@ void op_ip_mutual_info (std::vector< std::vector<double> > input_sequences, std:
                                   exit(0);
                           }
 
-                          double temp = compute_mutual_information(max_history, min_history, num_bin, y_x_delay, active_time_steps, input, output);
+                          double temp = compute_mutual_information(num_bin, input, output);
                           std::cout<<"Mutual Information between Output node: "<<i<<" and Input step: "<<j<<" = "<<temp<<std::endl;
                           input.clear();
                           output.clear();
@@ -390,11 +408,12 @@ void op_ip_mutual_info (std::vector< std::vector<double> > input_sequences, std:
           }
 }
 
-bool memory_evaluate(Organism *org, int generation) {
+bool memory_evaluate(Organism *org, int generation, std::vector < vector < double > > input_data, std::vector < double > output_labels) {
+  //clock_t start, end;
   Network *net;
   int num_output_nodes = org->net->outputs.size();
+  int num_input_nodes = org->net->inputs.size();
   vector <double> out(num_output_nodes); //The outputs for the different inputs
-  double in[2]; //2-bit input - Bias, number
   
   int count;
   double errorsum;
@@ -405,124 +424,55 @@ bool memory_evaluate(Organism *org, int generation) {
   int net_depth; //The max depth of the network to be activated
   int step; //Activates until relaxation
  
-  std::vector<double> expected_out; //expected output for each input
-
-  int num_trials = 1000;
   
-  //Parameters for the primary objective
-  int active_time_steps = 100; //Duration of active input.    
-  int y_x_delay = 2; //Time Delay between Y and X. Output y is compared with x after these many time steps (compare Y(t) and X(t-y_x_delay))
-  int total_time_steps = active_time_steps;// + y_x_delay;
-  bool real_input = true;//Switch for real/integer inputs 
-
   //Parameters for information objective (Used to specify history window)
-  int max_history = 0;//Maximum time step in history
-  int min_history = 0;//Minimum time step in history
   int num_bin = 10; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
   
   //Print to file for plotting these parameters
   if (generation == 1) {
-          std::cout<<"y_x_delay: "<<y_x_delay<<" active_time_steps: "<<active_time_steps<<" num_bin: "<<num_bin<<std::endl;  
+          std::cout<<" num_bin: "<<num_bin<<std::endl;  
   }
 
-  std::vector< std::vector <double> > input_sequences;//Stores the sequences of input values for each trial 
-  std::vector< std::vector < std::vector <double> > > output_sequences;//Sequences of values from each output node for every trial 
   std::vector< std::vector <double> > active_output_sequences;//Stores when all output values are active (single vector for all the trials for a given output node) 
-  std::vector< std::vector <double> > this_out;//Stores the sequences of values from each output node in a single trial
   std::vector <double> temp_sequence;
-  std::vector< std::vector <double> > temp2_sequence;
 
-  for (int i=0; i<=num_trials-1; i++) {//Initializing vector of vectors (For each trial) 
-          temp2_sequence.push_back(temp_sequence);
-          input_sequences.push_back(temp_sequence);
-  }
   for (int i=0; i<=num_output_nodes-1; i++) {//Initializing vector of vectors (For each output node) 
-          output_sequences.push_back(temp2_sequence); //Vector of vector of vector
           active_output_sequences.push_back(temp_sequence); //Vector of vector
-  }
-  for (int i=0; i<=num_output_nodes-1; i++) {//Initializing vector of vectors 
-          this_out.push_back(temp_sequence);
   }
 
   errorsum = 0;
   net=org->net;
   //net_depth=net->max_depth();
   //Load and activate the network on each input
-  for(int r = 0; r < num_trials; r++) {
 
-        expected_out.clear();
-        for (int i=0; i<=num_output_nodes-1; i++) {//Initializing vector of vectors 
-                this_out[i].clear();
-        }
-
-        in[0] = 1.0; //First input is Bias signal
-
-        for (step=0;step< total_time_steps; step++) {
-                if (step < active_time_steps) {//This is the time for active inputs (-1/1)
-                       double rand_num =randfloat();
-                       if(real_input) {
-                                in[1] = rand_num; 
-                                expected_out.push_back(rand_num);
-                                //std::cout<<"Input: "<<rand_num<<" ";
-                                input_sequences[r].push_back(rand_num);//One for each trial
-                       }
-                       else {
-                                if (rand_num >= 0.5) {
-                                       in[1] = 1;
-                                       //temp_sequence_x.push_back(1.0);//One for each trial
-                                       expected_out.push_back(1.0);
-                                }
-                                else { 
-                                       in[1] = -1;
-                                       //temp_sequence_x.push_back(0.0);//One for each trial
-                                       expected_out.push_back(0.0);
-                                }
-                       }
-                }
-                else {//Give zeros as input (Do not sample output during non-active outputs) 
-                        in[1] = 0;
-                }
-               
-                //Activate NN 
-                net->load_sensors(in);
-                success=net->activate();
-                if (!success) {
-                        org->error = 1;
-			//std::cout << " Again Net not activating"<<std::endl;
-                        //std::ofstream outFile("not_activating",std::ios::out);
-                        //((org)->gnome)->print_to_file(outFile);
-                }
-                //std::cout<<" Output: ";
-                for (int i=0; i<=num_output_nodes-1; i++) {//Storing output from each output node 
-                        this_out[i].push_back((net->outputs[i])->activation);
-                        //std::cout<<((net->outputs[i])->activation)<<" ";
-                }
-                //std::cout<<endl;
-                for (int i=0; i<=num_output_nodes-1; i++) {//Storing output from each output node (separately for each trial)
-                        output_sequences[i][r].push_back((net->outputs[i])->activation);
-                }
-                if (step >= y_x_delay) {//Storing when all outputs are active 
-                        for (int i=0; i<=num_output_nodes-1; i++) {
-                                active_output_sequences[i].push_back((net->outputs[i])->activation);
-                        }
-                }
-                
-        }
-        //Check output
-        for (int i = 0; i < active_time_steps; i++) {
-                for (int j=0; j<=num_output_nodes-1; j++) {//Check for error in active output nodes
-                        if (i>=j) {//Assumption: num_output_nodes-1 = y_x_delay
-                                errorsum += std::abs(expected_out[i-j]-this_out[j][i]);
-                                //std::cout<<" Error: "<<std::abs(expected_out[i-j]-this_out[j][i]);
-                        }
-                }
-                //std::cout<<endl;
-                //if (toBin(expected_out[i-1], num_bin) != toBin(this_out[i], num_bin)) { //Current input
-                //                std::cout<<" Wrong: "<<expected_out[i-1]<<" "<<toBin(this_out[i], num_bin)<<std::endl;
-                //}
-        } 
-        net->flush();
+  //start = clock();
+  for (step=0;step< input_data.size(); step++) {//For each input image
+         
+          //Activate NN 
+          net->load_sensors((input_data[step]));
+          success=net->activate();
+          if (!success) {
+                  org->error = 1;
+  		//std::cout << " Again Net not activating"<<std::endl;
+                  //std::ofstream outFile("not_activating",std::ios::out);
+                  //((org)->gnome)->print_to_file(outFile);
+          }
+          //std::cout<<" Output: ";
+          for (int i=0; i<=num_output_nodes-1; i++) {//Storing output from each output node 
+                  if ((net->outputs[i])->activation > 1.0) {
+                          std::cout<<"ERRORR:: OUTPUT VALUE CANNOT BE GREATER THAN 1.0: "<<(net->outputs[i])->activation<<std::endl;
+                          exit(0);
+                  }
+                  active_output_sequences[i].push_back((net->outputs[i])->activation);
+                  //std::cout<<((net->outputs[i])->activation)<<" ";
+          }
+          //std::cout<<endl;
+          
+          net->flush();
   }
+  //end = clock();
+  //std::cout << "Total Network Activation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
+
   //Fitness
   if (success) {
 
@@ -530,14 +480,15 @@ bool memory_evaluate(Organism *org, int generation) {
     double entropy = 0.0; //Entropy of each output node
     int mi_count = 0;
 
-    org->error=errorsum/(active_time_steps*num_trials);
-    org->fitness1 = (1 - org->error)*100; 
+    //start = clock();
+    //org->error=errorsum/(active_time_steps*num_trials);
+    //org->fitness1 = (1 - org->error)*100; 
    
     //Compute pairwise mutual information between all the output nodes
     //Also, compute entropy of each variable 
     for (int i=0; i<=num_output_nodes-1; i++) {
             double temp;
-            temp = compute_entropy(num_bin, y_x_delay, active_time_steps, active_output_sequences[i]); //Ranges between 0-1
+            temp = compute_entropy(num_bin, active_output_sequences[i]); //Ranges between 0-1
             //for (int k=0; k<output_sequences[i].size(); k++) {
             //        std::cout<<output_sequences[i][k]<<" ";
             //}
@@ -548,12 +499,14 @@ bool memory_evaluate(Organism *org, int generation) {
             for (int j=0; j<=num_output_nodes-1; j++) {
                     if (i != j && j > i) {
                             mi_count += 1; //Used for averaging mutual_information later
-                            temp = compute_mutual_information(max_history, min_history, num_bin, y_x_delay, active_time_steps, active_output_sequences[i], active_output_sequences[j]);
+                            temp = compute_mutual_information(num_bin, active_output_sequences[i], active_output_sequences[j]);
                             //std::cout<<"Mutual Information "<<i<<" "<<j<<": "<<temp<<std::endl;
                             mutual_information += temp;
                     }
             }
     }
+    //end = clock();
+    //std::cout << "Total Mutual Info Calculation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
 
     //std::cout<< "Total mutual_information: "<<mutual_information<<" "<<"Total entropy: "<<entropy<<std::endl;  
     //Averaging
@@ -565,7 +518,7 @@ bool memory_evaluate(Organism *org, int generation) {
     //std::cout<<"Mutual Information: "<<mutual_information<<" Entropy: "<<entropy<<" Fitness2: "<<org->fitness2<<std::endl;
     //op_ip_mutual_info (input_sequences, output_sequences, y_x_delay, num_bin, active_time_steps, max_history, min_history);
     //exit(0);
-    //org->fitness2 = org->fitness1; //To scale it to 0-100
+    org->fitness1 = org->fitness2; //To scale it to 0-100
   }
   else {
     //The network is flawed (shouldnt happen)
@@ -596,7 +549,7 @@ bool memory_evaluate(Organism *org, int generation) {
   return org->winner;
 }
 
-int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes) {
+int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes, std::vector < vector < double > > input_data, std::vector < double > output_labels) {
   vector<Organism*>::iterator curorg;
   vector<Species*>::iterator curspecies;
   //char cfilename[100];
@@ -611,7 +564,7 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
 
 //    if(generation <= 994)
-      temp_win = memory_evaluate(*curorg, generation);      
+      temp_win = memory_evaluate(*curorg, generation,  input_data, output_labels);      
   //  else
     //  temp_win = digit_test(*curorg);
 

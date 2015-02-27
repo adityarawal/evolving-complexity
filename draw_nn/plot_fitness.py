@@ -13,7 +13,7 @@ import numpy
 
 str1 = 'overall_average'
 max_gen = 500 
-plot_gen = 200 
+plot_gen = 500 
 run_complete_str = ['Generation '+str(max_gen), 'WINNER IS']
 max_fitness = 100 
 parameter_str = 'y_x_delay'

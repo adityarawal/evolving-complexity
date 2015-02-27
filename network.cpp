@@ -244,10 +244,13 @@ bool Network::activate() {
 					}
 					else {
 						//Now run the net activation through an activation function
-						if ((*curnode)->ftype==SIGMOID)
-							//(*curnode)->activation=NEAT::fsigmoid((*curnode)->activesum,1.0,2.4621365);  //Sigmoidal activation- see comments under fsigmoid //Changed slope from 4.924273 to 1.0 to allow for 4 different output node categories
-							(*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Rectified Linear Units {max(0,x)}
-					}
+						if ((*curnode)->ftype==SIGMOID) {
+                                                        (*curnode)->activation=NEAT::fsigmoid((*curnode)->activesum,1.0,2.4621365);  //Sigmoidal activation- see comments under fsigmoid //Changed slope from 4.924273 to 1.0 to allow for 4 different output node categories
+                                                }
+                                                else {
+                                                        (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Rectified Linear Units {max(0,x)}
+                                                }
+                                        }
 					//cout<<(*curnode)->activation<<endl;
 
 					//Increment the activation_count
@@ -398,10 +401,10 @@ void Network::load_sensors(double *sensvals) {
 	}
 }
 
-void Network::load_sensors(const std::vector<float> &sensvals) {
+void Network::load_sensors(const std::vector<double> &sensvals) {
 	//int counter=0;  //counter to move through array
 	std::vector<NNode*>::iterator sensPtr;
-	std::vector<float>::const_iterator valPtr;
+	std::vector<double>::const_iterator valPtr;
 
 	for(valPtr = sensvals.begin(), sensPtr = inputs.begin(); sensPtr != inputs.end() && valPtr != sensvals.end(); ++sensPtr, ++valPtr) {
 		//only load values into SENSORS (not BIASes)
