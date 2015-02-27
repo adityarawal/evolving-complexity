@@ -48,10 +48,15 @@ NNode::NNode(nodetype ntype,int nodeid, nodeplace placement) {
 	type=ntype; //NEURON or SENSOR type
 	activation_count=0; //Inactive upon creation
 	node_id=nodeid;
-	ftype=SIGMOID;
 	nodetrait=0;
 	gen_node_label=placement;
-	dup=0;
+	if (gen_node_label == OUTPUT) {
+                ftype=SIGMOID; //Output nodes have sigmoid non-linearity
+        }
+        else {
+                ftype=RELU; //Hidden nodes have relu non-linearity
+        }
+        dup=0;
 	analogue=0;
 	frozen=false;
 	trait_id=1;
@@ -67,9 +72,14 @@ NNode::NNode(NNode *n,Trait *t) {
 	type=n->type; //NEURON or SENSOR type
 	activation_count=0; //Inactive upon creation
 	node_id=n->node_id;
-	ftype=SIGMOID;
 	nodetrait=0;
 	gen_node_label=n->gen_node_label;
+	if (gen_node_label == OUTPUT) {
+                ftype=SIGMOID; //Output nodes have sigmoid non-linearity
+        }
+        else {
+                ftype=RELU; //Hidden nodes have relu non-linearity
+        }
 	dup=0;
 	analogue=0;
 	nodetrait=t;

@@ -44,7 +44,7 @@ int xor_epoch(Population *pop,int generation,char *filename, int &winnernum, int
 //The memory evolution routines *************************
 Population *memory_test(int gens);
 bool memory_test(Organism *org);
-int memory_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes);
+int memory_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes, std::vector < vector < double > > input_data, std::vector < double > output_labels);
 
 
 //Single pole balancing evolution routines ***************************

@@ -3,7 +3,7 @@ trait_mutation_power 1.0
 linktrait_mut_sig 1.0
 nodetrait_mut_sig 0.5
 weight_mut_power 1.8
-recur_prob 0.05
+recur_prob 0.00
 disjoint_coeff 1.0
 excess_coeff 1.0
 mutdiff_coeff 3.0
@@ -24,7 +24,7 @@ mate_multipoint_prob 0.6
 mate_multipoint_avg_prob 0.4
 mate_singlepoint_prob 0.0
 mate_only_prob 0.2
-recur_only_prob 0.2
+recur_only_prob 0.0
 pop_size 200
 dropoff_age 150
 newlink_tries 20

@@ -661,7 +661,7 @@ Network *Genome::genesis(int id) {
 
 	//Create the nodes
 	for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
-		newnode=new NNode((*curnode)->type,(*curnode)->node_id);
+		newnode=new NNode((*curnode)->type,(*curnode)->node_id, (*curnode)->gen_node_label);
 
 		//Derive the node parameters from the trait pointed to
 		curtrait=(*curnode)->nodetrait;
