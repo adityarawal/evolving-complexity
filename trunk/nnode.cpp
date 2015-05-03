@@ -239,6 +239,7 @@ void NNode::flushback() {
 			activation=0;
 			last_activation=0;
 			last_activation2=0;
+                        active_flag = 0;      //ADITYA: BUG?? Currently, once active, a node remains active despite the network getting flushed. Can lead to network outputs getting activated with incoming 0. To fix this, reset the active_flag. This ensures that network-flush resets all active paths to outputs.
 		}
 
 		//Flush back recursively
