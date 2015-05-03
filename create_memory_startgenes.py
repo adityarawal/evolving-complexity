@@ -42,9 +42,9 @@ if __name__ == '__main__':
         gene_id = 1
         for i in xrange(0,len(output_node_id)):
                 for j in xrange(0,len(input_node_id)):
-                        from_node_id = str(input_node_id[j])
-                        to_node_id = str(output_node_id[i])
-                        if i == j: #To save memory, have only one link to the output node 
+                        if i == j-1: #To save memory, have only one link to the output node (direct input to output connection)
+                                from_node_id = str(input_node_id[j])
+                                to_node_id = str(output_node_id[i])
                                 if (random.random() > 0.00): #Controls the sparsity of the network (Sparse networks are faster to run)
                                         weight = str(1.0)
                                         enable_flag = str(1)

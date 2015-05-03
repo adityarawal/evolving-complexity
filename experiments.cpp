@@ -60,29 +60,27 @@ Population *memory_test(int gens) {
     
     //Read the Image data and output labels (digits) from text file
     cout<<"Reading Image Data "<<endl;
-    ifstream dataFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/X.txt",ios::in);//Image Data
-    ifstream labelFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/Y.txt",ios::in);//Image Labels (Digits)
+    ifstream XtrainFile("X_train.txt");//("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/X.txt",ios::in);//Image Data
+    ifstream YtrainFile("Y_train.txt");//("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/Y.txt",ios::in);//Image Labels (Digits)
     std::vector < vector < double > > input_data;
-    std::vector < double > temp_data;
     std::vector < double > output_labels;
-    double temp1, temp2;
+    double d;
+    std::string lineData;
 
-    for (int i = 0; i < 12000; ++i) {//Number of training + validation + test examples
-            labelFile >> temp1;
-            //output_labels.push_back(temp1); //Store Labels
-            
-            input_data.push_back(temp_data); //Initializing the vector
-            input_data[i].push_back(1.0); //Inserting 1.0 for Bias node
-            for (int j = 0; j < 717; ++j) {//Non-zero features
-                    dataFile >> temp2;
-                    input_data[i].push_back(temp2); //Store Features
+    while (getline(XtrainFile, lineData)) {
+            std::vector < double > input_row;
+            std::stringstream lineStream(lineData);
+
+            input_row.push_back(1.0); //Inserting 1.0 for Bias node
+            while (lineStream >> d) {
+                    input_row.push_back(d);
             }
+            input_data.push_back(input_row);
     }
-    dataFile.close();
-    labelFile.close();
+    XtrainFile.close();
+    YtrainFile.close();
     cout<<"Completed Reading Image Data, Number of examples: "<<input_data.size()<<" Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
     cout<<"Also Inserted Ones at the start of each input image feature for bias node "<<endl;
-    
 
     for(expcount=0;expcount<NEAT::num_runs;expcount++) {
       //Spawn the Population
@@ -372,7 +370,6 @@ double compute_mutual_information(int num_bin, std::vector <double> sequence_x, 
   int x_num_bins = num_bin; 
   int y_num_bins = num_bin;
 
-
   mutual_information += histogram::mutual_inf(sequence_x, sequence_y, x_num_bins, y_num_bins); //
   return mutual_information;
 }
@@ -426,20 +423,20 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
  
   
   //Parameters for information objective (Used to specify history window)
-  int num_bin = 10; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
+  int num_bin = 2; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
   
   //Print to file for plotting these parameters
   if (generation == 1) {
           std::cout<<" num_bin: "<<num_bin<<std::endl;  
   }
 
-  std::vector< std::vector <double> > active_output_sequences;//Stores when all output values are active (single vector for all the trials for a given output node) 
+  std::vector< std::vector <double> > active_output_sequences(num_output_nodes);//Stores when all output values are active (single vector for all the trials for a given output node) 
   std::vector <double> temp_sequence;
+  std::vector< std::vector <double> > input_sequences(num_input_nodes);//Store input data for each input node. num_input_nodes includes bias as well. 
 
-  for (int i=0; i<=num_output_nodes-1; i++) {//Initializing vector of vectors (For each output node) 
-          active_output_sequences.push_back(temp_sequence); //Vector of vector
-  }
-
+  //for (int i=0; i<=num_output_nodes-1; i++) {//Initializing vector of vectors (For each output node) 
+  //        active_output_sequences.push_back(temp_sequence); //Vector of vector
+  //}
   errorsum = 0;
   net=org->net;
   //net_depth=net->max_depth();
@@ -450,6 +447,10 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
          
           //Activate NN 
           net->load_sensors((input_data[step]));
+          for (int k = 0; k < input_data[step].size(); k++) {
+                  input_sequences[k].push_back(input_data[step][k]);
+          }
+          //std::cout<<endl;
           success=net->activate();
           if (!success) {
                   org->error = 1;
@@ -489,8 +490,14 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     for (int i=0; i<=num_output_nodes-1; i++) {
             double temp;
             temp = compute_entropy(num_bin, active_output_sequences[i]); //Ranges between 0-1
-            //for (int k=0; k<output_sequences[i].size(); k++) {
-            //        std::cout<<output_sequences[i][k]<<" ";
+            //std::cout<<"OUTPUT"<<endl;
+            //for (int k=0; k<active_output_sequences[i].size(); k++) {
+            //        std::cout<<active_output_sequences[i][k]<<" ";
+            //}
+            //std::cout<<endl;
+            //std::cout<<"INPUT"<<endl;
+            //for (int k=0; k<input_sequences[0].size(); k++) {
+            //        std::cout<<input_sequences[i+1][k]<<" ";
             //}
             //std::cout<<endl;
             //std::cout<<i<<"  entropy: "<<temp<<std::endl;
@@ -500,9 +507,13 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
                     if (i != j && j > i) {
                             mi_count += 1; //Used for averaging mutual_information later
                             temp = compute_mutual_information(num_bin, active_output_sequences[i], active_output_sequences[j]);
-                            //std::cout<<"Mutual Information "<<i<<" "<<j<<": "<<temp<<std::endl;
+                            //std::cout<<"Mutual Information between Outputs "<<i<<" "<<j<<": "<<temp<<std::endl;
                             mutual_information += temp;
                     }
+            }
+            for (int k=1; k<= num_input_nodes-1; k++) {//Start index from 1 so that bias is skipped
+                            temp = compute_mutual_information(num_bin, active_output_sequences[i], input_sequences[k]);
+                            //std::cout<<"Mutual Information between Output"<<i<<" and Input "<<k-1<<": "<<temp<<std::endl;
             }
     }
     //end = clock();
@@ -512,7 +523,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     //Averaging
     mutual_information = mutual_information/mi_count; //Scaling it back to 0-1
     entropy = entropy/num_output_nodes;
-    org->fitness2 = (((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
+    org->fitness2 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
 
     //org->fitness2 = mutual_information*100.0/((double)(max_history-min_history+1)); //To scale it to 0-100
     //std::cout<<"Mutual Information: "<<mutual_information<<" Entropy: "<<entropy<<" Fitness2: "<<org->fitness2<<std::endl;
@@ -527,7 +538,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     org->fitness2=0.001;
   }
 
-  if (org->fitness1>=99.900) {
+  if (org->fitness1>=74.000) {
         org->winner = true;
         std::cout<<"OBJECTIVE1 ACHIEVED:: WINNER FOUND"<<std::endl;
   }
