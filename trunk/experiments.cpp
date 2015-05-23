@@ -16,6 +16,7 @@
 #include "experiments.h"
 #include <cstring>
 #include <time.h>
+#include <omp.h>
 #include <math.h>
 
 //#define NO_SCREEN_OUT 
@@ -60,7 +61,7 @@ Population *memory_test(int gens) {
     
     //Read the Image data and output labels (digits) from text file
     cout<<"Reading Image Data "<<endl;
-    ifstream XtrainFile("X_train.txt");//("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/X.txt",ios::in);//Image Data
+    ifstream XtrainFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/F.txt",ios::in);//Image Data
     ifstream YtrainFile("Y_train.txt");//("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/Y.txt",ios::in);//Image Labels (Digits)
     std::vector < vector < double > > input_data;
     std::vector < double > output_labels;
@@ -79,9 +80,8 @@ Population *memory_test(int gens) {
     }
     XtrainFile.close();
     YtrainFile.close();
-    cout<<"Completed Reading Image Data, Number of examples: "<<input_data.size()<<" Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
+    cout<<"Completed Reading Image Data, Number of examples: "<<input_data.size()<<", Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
     cout<<"Also Inserted Ones at the start of each input image feature for bias node "<<endl;
-
     for(expcount=0;expcount<NEAT::num_runs;expcount++) {
       //Spawn the Population
       cout<<"Spawning Population off Genome2"<<endl;
@@ -423,11 +423,11 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
  
   
   //Parameters for information objective (Used to specify history window)
-  int num_bin = 2; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
+  int num_bin = 100; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
   
   //Print to file for plotting these parameters
   if (generation == 1) {
-          std::cout<<" num_bin: "<<num_bin<<std::endl;  
+          std::cout<<" num_bin: "<<num_bin<<" num_outputs: "<<num_output_nodes<<std::endl;  
   }
 
   std::vector< std::vector <double> > active_output_sequences(num_output_nodes);//Stores when all output values are active (single vector for all the trials for a given output node) 
@@ -489,10 +489,12 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     //Also, compute entropy of each variable 
     for (int i=0; i<=num_output_nodes-1; i++) {
             double temp;
-            temp = compute_entropy(num_bin, active_output_sequences[i]); //Ranges between 0-1
+            //temp = compute_entropy(num_bin, active_output_sequences[i]); //Ranges between 0-1
+            //if (i+1+num_input_nodes == 109) {
             //std::cout<<"OUTPUT"<<endl;
             //for (int k=0; k<active_output_sequences[i].size(); k++) {
-            //        std::cout<<active_output_sequences[i][k]<<" ";
+            //        std::cout<<active_output_sequences[i][k]<<endl;
+            //}
             //}
             //std::cout<<endl;
             //std::cout<<"INPUT"<<endl;
@@ -501,24 +503,24 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
             //}
             //std::cout<<endl;
             //std::cout<<i<<"  entropy: "<<temp<<std::endl;
-            entropy += temp;
+            //entropy += temp;
 
             for (int j=0; j<=num_output_nodes-1; j++) {
                     if (i != j && j > i) {
                             mi_count += 1; //Used for averaging mutual_information later
                             temp = compute_mutual_information(num_bin, active_output_sequences[i], active_output_sequences[j]);
-                            //std::cout<<"Mutual Information between Outputs "<<i<<" "<<j<<": "<<temp<<std::endl;
+                            //std::cout<<"Mutual Information between Outputs "<<i+1+num_input_nodes<<" "<<j+1+num_input_nodes<<": "<<temp<<std::endl;
                             mutual_information += temp;
                     }
             }
-            for (int k=1; k<= num_input_nodes-1; k++) {//Start index from 1 so that bias is skipped
-                            temp = compute_mutual_information(num_bin, active_output_sequences[i], input_sequences[k]);
+            //for (int k=1; k<= num_input_nodes-1; k++) {//Start index from 1 so that bias is skipped
+                            //temp = compute_mutual_information(num_bin, active_output_sequences[i], input_sequences[k]); //Input values should be between 0-1 to ensure correctness
                             //std::cout<<"Mutual Information between Output"<<i<<" and Input "<<k-1<<": "<<temp<<std::endl;
-            }
+            //}
     }
     //end = clock();
     //std::cout << "Total Mutual Info Calculation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
-
+    //exit(0);
     //std::cout<< "Total mutual_information: "<<mutual_information<<" "<<"Total entropy: "<<entropy<<std::endl;  
     //Averaging
     mutual_information = mutual_information/mi_count; //Scaling it back to 0-1
@@ -528,7 +530,6 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     //org->fitness2 = mutual_information*100.0/((double)(max_history-min_history+1)); //To scale it to 0-100
     //std::cout<<"Mutual Information: "<<mutual_information<<" Entropy: "<<entropy<<" Fitness2: "<<org->fitness2<<std::endl;
     //op_ip_mutual_info (input_sequences, output_sequences, y_x_delay, num_bin, active_time_steps, max_history, min_history);
-    //exit(0);
     org->fitness1 = org->fitness2; //To scale it to 0-100
   }
   else {
@@ -538,7 +539,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     org->fitness2=0.001;
   }
 
-  if (org->fitness1>=74.000) {
+  if (org->fitness1>=99.000) {
         org->winner = true;
         std::cout<<"OBJECTIVE1 ACHIEVED:: WINNER FOUND"<<std::endl;
   }
@@ -572,18 +573,21 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   bool temp_win = false;
 
   //Evaluate each organism on a test
-  for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
+  #pragma omp parallel for //Parallelization of for loop 
+  for (int i=0; i < pop->organisms.size(); i++) {
+      temp_win = memory_evaluate(pop->organisms[i], generation,  input_data, output_labels);      
+
+  //for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
 
 //    if(generation <= 994)
-      temp_win = memory_evaluate(*curorg, generation,  input_data, output_labels);      
   //  else
     //  temp_win = digit_test(*curorg);
 
     if (temp_win) {
       win=true;
-      winnernum=(*curorg)->gnome->genome_id;
-      winnergenes=(*curorg)->gnome->extrons();
-      winnernodes=((*curorg)->gnome->nodes).size();
+      winnernum=pop->organisms[i]->gnome->genome_id;
+      winnergenes=pop->organisms[i]->gnome->extrons();
+      winnernodes=(pop->organisms[i]->gnome->nodes).size();
       //if (winnernodes==5) {
 	//You could dump out optimal genomes here if desired
 	//(*curorg)->gnome->print_to_filename("xor_optimal");
