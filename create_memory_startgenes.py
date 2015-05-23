@@ -40,6 +40,21 @@ if __name__ == '__main__':
                 output_node_id.append(i+num_inputs+2)
 
         gene_id = 1
+
+        #All output nodes have connections (zero weight) from the bias node (no hanging outputs). 
+        #This ensures that network is successfully activated in NEAT
+        for i in xrange(0,len(output_node_id)):
+                from_node_id = str(1) #Bias is always the first node
+                to_node_id = str(output_node_id[i])
+                weight = str(0.0)
+                enable_flag = str(1)
+                recur_flag = str(0)
+                mutation_number = str(0.0)
+                temp_str = 'gene 3 '+from_node_id+' '+to_node_id+' '+weight+' '+recur_flag+' '+str(gene_id)+' '+mutation_number+' '+enable_flag+'\n'
+                lines.append(temp_str)
+                gene_id = gene_id + 1
+
+        #Input-Output connections
         for i in xrange(0,len(output_node_id)):
                 for j in xrange(0,len(input_node_id)):
                         if i == j-1: #To save memory, have only one link to the output node (direct input to output connection)

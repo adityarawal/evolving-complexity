@@ -40,11 +40,13 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_col
                 graph_pos=nx.shell_layout(G)
 
     #Delete floating (unconnected) nodes in the graph 
-    for i in node_id_list:
-            if  (G.has_node(i)) is False: #If the node has no enabled genes in the graph
-                    index = node_id_list.index(i)
-                    del node_id_list[index]
-                    del node_color_list[index]
+    i = 0
+    while (i < len(node_id_list)): 
+            if  (G.has_node(node_id_list[i])) is False: #If the node has no enabled genes or no connections in the graph
+                    del node_id_list[i]
+                    del node_color_list[i]
+            else:
+                    i = i + 1
     # draw graph
     nx.draw_networkx_nodes(G,graph_pos,node_id_list, node_size, 
                            node_color_list)
