@@ -36,9 +36,11 @@ NNode::NNode(nodetype ntype,int nodeid) {
 	frozen=false;
 	trait_id=1;
 	override=false;
+        std::cout<<"ERROR in nnode.cpp constructor. This should not have been called "<<std::endl;
+        exit(0);
 }
 
-NNode::NNode(nodetype ntype,int nodeid, nodeplace placement) {
+NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze) {
 	active_flag=false;
 	activesum=0;
 	activation=0;
@@ -58,7 +60,7 @@ NNode::NNode(nodetype ntype,int nodeid, nodeplace placement) {
         }
         dup=0;
 	analogue=0;
-	frozen=false;
+	frozen=freeze;
 	trait_id=1;
 	override=false;
 }
@@ -83,7 +85,7 @@ NNode::NNode(NNode *n,Trait *t) {
 	dup=0;
 	analogue=0;
 	nodetrait=t;
-	frozen=false;
+	frozen=n->frozen;
 	if (t!=0)
 		trait_id=t->trait_id;
 	else trait_id=1;

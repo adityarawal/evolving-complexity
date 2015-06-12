@@ -24,21 +24,23 @@ if __name__ == '__main__':
         lines.append('trait 2 0.179688 0 0.0698419 0.00760081 0.015101 0.000960449 0.00907916 0.0111408\n') 
         lines.append('trait 3 0.43125 0.00691724 0 0.0792075 0 0 0.020273 0\n')
         
+        #NODE FORMAT: node <node_id> <trait_number> <sensory-1/0> <hidden/input/output/bias>
         input_node_id = []
-        lines.append('node 1 0 1 3\n') #Bias node
+        lines.append('node 1 3 1 3\n') #Bias node
         input_node_id.append(1) #Bias node id is always 1
 
         for i in xrange(0,num_inputs):
-                temp_str = 'node '+str(i+2)+' 0 1 1\n'
+                temp_str = 'node '+str(i+2)+' 3 1 1\n'
                 lines.append(temp_str) #Input node
                 input_node_id.append(i+2)
         
         output_node_id = []
         for i in xrange(0,num_outputs):
-                temp_str = 'node '+str(i+num_inputs+2)+' 0 0 2\n'
+                temp_str = 'node '+str(i+num_inputs+2)+' 3 0 2\n'
                 lines.append(temp_str) #Output node
                 output_node_id.append(i+num_inputs+2)
 
+        #GENE FORMAT: gene <trait_number> <from_node_id> <to_node_id> <connection_weight> <recur_flag> <gene_id> <mutation_number> <enable_flag>
         gene_id = 1
 
         #All output nodes have connections (zero weight) from the bias node (no hanging outputs). 

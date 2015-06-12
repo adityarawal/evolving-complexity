@@ -114,7 +114,7 @@ namespace NEAT {
 
 		NNode(nodetype ntype,int nodeid);
 
-		NNode(nodetype ntype,int nodeid, nodeplace placement);
+		NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze);
 
 		// Construct a NNode off another NNode for genome purposes
 		NNode(NNode *n,Trait *t);
