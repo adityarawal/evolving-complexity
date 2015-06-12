@@ -18,12 +18,15 @@
 #include <time.h>
 #include <omp.h>
 #include <math.h>
+#include <iterator>     // std::ostream_iterator
+#include <algorithm>    // std::copy
 
 //#define NO_SCREEN_OUT 
 //Perform evolution on digit recognition task, for gens generations
 Population *memory_test(int gens) {
     Population *pop=0;
     Genome *start_genome;
+    Genome *new_genome; //New genome includes newly added output nodes
     char curword[20];
     int id;
 
@@ -43,6 +46,11 @@ Population *memory_test(int gens) {
     int expcount;
     int samples;  //For averaging
 
+    int max_output_nodes = 75; //Incrementally add independent features (memorystartgene has few output nodes to start with)
+    int current_output_nodes;
+    int block_size = 1;//Number of new nodes to be added at a time
+    vector<Organism*>::iterator curorg;
+    
     memset (evals, 0, NEAT::num_runs * sizeof(int));
     memset (genes, 0, NEAT::num_runs * sizeof(int));
     memset (nodes, 0, NEAT::num_runs * sizeof(int));
@@ -90,35 +98,54 @@ Population *memory_test(int gens) {
       
       cout<<"Verifying Spawned Pop"<<endl;
       pop->verify();
+
       
       for (gen=1;gen<=gens;gen++) {
-	cout<<"Epoch "<<gen<<endl;	
 
-	//This is how to make a custom filename
-	fnamebuf=new ostringstream();
-	(*fnamebuf)<<"gen_"<<gen<<ends;  //needs end marker
+        cout<<"Epoch "<<gen<<endl;	
 
-	#ifndef NO_SCREEN_OUT
-	cout<<"name of fname: "<<fnamebuf->str()<<endl;
-	#endif
+        current_output_nodes = pop->organisms[0]->net->outputs.size();//Current output nodes in each member of the population
 
 	char temp[50];
-	sprintf (temp, "gen_%d", gen);
+	sprintf (temp, "gen_%d_%d", gen,current_output_nodes);
 
-	//Check for success
-	if (memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, output_labels)) {
-	  //	if (xor_epoch(pop,gen,fnamebuf->str(),winnernum,winnergenes,winnernodes)) {
-	  //Collect Stats on end of experiment
-	  evals[expcount]=NEAT::pop_size*(gen-1)+winnernum;
-	  genes[expcount]=winnergenes;
-	  nodes[expcount]=winnernodes;
-	  gen=gens;
+        bool success = false;
+        success = memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, output_labels);
+        //Check for success
+	if  (success && (current_output_nodes == max_output_nodes)) {//If all independent output features have been discovered
+                //Collect Stats on end of experiment
+	        evals[expcount]=NEAT::pop_size*(gen-1)+winnernum;
+	        genes[expcount]=winnergenes;
+	        nodes[expcount]=winnernodes;
+	        gen=gens;
 
 	}
-	
-	//Clear output filename
-	fnamebuf->clear();
-	delete fnamebuf;
+        else if (success) { //If current outputs (<total outputs) are independent)
+
+                //Grab the winning genome from the population
+                int winner_genomeid;
+                for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
+                  if ((*curorg)->winner) {
+                    winner_genomeid = ((*curorg)->gnome)->genome_id;
+	            new_genome=((*curorg)->gnome)->duplicate(1);
+                    //new_genome=new Genome((*curorg)->gnome);
+                  }
+                }
+
+                //Freeze the winning genome so that new stuff can be added to it
+                new_genome -> freeze_genome(); //No new incoming or outgoing connections from all the nodes (except inputs) and no more weight changes on this part of the network
+
+                //Add #block_size new output nodes
+                new_genome -> add_output_nodes(block_size, pop->cur_innov_num);
+
+                delete pop;//Is this required??
+                
+                //RE-SPAWN THE POPULATION
+                cout<<"Spawning Population off Genome "<<winner_genomeid<<" + "<<block_size<<" new output nodes"<<endl;
+                pop=new Population(new_genome,NEAT::pop_size);
+                cout<<"Verifying Spawned Pop"<<endl;
+                pop->verify();
+        }
 	
       }
 
@@ -423,7 +450,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
  
   
   //Parameters for information objective (Used to specify history window)
-  int num_bin = 100; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
+  int num_bin = 10; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
   
   //Print to file for plotting these parameters
   if (generation == 1) {
@@ -441,7 +468,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   net=org->net;
   //net_depth=net->max_depth();
   //Load and activate the network on each input
-
+  
   //start = clock();
   for (step=0;step< input_data.size(); step++) {//For each input image
          
@@ -473,6 +500,21 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   }
   //end = clock();
   //std::cout << "Total Network Activation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
+  
+  //ofstream output_file("output_features_bin1000.txt");
+  //std::vector <double> row;
+  //int j, k;
+  //for ( j = 0 ; j < active_output_sequences[0].size() ; j++ ) { 
+  //        ostream_iterator<double> output_iterator(output_file, " ");
+  //        row.clear();
+  //        for (k = 0; k < active_output_sequences.size(); k++) {
+  //                row.push_back(active_output_sequences[k][j]); 
+  //        }
+  //        copy(row.begin(), row.end(), output_iterator);
+  //        output_file  << '\n';
+  //}
+  //output_file.close();
+  //exit(0);
 
   //Fitness
   if (success) {
@@ -506,7 +548,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
             //entropy += temp;
 
             for (int j=0; j<=num_output_nodes-1; j++) {
-                    if (i != j && j > i) {
+                    if ((i != j && j > i) && (!((net->outputs[i])->frozen) || !((net->outputs[j])->frozen))) {//Skip frozen node pairs
                             mi_count += 1; //Used for averaging mutual_information later
                             temp = compute_mutual_information(num_bin, active_output_sequences[i], active_output_sequences[j]);
                             //std::cout<<"Mutual Information between Outputs "<<i+1+num_input_nodes<<" "<<j+1+num_input_nodes<<": "<<temp<<std::endl;
@@ -557,6 +599,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness1: "<<org->fitness1<<endl;
   cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness2: "<<org->fitness2<<endl;
   #endif
+  //exit(0);
 
   return org->winner;
 }
@@ -573,7 +616,7 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   bool temp_win = false;
 
   //Evaluate each organism on a test
-  #pragma omp parallel for //Parallelization of for loop 
+  //#pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < pop->organisms.size(); i++) {
       temp_win = memory_evaluate(pop->organisms[i], generation,  input_data, output_labels);      
 
@@ -625,15 +668,18 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
 	cout<<"WINNER IS #"<<((*curorg)->gnome)->genome_id<<endl;
 	//Prints the winner to file
 	//IMPORTANT: This causes generational file output!
-	print_Genome_tofile((*curorg)->gnome,"xor_winner");
+	char temp[50];
+	sprintf (temp, "memory_winner_%d_%d", generation,((*curorg)->net->outputs.size()));
+	print_Genome_tofile((*curorg)->gnome,temp);
       }
     }
     
   }
-
+  else {
 //  if(generation <= 999)
         //pop->epoch(generation);
         pop->epoch_multiobj(generation); //Aditya (NSGA-2)
+  }
 
   if (win) return 1;
   else return 0;

@@ -20,6 +20,21 @@
 #include <sstream>
 using namespace NEAT;
 
+
+void Genome::freeze_genome() {//No new incoming or outgoing connections from all the nodes (except inputs) and no more weight changes on this part of the network
+	std::vector<Gene*>::iterator curgene;
+	std::vector<NNode*>::iterator curnode;
+        for(curgene=genes.begin();curgene!=genes.end();curgene++) {
+		((*curgene)->frozen) = true;
+        }
+        for(curnode=nodes.begin();curnode!=nodes.end();curnode++) {
+                if ((*curnode)->gen_node_label!=INPUT) {//Inputs cannot be frozen since new nodes need to form connections with them
+                        ((*curnode)->frozen) = true;
+                }
+        }
+}
+
+
 Genome::Genome(int id, std::vector<Trait*> t, std::vector<NNode*> n, std::vector<Gene*> g) {
 	genome_id=id;
 	traits=t;
@@ -278,8 +293,8 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 	//Build the input nodes
 	for(ncount=1;ncount<=i;ncount++) {
 		if (ncount<i)
-			newnode=new NNode(SENSOR,ncount,INPUT);
-		else newnode=new NNode(SENSOR,ncount,BIAS);
+			newnode=new NNode(SENSOR,ncount,INPUT, false);
+		else newnode=new NNode(SENSOR,ncount,BIAS, false);
 
 		newnode->nodetrait=newtrait;
 
@@ -289,7 +304,7 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 
 	//Build the hidden nodes
 	for(ncount=i+1;ncount<=i+n;ncount++) {
-		newnode=new NNode(NEURON,ncount,HIDDEN);
+		newnode=new NNode(NEURON,ncount,HIDDEN, false);
 		newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -297,7 +312,7 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 
 	//Build the output nodes
 	for(ncount=first_output;ncount<=totalnodes;ncount++) {
-		newnode=new NNode(NEURON,ncount,OUTPUT);
+		newnode=new NNode(NEURON,ncount,OUTPUT, false);
 		newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -419,9 +434,9 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 	//Build the input nodes
 	for(ncount=1;ncount<=num_in;ncount++) {
 		if (ncount<num_in)
-			newnode=new NNode(SENSOR,ncount,INPUT);
+			newnode=new NNode(SENSOR,ncount,INPUT, false);
 		else { 
-			newnode=new NNode(SENSOR,ncount,BIAS);
+			newnode=new NNode(SENSOR,ncount,BIAS, false);
 			bias=newnode;
 		}
 
@@ -434,7 +449,7 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 
 	//Build the hidden nodes
 	for(ncount=num_in+1;ncount<=num_in+num_hidden;ncount++) {
-		newnode=new NNode(NEURON,ncount,HIDDEN);
+		newnode=new NNode(NEURON,ncount,HIDDEN, false);
 		//newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -443,7 +458,7 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 
 	//Build the output nodes
 	for(ncount=num_in+num_hidden+1;ncount<=num_in+num_hidden+num_out;ncount++) {
-		newnode=new NNode(NEURON,ncount,OUTPUT);
+		newnode=new NNode(NEURON,ncount,OUTPUT, false);
 		//newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -661,7 +676,7 @@ Network *Genome::genesis(int id) {
 
 	//Create the nodes
 	for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
-		newnode=new NNode((*curnode)->type,(*curnode)->node_id, (*curnode)->gen_node_label);
+		newnode=new NNode((*curnode)->type,(*curnode)->node_id, (*curnode)->gen_node_label, (*curnode)->frozen);
 
 		//Derive the node parameters from the trait pointed to
 		curtrait=(*curnode)->nodetrait;
@@ -1292,12 +1307,12 @@ void Genome::mutate_link_weights(double power,double rate,mutator mut_type) {
 
 void Genome::mutate_toggle_enable(int times) {
 	int genenum;
-	int count;
+	int count=1;
 	std::vector<Gene*>::iterator thegene;  //Gene to toggle
 	std::vector<Gene*>::iterator checkgene;  //Gene to check
 	int genecount;
 
-	for (count=1;count<=times;count++) {
+        while (count <= times) {
 
 		//Choose a random genenum
 		genenum=randint(0,genes.size()-1);
@@ -1307,37 +1322,55 @@ void Genome::mutate_toggle_enable(int times) {
 		for(genecount=0;genecount<genenum;genecount++)
 			++thegene;
 
-		//Toggle the enable on this gene
-		if (((*thegene)->enable)==true) {
-			//We need to make sure that another gene connects out of the in-node
-			//Because if not a section of network will break off and become isolated
-			checkgene=genes.begin();
-			while((checkgene!=genes.end())&&
-				(((((*checkgene)->lnk)->in_node)!=(((*thegene)->lnk)->in_node))||
-				(((*checkgene)->enable)==false)||
-				((*checkgene)->innovation_num==(*thegene)->innovation_num)))
-				++checkgene;
+                if (((*thegene)->frozen)==true) {//Skip toggling frozen genes
+                        continue;
+                }
+                else {
+                        count = count + 1;
+		        //Toggle the enable on this gene
+		        if (((*thegene)->enable)==true) {
+		        	//We need to make sure that another gene connects out of the in-node
+		        	//Because if not a section of network will break off and become isolated
+		        	checkgene=genes.begin();
+		        	while((checkgene!=genes.end())&&
+		        		(((((*checkgene)->lnk)->in_node)!=(((*thegene)->lnk)->in_node))||
+		        		(((*checkgene)->enable)==false)||
+		        		((*checkgene)->innovation_num==(*thegene)->innovation_num)))
+		        		++checkgene;
 
-			//Disable the gene if it's safe to do so
-			if (checkgene!=genes.end())
-				(*thegene)->enable=false;
-		}
-		else (*thegene)->enable=true;
+		        	//Disable the gene if it's safe to do so
+		        	if (checkgene!=genes.end())
+		        		(*thegene)->enable=false;
+		        }
+		        else (*thegene)->enable=true;
+                }
 	}
 }
 
 void Genome::mutate_gene_reenable() {
 	std::vector<Gene*>::iterator thegene;  //Gene to enable
+        bool done = false;
 
 	thegene=genes.begin();
 
-	//Search for a disabled gene
-	while((thegene!=genes.end())&&((*thegene)->enable==true))
-		++thegene;
-
-	//Reenable it
-	if (thegene!=genes.end())
-		if (((*thegene)->enable)==false) (*thegene)->enable=true;
+        while (done==false) {
+          	//Search for a disabled gene
+        	while((thegene!=genes.end())&&((*thegene)->enable==true))
+        		++thegene;
+        
+        	//Reenable it
+        	if (thegene!=genes.end()) {
+                        if ((*thegene)->frozen==false) {
+                                if (((*thegene)->enable)==false){ 
+                                        (*thegene)->enable=true;
+                                        done = true;
+                                }
+                        }
+                }
+                else { //Cannot find a disabled, not-frozen gene
+                        break;
+                }
+        }
 
 }
 
@@ -1401,7 +1434,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 	//version of NEAT
 	//NOTE: 7/2/01 now we use this after all
 	else {
-		while ((trycount<20)&&(!found)) {
+		while ((trycount<100)&&(!found)) {//Aditya parameter
 
 			//Choose a random genenum
 			//randmult=gaussrand()/4;
@@ -1420,9 +1453,10 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 			for(int genecount=0;genecount<genenum;genecount++)
 				++thegene;
 
-			//If either the gene is disabled, or it has a bias input, try again
+			//If either the gene is disabled, or it has a bias input, or is frozen, try again
 			if (!(((*thegene)->enable==false)||
-				(((((*thegene)->lnk)->in_node)->gen_node_label)==BIAS)))
+				(((((*thegene)->lnk)->in_node)->gen_node_label)==BIAS) || 
+                                ((*thegene)->frozen==true) ))
 				found=true;
 
 			++trycount;
@@ -1463,7 +1497,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 
 			//Create the new NNode
 			//By convention, it will point to the first trait
-			newnode=new NNode(NEURON,curnode_id++,HIDDEN);
+			newnode=new NNode(NEURON,curnode_id++,HIDDEN, false);
 			newnode->nodetrait=(*(traits.begin()));
 
 			//Create the new Genes
@@ -1504,7 +1538,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 			traitptr=thelink->linktrait;
 
 			//Create the new NNode
-			newnode=new NNode(NEURON,(*theinnov)->newnode_id,HIDDEN);      
+			newnode=new NNode(NEURON,(*theinnov)->newnode_id,HIDDEN, false);      
 			//By convention, it will point to the first trait
 			//Note: In future may want to change this
 			newnode->nodetrait=(*(traits.begin()));
@@ -1533,6 +1567,63 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 
 	return true;
 
+}
+
+//Add output nodes and connect them to BIAS(for incrementally finding independent output node)
+void Genome::add_output_nodes(int block_size, double &curinnov){//block_size is the number of the new output nodes to be added
+
+        for (int size = 0; size < block_size; size++) {
+                int last_node_id = get_last_node_id();
+	        NNode *newnode=new NNode(NEURON,last_node_id,OUTPUT,false);
+                node_insert(nodes,newnode);
+
+                //Connect the newly added node to the BIAS node (this prevents hanging outputs and thus allows network activations)
+                int nodenum1 = 0; //Bias is always the first node
+                int nodenum2 = nodes.size()-1;//Last node is the newly added output node  
+                double weight = 0.0; //Bias to new output connection has a weight of zero
+                add_link(nodenum1, nodenum2, weight, curinnov);
+        }
+}
+
+// Add a new link between 2 specific NNodes 
+void Genome::add_link(int nodenum1, int nodenum2, double weight, double &curinnov){
+
+	NNode *nodep1; //Pointers to the nodes
+	NNode *nodep2; //Pointers to the nodes
+	int nodecount;  //Counter for finding nodes
+	std::vector<NNode*>::iterator thenode1,thenode2;  //node iterators
+	int traitnum;  //Random trait finder
+	std::vector<Trait*>::iterator thetrait;
+        int recurflag = 0;
+	Gene *newgene;  //The new Gene
+
+        thenode1=nodes.begin();
+	for(nodecount=0;nodecount<nodenum1;nodecount++)
+		++thenode1;
+	nodep1=(*thenode1);
+        
+        thenode2=nodes.begin();
+	for(nodecount=0;nodecount<nodenum2;nodecount++)
+		++thenode2;
+        if((*thenode2)->frozen==true){
+                std::cout<<"ERROR: NEW OUTPUTS CANNOT BE FROZEN"<<std::endl;
+                exit(0);
+        }
+	nodep2=(*thenode2);
+	
+        std::cout<<"NODE 0 LABEL: "<<nodep1-> gen_node_label<<" NODE ID: "<<nodep1->node_id<< std::endl;
+        std::cout<<"NODE LAST LABEL: "<<nodep2-> gen_node_label<<" NODE ID: "<<nodep2->node_id<<std::endl;
+        //Choose a random trait
+	traitnum=randint(0,(traits.size())-1);
+	thetrait=traits.begin();
+
+	//Create the new gene
+	newgene=new Gene(((thetrait[traitnum])),weight,nodep1,nodep2,recurflag,curinnov,weight);
+	
+        add_gene(genes,newgene);  //Add genes in correct order
+	
+        //Increment the innovation number        
+        curinnov=curinnov+1.0;
 } 
 
 bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,int tries) {
@@ -1595,27 +1686,40 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 				loop_recur=true;
 			}
 			else loop_recur=false;
+                        bool found_unfrozen_node1 = false;
+                        bool found_unfrozen_node2 = false;
 
-			if (loop_recur) {
-				nodenum1=randint(first_nonsensor,nodes.size()-1);
-				nodenum2=nodenum1;
-			}
-			else {
-				//Choose random nodenums
-				nodenum1=randint(0,nodes.size()-1);
-				nodenum2=randint(first_nonsensor,nodes.size()-1);
-			}
+                        while (!(found_unfrozen_node1) || !(found_unfrozen_node2)) {
+			        if (loop_recur) {
+			        	nodenum1=randint(first_nonsensor,nodes.size()-1);
+			        	nodenum2=nodenum1;
+			        }
+			        else {
+			        	//Choose random nodenums
+			        	nodenum1=randint(0,nodes.size()-1);
+			        	nodenum2=randint(first_nonsensor,nodes.size()-1);
+			        }
 
-			//Find the first node
-			thenode1=nodes.begin();
-			for(nodecount=0;nodecount<nodenum1;nodecount++)
-				++thenode1;
+			        //Find the first unfrozen node if not already found
+                                if(!found_unfrozen_node1) {
+			                thenode1=nodes.begin();
+			                for(nodecount=0;nodecount<nodenum1;nodecount++)
+			                	++thenode1;
+                                        if((*thenode1)->frozen==false){
+                                                found_unfrozen_node1 = true;
+                                        }
+                                }
 
-			//Find the second node
-			thenode2=nodes.begin();
-			for(nodecount=0;nodecount<nodenum2;nodecount++)
-				++thenode2;
-
+			        //Find the second unfrozen node if not already found
+                                if(!found_unfrozen_node2) {
+			                thenode2=nodes.begin();
+			                for(nodecount=0;nodecount<nodenum2;nodecount++)
+			                	++thenode2;
+                                        if((*thenode2)->frozen==false){
+                                                found_unfrozen_node2 = true;
+                                        }
+                                }
+                        }
 			nodep1=(*thenode1);
 			nodep2=(*thenode2);
 
@@ -1663,23 +1767,40 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 		//Loop to find a nonrecurrent link
 		while(trycount<tries) {
 
-			//cout<<"TRY "<<trycount<<std::endl;
+                        bool found_unfrozen_node1 = false;
+                        bool found_unfrozen_node2 = false;
 
-			//Choose random nodenums
-			nodenum1=randint(0,nodes.size()-1);
-			nodenum2=randint(first_nonsensor,nodes.size()-1);
+                        while (!(found_unfrozen_node1) || !(found_unfrozen_node2)) {
+			        if (loop_recur) {
+			        	nodenum1=randint(first_nonsensor,nodes.size()-1);
+			        	nodenum2=nodenum1;
+			        }
+			        else {
+			        	//Choose random nodenums
+			        	nodenum1=randint(0,nodes.size()-1);
+			        	nodenum2=randint(first_nonsensor,nodes.size()-1);
+			        }
 
-			//Find the first node
-			thenode1=nodes.begin();
-			for(nodecount=0;nodecount<nodenum1;nodecount++)
-				++thenode1;
+			        //Find the first unfrozen node if not already found
+                                if(!found_unfrozen_node1) {
+			                thenode1=nodes.begin();
+			                for(nodecount=0;nodecount<nodenum1;nodecount++)
+			                	++thenode1;
+                                        if((*thenode1)->frozen==false){
+                                                found_unfrozen_node1 = true;
+                                        }
+                                }
 
-			//cout<<"RETRIEVED NODE# "<<(*thenode1)->node_id<<std::endl;
-
-			//Find the second node
-			thenode2=nodes.begin();
-			for(nodecount=0;nodecount<nodenum2;nodecount++)
-				++thenode2;
+			        //Find the second unfrozen node if not already found
+                                if(!found_unfrozen_node2) {
+			                thenode2=nodes.begin();
+			                for(nodecount=0;nodecount<nodenum2;nodecount++)
+			                	++thenode2;
+                                        if((*thenode2)->frozen==false){
+                                                found_unfrozen_node2 = true;
+                                        }
+                                }
+                        }
 
 			nodep1=(*thenode1);
 			nodep2=(*thenode2);
