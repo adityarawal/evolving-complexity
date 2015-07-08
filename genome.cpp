@@ -24,10 +24,10 @@ using namespace NEAT;
 void Genome::freeze_genome() {//No new incoming or outgoing connections from all the nodes (except inputs) and no more weight changes on this part of the network
 	std::vector<Gene*>::iterator curgene;
 	std::vector<NNode*>::iterator curnode;
-        for(curgene=genes.begin();curgene!=genes.end();curgene++) {
+        for(curgene=genes.begin();curgene!=genes.end();++curgene) {
 		((*curgene)->frozen) = true;
         }
-        for(curnode=nodes.begin();curnode!=nodes.end();curnode++) {
+        for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
                 if ((*curnode)->gen_node_label!=INPUT) {//Inputs cannot be frozen since new nodes need to form connections with them
                         ((*curnode)->frozen) = true;
                 }
@@ -937,6 +937,86 @@ double Genome::get_last_gene_innovnum() {
 	return ((*(genes.end() - 1))->innovation_num)+1;
 }
 
+ bool Genome::compare_frozen_genome(Genome *new_genome){//Check to see whether frozen components of the genome is unchanged. For verification purposes only
+	std::vector<Gene*>::iterator curgene, curgene2;
+	std::vector<NNode*>::iterator curnode, curnode2;
+	std::vector<Link*>::iterator curlink, curlink2;
+        int inode_id, inode_id2, onode_id, onode_id2;
+
+        //Compare frozen genes
+	curgene2=new_genome->genes.begin();
+        for(curgene=genes.begin();curgene!=genes.end();++curgene) {
+		inode_id=(((*curgene)->lnk)->in_node)->node_id;
+		onode_id=(((*curgene)->lnk)->out_node)->node_id;
+		inode_id2=(((*curgene2)->lnk)->in_node)->node_id;
+		onode_id2=(((*curgene2)->lnk)->out_node)->node_id;
+                //Check node_ids match
+		if (!(inode_id==inode_id2) || !(onode_id==onode_id2)) {
+                        std::cout<<" Node IDs do not match between frozen and the new genome:"<<std::endl;
+                        std::cout<<"Frozen Node IDs: "<<inode_id<<" "<<onode_id<<std::endl;
+                        std::cout<<"New Node IDs: "<<inode_id2<<" "<<onode_id2<<std::endl;
+                        return false;
+                }
+                //Check weights of frozen genes
+                if (!((*curgene)->lnk->weight==(*curgene2)->lnk->weight)) {
+                        std::cout<<" Gene weights do not match between frozen and the new genome:"<<std::endl;
+                        std::cout<<"Frozen Node IDs: "<<inode_id<<" "<<onode_id<<std::endl;
+                        std::cout<<"New Node IDs: "<<inode_id2<<" "<<onode_id2<<std::endl;
+                        return false;
+                }
+                //Check frozen genes are still frozen
+                if(((*curgene)->frozen==true) && ((*curgene2)->frozen==false)) {
+                        std::cout<<" Gene frozen status do not match between frozen and the new genome:"<<std::endl;
+                        std::cout<<"Frozen Node IDs: "<<inode_id<<" "<<onode_id<<std::endl;
+                        std::cout<<"New Node IDs: "<<inode_id2<<" "<<onode_id2<<std::endl;
+                        return false;
+                }
+                ++curgene2;
+        }
+
+        //Compare frozen nodes
+	curnode2=new_genome->nodes.begin();
+        for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
+                //Check frozen nodes are still frozen
+                if(((*curnode)->frozen==true) && ((*curnode2)->frozen==false)) {
+                        std::cout<<" Node frozen status do not match between frozen and the new genome:"<<std::endl;
+                        std::cout<<"Frozen Node ID: "<<(*curnode)->node_id<<std::endl;
+                        std::cout<<"New Node ID: "<<(*curnode2)->node_id<<std::endl;
+                        return false;
+                }
+        
+                //Check to make sure that frozen nodes 
+                //do not have any new incoming links
+                curlink2=(*curnode2)->incoming.begin();
+                for (curlink=(*curnode)->incoming.begin(); curlink!=(*curnode)->incoming.end();++curlink) {
+                        ++curlink2;
+                }
+                if(!(curlink2==(*curnode2)->incoming.end())) {
+                        std::cout<<" New incoming links added to the frozen nodes in the new genome:"<<std::endl;
+                        std::cout<<"Frozen Node ID: "<<(*curnode)->node_id<<std::endl;
+                        std::cout<<"New Node ID: "<<(*curnode2)->node_id<<std::endl;
+                        return false;
+                }
+        
+                //Check to see if new outgoing links 
+                //have been added to the frozen nodes (THIS CASE IS NOT A PROBLEM)
+                curlink2=(*curnode2)->outgoing.begin();
+                for (curlink=(*curnode)->outgoing.begin(); curlink!=(*curnode)->outgoing.end();++curlink) {
+                        ++curlink2;
+                }
+                if(!(curlink2==(*curnode2)->outgoing.end())) {
+                        std::cout<<" New outgoing links added to the frozen nodes in the new genome:"<<std::endl;
+                        std::cout<<"Frozen Node ID: "<<(*curnode)->node_id<<std::endl;
+                        std::cout<<"New Node ID: "<<(*curnode2)->node_id<<std::endl;
+                        return true;
+                }
+        
+                ++curnode2;
+        }
+
+        return true;
+ }
+
 Genome *Genome::duplicate(int new_id) {
 	//Collections for the new Genome
 	std::vector<Trait*> traits_dup;
@@ -1360,10 +1440,19 @@ void Genome::mutate_gene_reenable() {
         
         	//Reenable it
         	if (thegene!=genes.end()) {
-                        if ((*thegene)->frozen==false) {
-                                if (((*thegene)->enable)==false){ 
+                        if ((*thegene)->frozen==true) {//go to the next gene since this one is frozen
+                                ++thegene;
+                                continue;
+                        }
+                        else {
+                                if (((*thegene)->enable)==true){
+                                       std::cout<<"BUG in mutate_gene_reenable: Gene cannot be enabled"<<std::endl;
+                                       exit(0); 
+                                }
+                                else {
                                         (*thegene)->enable=true;
                                         done = true;
+
                                 }
                         }
                 }
@@ -1371,7 +1460,6 @@ void Genome::mutate_gene_reenable() {
                         break;
                 }
         }
-
 }
 
 bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,double &curinnov) {
@@ -1611,8 +1699,8 @@ void Genome::add_link(int nodenum1, int nodenum2, double weight, double &curinno
         }
 	nodep2=(*thenode2);
 	
-        std::cout<<"NODE 0 LABEL: "<<nodep1-> gen_node_label<<" NODE ID: "<<nodep1->node_id<< std::endl;
-        std::cout<<"NODE LAST LABEL: "<<nodep2-> gen_node_label<<" NODE ID: "<<nodep2->node_id<<std::endl;
+        //std::cout<<"NODE 0 LABEL: "<<nodep1-> gen_node_label<<" NODE ID: "<<nodep1->node_id<< std::endl;
+        //std::cout<<"NODE LAST LABEL: "<<nodep2-> gen_node_label<<" NODE ID: "<<nodep2->node_id<<std::endl;
         //Choose a random trait
 	traitnum=randint(0,(traits.size())-1);
 	thetrait=traits.begin();
@@ -1648,7 +1736,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 	bool done;
 	bool do_recur;
 	bool loop_recur;
-	int first_nonsensor;
+	int first_nonsensor_nonfrozen;
 
 	//These are used to avoid getting stuck in an infinite loop checking
 	//for recursion
@@ -1667,12 +1755,12 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 		do_recur=true;
 	else do_recur=false;
 
-	//Find the first non-sensor so that the to-node won't look at sensors as
+	//Find the first non-sensor and non-frozen node so that the to-node won't look at sensors or frozen node as
 	//possible destinations
-	first_nonsensor=0;
+	first_nonsensor_nonfrozen=0;
 	thenode1=nodes.begin();
-	while(((*thenode1)->get_type())==SENSOR) {
-		first_nonsensor++;
+	while((((*thenode1)->get_type())==SENSOR)||((*thenode1)->frozen==true)) {
+		first_nonsensor_nonfrozen++;
 		++thenode1;
 	}
 
@@ -1686,41 +1774,30 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 				loop_recur=true;
 			}
 			else loop_recur=false;
-                        bool found_unfrozen_node1 = false;
-                        bool found_unfrozen_node2 = false;
+			
+                        if (loop_recur) {
+				//nodenum1=randint(first_nonsensor,nodes.size()-1);
+				nodenum1=randint(first_nonsensor_nonfrozen,nodes.size()-1);
+				nodenum2=nodenum1;
+			}
+			else {
+				//Choose random nodenums
+				nodenum1=randint(0,nodes.size()-1);
+				//nodenum2=randint(first_nonsensor,nodes.size()-1);
+				nodenum2=randint(first_nonsensor_nonfrozen,nodes.size()-1);
+			}
 
-                        while (!(found_unfrozen_node1) || !(found_unfrozen_node2)) {
-			        if (loop_recur) {
-			        	nodenum1=randint(first_nonsensor,nodes.size()-1);
-			        	nodenum2=nodenum1;
-			        }
-			        else {
-			        	//Choose random nodenums
-			        	nodenum1=randint(0,nodes.size()-1);
-			        	nodenum2=randint(first_nonsensor,nodes.size()-1);
-			        }
+			//Find the first node
+			thenode1=nodes.begin();
+			for(nodecount=0;nodecount<nodenum1;nodecount++)
+				++thenode1;
 
-			        //Find the first unfrozen node if not already found
-                                if(!found_unfrozen_node1) {
-			                thenode1=nodes.begin();
-			                for(nodecount=0;nodecount<nodenum1;nodecount++)
-			                	++thenode1;
-                                        if((*thenode1)->frozen==false){
-                                                found_unfrozen_node1 = true;
-                                        }
-                                }
-
-			        //Find the second unfrozen node if not already found
-                                if(!found_unfrozen_node2) {
-			                thenode2=nodes.begin();
-			                for(nodecount=0;nodecount<nodenum2;nodecount++)
-			                	++thenode2;
-                                        if((*thenode2)->frozen==false){
-                                                found_unfrozen_node2 = true;
-                                        }
-                                }
-                        }
-			nodep1=(*thenode1);
+			//Find the second node
+			thenode2=nodes.begin();
+			for(nodecount=0;nodecount<nodenum2;nodecount++)
+				++thenode2;
+		
+                        nodep1=(*thenode1);
 			nodep2=(*thenode2);
 
 			//See if a recur link already exists  ALSO STOP AT END OF GENES!!!!
@@ -1767,40 +1844,21 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 		//Loop to find a nonrecurrent link
 		while(trycount<tries) {
 
-                        bool found_unfrozen_node1 = false;
-                        bool found_unfrozen_node2 = false;
+			//Choose random nodenums
+			nodenum1=randint(0,nodes.size()-1);
+			nodenum2=randint(first_nonsensor_nonfrozen,nodes.size()-1);
 
-                        while (!(found_unfrozen_node1) || !(found_unfrozen_node2)) {
-			        if (loop_recur) {
-			        	nodenum1=randint(first_nonsensor,nodes.size()-1);
-			        	nodenum2=nodenum1;
-			        }
-			        else {
-			        	//Choose random nodenums
-			        	nodenum1=randint(0,nodes.size()-1);
-			        	nodenum2=randint(first_nonsensor,nodes.size()-1);
-			        }
+			//Find the first node
+			thenode1=nodes.begin();
+			for(nodecount=0;nodecount<nodenum1;nodecount++)
+				++thenode1;
 
-			        //Find the first unfrozen node if not already found
-                                if(!found_unfrozen_node1) {
-			                thenode1=nodes.begin();
-			                for(nodecount=0;nodecount<nodenum1;nodecount++)
-			                	++thenode1;
-                                        if((*thenode1)->frozen==false){
-                                                found_unfrozen_node1 = true;
-                                        }
-                                }
+			//cout<<"RETRIEVED NODE# "<<(*thenode1)->node_id<<std::endl;
 
-			        //Find the second unfrozen node if not already found
-                                if(!found_unfrozen_node2) {
-			                thenode2=nodes.begin();
-			                for(nodecount=0;nodecount<nodenum2;nodecount++)
-			                	++thenode2;
-                                        if((*thenode2)->frozen==false){
-                                                found_unfrozen_node2 = true;
-                                        }
-                                }
-                        }
+			//Find the second node
+			thenode2=nodes.begin();
+			for(nodecount=0;nodecount<nodenum2;nodecount++)
+				++thenode2;
 
 			nodep1=(*thenode1);
 			nodep2=(*thenode2);
@@ -2569,6 +2627,9 @@ Genome *Genome::mate_multipoint_avg(Genome *g,int genomeid,double fitness1,doubl
 					if (randfloat()>0.5) (avgene->lnk)->is_recurrent=((*p1gene)->lnk)->is_recurrent;
 					else (avgene->lnk)->is_recurrent=((*p2gene)->lnk)->is_recurrent;
 
+					if (randfloat()>0.5) (avgene->frozen)=((*p1gene)->frozen);//p1 and p2 should have the same frozen status if they have the same innovation number
+					else (avgene->frozen)=((*p2gene)->frozen);
+
 					avgene->innovation_num=(*p1gene)->innovation_num;
 					avgene->mutation_num=((*p1gene)->mutation_num+(*p2gene)->mutation_num)/2.0;
 
@@ -2867,6 +2928,9 @@ Genome *Genome::mate_singlepoint(Genome *g,int genomeid) {
 
 					if (randfloat()>0.5) (avgene->lnk)->is_recurrent=((*p1gene)->lnk)->is_recurrent;
 					else (avgene->lnk)->is_recurrent=((*p2gene)->lnk)->is_recurrent;
+					
+                                        if (randfloat()>0.5) (avgene->frozen)=((*p1gene)->frozen);//p1 and p2 should have the same frozen status if they have the same innovation number
+					else (avgene->frozen)=((*p2gene)->frozen);
 
 					avgene->innovation_num=(*p1gene)->innovation_num;
 					avgene->mutation_num=((*p1gene)->mutation_num+(*p2gene)->mutation_num)/2.0;

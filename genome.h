@@ -51,6 +51,8 @@ namespace NEAT {
 		void add_link(int nodenum1, int nodenum2, double weight, double &curinnov); 
 
                 void freeze_genome();//No new incoming or outgoing connections from all the nodes (except inputs) and no more weight changes on this part of the network
+                bool compare_frozen_genome(Genome *new_genome);//Check to see whether frozen components of the genome is unchanged. For verification purposes only
+
 		int genome_id;
 
 		std::vector<Trait*> traits; //parameter conglomerations

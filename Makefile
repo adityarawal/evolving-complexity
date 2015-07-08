@@ -9,8 +9,8 @@ CC = g++ -O3
 #CFLAGS = -g -Wall -Werror
 CFLAGS = -g -fopenmp
 
-neat: neat.o network.o nnode.o link.o trait.o gene.o genome.o innovation.o organism.o species.o population.o experiments.o neatmain.o #neatswig_wrap.o visual.o
-	$(CC) $(CFLAGS) $(LIBS) neat.o network.o nnode.o link.o trait.o gene.o genome.o innovation.o organism.o species.o population.o experiments.o neatmain.o -o neat
+neat: neat.o network.o nnode.o link.o trait.o gene.o genome.o innovation.o organism.o species.o population.o experiments.o kraskovmi.o neatmain.o #neatswig_wrap.o visual.o
+	$(CC) $(CFLAGS) $(LIBS) neat.o network.o nnode.o link.o trait.o gene.o genome.o innovation.o organism.o species.o population.o experiments.o kraskovmi.o neatmain.o -o neat
 #	$(CC) $(CFLAGS) $(LIBS) networks.o genetics.o visual.o experiments.o neatswig_wrap.o neatmain.o -o neat `gtkmm-config --cflags --libs`
 
 ########################
@@ -48,6 +48,9 @@ species.o: species.cpp species.h organism.h
 population.o: population.cpp population.h organism.h
 	  $(CC) $(CFLAGS) -c population.cpp -o population.o
 
+kraskovmi.o: kraskovmi.cpp kraskovmi.h
+	$(CC) $(CFLAGS) -c kraskovmi.cpp -o kraskovmi.o
+
 experiments.o: experiments.cpp experiments.h network.h species.h
 	$(CC) $(CFLAGS) -c experiments.cpp -o experiments.o
 
@@ -58,4 +61,4 @@ neatmain.o: neatmain.cpp neatmain.h neat.h population.h
 ########################
 
 clean:
-	rm -f neat.o network.o nnode.o link.o trait.o gene.o genome.o innovation.o organism.o species.o population.o experiments.o neatmain.o neat
+	rm -f neat.o network.o nnode.o link.o trait.o gene.o genome.o innovation.o organism.o species.o population.o experiments.o kraskovmi.o neatmain.o neat

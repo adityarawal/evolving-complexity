@@ -31,6 +31,7 @@
 #include "organism.h"
 #include "genome.h"
 #include "species.h"
+#include "kraskovmi.h"
 
 using namespace std;
 
