@@ -27,6 +27,8 @@ Gene::Gene(double w, NNode *inode, NNode *onode, bool recur, double innov, doubl
 	enable = true;
 
 	frozen = false;
+        std::cout<<"ERROR in gene.cpp first constructor. This should not have been called "<<std::endl;
+        exit(0);
 }
 
 
@@ -175,5 +177,5 @@ void Gene::print_to_file(std::ostream &outFile) {
 	outFile<<(lnk->is_recurrent)<<" ";
 	outFile<<innovation_num<<" ";
 	outFile<<mutation_num<<" ";
-    outFile<<enable<<std::endl;
+  outFile<<enable<<std::endl;
 }
