@@ -159,7 +159,7 @@ Population *memory_test(int gens) {
                 last_winner_genome=new_winner_genome->duplicate(1);
 
                 //Freeze the winning genome so that new stuff can be added to it
-                new_winner_genome->freeze_genome(); //No new incoming or outgoing connections from all the nodes (except inputs) and no more weight changes on this part of the network
+                new_winner_genome->freeze_genome(); //Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
 
                 //Add #block_size new output nodes
                 new_winner_genome->add_output_nodes(block_size, pop->cur_innov_num);
@@ -480,10 +480,10 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   
   //Parameters for information objective (Used to specify history window)
   int num_bin = 100; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
-  int k = 3; //Nearest neighbor parameter for Kraskov mutual information computation 
+  int K = 3; //Nearest neighbor parameter for Kraskov mutual information computation 
   //Print to file for plotting these parameters
   if (generation == 1) {
-          std::cout<<" num_bin: "<<num_bin<<" Kraskov k: "<<k<<" num_outputs: "<<num_output_nodes<<std::endl;  
+          std::cout<<" num_bin: "<<num_bin<<" Kraskov k: "<<K<<" num_outputs: "<<num_output_nodes<<std::endl;  
   }
 
   std::vector< std::vector <double> > active_output_sequences(num_output_nodes);//Stores when all output values are active (single vector for all the trials for a given output node) 
@@ -532,19 +532,22 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   //end = clock();
   //std::cout << "Total Network Activation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
   
-  //ofstream output_file("output_features_bin1000.txt");
   //std::vector <double> row;
   //int j, k;
-  //for ( j = 0 ; j < active_output_sequences[0].size() ; j++ ) { 
+  //for ( j = 0 ; j < active_output_sequences.size() ; j++ ) { 
+  //        char temp[50];
+  //        sprintf (temp, "output_features_%d", j);
+  //        ofstream output_file(temp);
   //        ostream_iterator<double> output_iterator(output_file, " ");
   //        row.clear();
-  //        for (k = 0; k < active_output_sequences.size(); k++) {
-  //                row.push_back(active_output_sequences[k][j]); 
+  //        for (k = 0; k < active_output_sequences[0].size(); k++) {
+  //                row.push_back(active_output_sequences[j][k]);
+  //                copy(row.begin(), row.end(), output_iterator);
+  //                output_file  << '\n';
+  //                row.clear(); 
   //        }
-  //        copy(row.begin(), row.end(), output_iterator);
-  //        output_file  << '\n';
+  //        output_file.close();
   //}
-  //output_file.close();
   //exit(0);
 
   //Fitness
@@ -595,8 +598,8 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
 
                             //}
                             //temp = compute_mutual_information(num_bin, active_output_sequences[i], active_output_sequences[j]);
-                            double temp2 = kraskov_mutual_information(k, active_output_sequences[i], active_output_sequences[j]);
-                            //std::cout<<"Mutual Information between Outputs "<<i+1+num_input_nodes<<" "<<j+1+num_input_nodes<<": "<<temp<<" "<<temp2<<std::endl;
+                            double temp2 = kraskov_mutual_information(K, active_output_sequences[i], active_output_sequences[j]);
+                            //std::cout<<"Mutual Information between Outputs "<<i+1+num_input_nodes<<" "<<j+1+num_input_nodes<<": "<<temp2<<std::endl;
                             mutual_information += temp2;
                     }
             }
@@ -619,6 +622,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     //std::cout<<"Mutual Information: "<<mutual_information<<" Entropy: "<<entropy<<" Fitness2: "<<org->fitness2<<std::endl;
     //op_ip_mutual_info (input_sequences, output_sequences, y_x_delay, num_bin, active_time_steps, max_history, min_history);
     org->fitness2 = std_dev*100; //To scale it to 0-100
+    org->evaluated = true; //Aditya: for speed-up by preventing re-evaluation of the elites
   }
   else {
     //The network is flawed (shouldnt happen)
@@ -670,25 +674,15 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   //Evaluate each organism on a test
   #pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < pop->organisms.size(); i++) {
-      temp_win = memory_evaluate(pop->organisms[i], generation,  input_data, output_labels);      
-
-  //for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
-
-//    if(generation <= 994)
-  //  else
-    //  temp_win = digit_test(*curorg);
-
-    if (temp_win) {
-      win=true;
-      winnernum=pop->organisms[i]->gnome->genome_id;
-      winnergenes=pop->organisms[i]->gnome->extrons();
-      winnernodes=(pop->organisms[i]->gnome->nodes).size();
-      //if (winnernodes==5) {
-	//You could dump out optimal genomes here if desired
-	//(*curorg)->gnome->print_to_filename("xor_optimal");
-	//cout<<"DUMPED OPTIMAL"<<endl;
-      //}
-    }
+          if (pop->organisms[i]->evaluated==false) {
+                  temp_win = memory_evaluate(pop->organisms[i], generation,  input_data, output_labels);
+                  if (temp_win) {
+                    win=true;
+                    winnernum=pop->organisms[i]->gnome->genome_id;
+                    winnergenes=pop->organisms[i]->gnome->extrons();
+                    winnernodes=(pop->organisms[i]->gnome->nodes).size();
+                  }
+          }
   }
   
   //Average and max their fitnesses for dumping to file and snapshot

@@ -21,7 +21,7 @@
 using namespace NEAT;
 
 
-void Genome::freeze_genome() {//No new incoming or outgoing connections from all the nodes (except inputs) and no more weight changes on this part of the network
+void Genome::freeze_genome() {//Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
 	std::vector<Gene*>::iterator curgene;
 	std::vector<NNode*>::iterator curnode;
         for(curgene=genes.begin();curgene!=genes.end();++curgene) {

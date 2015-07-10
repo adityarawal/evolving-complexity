@@ -1,5 +1,7 @@
 #include "kraskovmi.h"
 
+bool myfunction (double i,double j) { return (i<j); }
+
 bool sort_pred(const std::pair<double,int> &left, const std::pair<double,int> &right) {
         return left.first < right.first;
 }
@@ -22,7 +24,7 @@ double kraskov_mutual_information(int k, vector<double> X, vector<double> Y) {
         
         //Divide the space into a 2-D square grid of size (k/N)^(1/2)
         //Store values/pointers of X/Y values of the random variables
-        double twoD_blocklen = sqrt((double)(k*10)/nObs);
+        double twoD_blocklen = sqrt((double)(k*10)/nObs);// Can be changed after experimentation to suit the data distribution
         int twoD_numblocks = ceil((max_X-min_X)/twoD_blocklen); 
         twoD_blocklen = (max_X-min_X)/twoD_numblocks; //Update based on the rounded off value of num blocks
         vector<vector<vector<double> > > twoD_grid(twoD_numblocks, vector<vector<double> >(twoD_numblocks));//2D grid. For each block, list of points inside the block
@@ -37,7 +39,7 @@ double kraskov_mutual_information(int k, vector<double> X, vector<double> Y) {
         //Create 1-D grid for x and y variables and compute number of points
         //in axis which are strictly less than dist_knn(i) apart from x(i)
         // and y(i) respectively
-        double oneD_slicelen = ((double)10/nObs);
+        double oneD_slicelen = ((double)50/nObs);// Can be changed after experimentation to suit the data distribution
         int oneD_numslice = ceil((max_X-min_X)/oneD_slicelen);
         oneD_slicelen = (max_X-min_X)/oneD_numslice; //Update based on the rounded off value of num blocks
         vector<vector<double> > oneD_x_grid(oneD_numslice);//1D grid has x locations of the points lying inside each slice of the grid
@@ -436,3 +438,93 @@ double digama ( double x)
   return value;
 }
 
+double slow_kraskov_mutual_information(int k, vector<double> X, vector<double> Y) {
+        if (X.size() != Y.size()) {
+            std::cout<<" Error('X and Y must contain the same number of samples')"<<std::endl;
+        }
+        
+        int nObs = X.size();
+        vector < vector <double> > dx (nObs, vector <double> (nObs, -1.0));
+        vector < vector <double> > dy (nObs, vector <double> (nObs, -1.0));
+        vector < vector <double> > dz (nObs, vector <double> (nObs, -1.0));
+        vector <int> nx(nObs);//Number of x points that are strictly nearer to the point of interest than the knn  
+        vector <int> ny(nObs);//Number of y points that are strictly nearer to the point of interest than the knn
+        vector<double> dist_knn(nObs,-1.0);
+        
+        for (int i = 0; i < nObs; i++) {
+            for (int j = 0; j < nObs; j++) {
+                dx[i][j] = abs(X[i]- X[j]);
+                dy[i][j] = abs(Y[i]- Y[j]);
+                if (dx[i][j] > dy[i][j]) {
+                        dz[i][j] =dx[i][j]; 
+                }
+                else {
+                        dz[i][j] =dy[i][j]; 
+                }
+            }
+        }
+        
+        for (int i = 0; i < nObs; i++) {
+        
+            vector <double> dxSample = dx[i];
+            vector <double> dySample = dy[i];
+            vector <double> dzSample = dz[i];
+           
+            dxSample.erase(dxSample.begin() + i);
+            dySample.erase(dySample.begin() + i);
+            dzSample.erase(dzSample.begin() + i); 
+            
+            int temp_ind;
+            double temp_dist;
+            double large_num = 100.00;
+            for (int j=0; j<k; j++) {
+                    temp_ind = min_element( dzSample.begin(), dzSample.end() ) - dzSample.begin();
+                    temp_dist = dzSample[temp_ind];
+                    dzSample[temp_ind] = large_num;//Replace smallest element with a large number to find the next smallest
+            }
+
+            int ind_kth = temp_ind;//Index of the k nearest neighbor
+            dist_knn[i] = temp_dist;
+
+            bool found_flag = false;
+            
+            //X-axis 
+            std::sort (dxSample.begin(), dxSample.end(), myfunction); 
+            for (int j=0; j < dxSample.size(); j++) {
+                    if (dxSample[j]<dist_knn[i]) {
+                            nx[i]+= 1;
+                    }
+                    else {
+                            break;
+                    }
+            }
+            
+            //Y-axis 
+            std::sort (dySample.begin(), dySample.end(), myfunction); 
+            for (int j=0; j < dySample.size(); j++) {
+                    if (dySample[j]<dist_knn[i]) {
+                            ny[i]+= 1;
+                    }
+                    else {
+                            break;
+                    }
+            }
+        }
+        
+        double mutual_info = 0.0;
+        double average = 0.0;
+        for (int i=0; i<nx.size(); i++) {
+                average = average + digama(nx[i] + 1);
+                average = average + digama(ny[i] + 1);
+        }               
+        average = average/nObs;
+        mutual_info = digama(k) - average + digama(nObs); //psi(k) - sum(psi(nx + 1) + psi(ny + 1)) / nObs + psi(nObs)
+        
+        
+        //If Mutual information is negative, make it zero 
+        //Mutual Information can be greater than 1
+        if (mutual_info < 0.0) {
+                mutual_info = 0.0;
+        }
+        return mutual_info;
+}

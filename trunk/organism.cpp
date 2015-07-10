@@ -23,7 +23,8 @@ Organism::Organism(double fit1, double fit2, Genome *g,int gen, const char* md) 
 	orig_fitness=fitness1;//(Aditya: for NSGA-2)
         front_num = -1;//(Aditya: for NSGA-2)
         crowd_dist = 0.0;//(Aditya: for NSGA-2)
-	gnome=g;
+	evaluated = false; //Aditya: for speed-up by preventing re-evaluation of the elites
+        gnome=g;
 	net=gnome->genesis(gnome->genome_id);
 	species=0;  //Start it in no Species
 	expected_offspring=0;
@@ -60,6 +61,7 @@ Organism::Organism(const Organism& org)
 	orig_fitness = org.orig_fitness;//(Aditya: for NSGA-2)
         front_num = org.front_num; //(Aditya: for NSGA-2)
         crowd_dist = org.crowd_dist; //(Aditya: for NSGA-2)
+	evaluated = false; //Aditya: for speed-up by preventing re-evaluation of the elites
 	gnome = new Genome(*(org.gnome));	// Associative relationship
 	//gnome = org.gnome->duplicate(org.gnome->genome_id);
 	net = new Network(*(org.net)); // Associative relationship
