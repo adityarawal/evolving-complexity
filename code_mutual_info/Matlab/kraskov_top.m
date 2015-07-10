@@ -1,6 +1,6 @@
 clear all; clc; close all;
 rng('shuffle');
-len = 10000
+len = 1000
 % X = 0 + (1-0).*randn(len,1);
 % Y = X+rand(len,1);
 % Y = Y-mean(Y);
@@ -34,8 +34,8 @@ if (max_X_norm ~= 1 || max_Y_norm ~=1 || min_X_norm ~=0 || min_Y_norm ~=0)
     display('ERRROR: Values of X or Y outside 0-1 range');
 end
 
-dlmwrite('del_Y.txt', Y, '\n'); %Write to file to be read by python/C++
-dlmwrite('del_X.txt', X, '\n'); %Write to file to be read by python/C++
+% dlmwrite('del_Y.txt', Y, '\n'); %Write to file to be read by python/C++
+% dlmwrite('del_X.txt', X, '\n'); %Write to file to be read by python/C++
 
 c = corr([X Y])
 I_exact = -0.5*log(1-c(1,2)^2)

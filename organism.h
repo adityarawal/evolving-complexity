@@ -38,7 +38,8 @@ namespace NEAT {
 		double orig_fitness;  //A fitness measure that won't change during adjustments
 		int front_num;  // front number to which organism belongs (Aditya: for NSGA-2)
 		double crowd_dist;  //Crowding distance of the organism within the front (Aditya: for NSGA-2)
-		std::vector<Organism*> domination_list;  //Organisms dominated by this org (Aditya: for NSGA-2)
+		bool evaluated; //Aditya: for speed-up by preventing re-evaluation of the elites
+                std::vector<Organism*> domination_list;  //Organisms dominated by this org (Aditya: for NSGA-2)
 	        int num_dominant; //Number of organisms which dominate this organism
                 double error;  //Used just for reporting purposes
 		bool winner;  //Win marker (if needed for a particular task)

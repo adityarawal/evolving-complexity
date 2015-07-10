@@ -39,11 +39,17 @@ dz = zeros(nObs, nObs);
 dx = zeros(nObs, nObs);
 dy = zeros(nObs, nObs);
 
+%Assumption
+max_X = 1;
+min_X = 0;
+max_y = 1;
+min_y = 0;
+
 %Divide the space into a 2-D square grid of size (k/N)^(1/2)
 %Store values/pointers of X/Y values of the random variables
 twoD_blocklen = (k/nObs)^(1/2);
-twoD_numblocks = ceil((max(X)-min(X))/twoD_blocklen); 
-twoD_blocklen = (max(X)-min(X))/twoD_numblocks; %Update based on the rounded off value of num blocks
+twoD_numblocks = ceil((max_X-min_X)/twoD_blocklen); 
+twoD_blocklen = (max_X-min_X)/twoD_numblocks; %Update based on the rounded off value of num blocks
 twoD_grid = cell(twoD_numblocks, twoD_numblocks);
 twoD_gridloc = zeros(nObs, 2) -1; 
 twoDgrid_x_min = 1;
@@ -57,8 +63,8 @@ dist_knn = zeros(nObs, 1);
 %in axis which are strictly less than dist_knn(i) apart from x(i)
 % and y(i) respectively
 oneD_slicelen = (1/nObs);
-oneD_numslice = ceil((max(X)-min(X))/oneD_slicelen);
-oneD_slicelen = (max(X)-min(X))/oneD_numslice; %Update based on the rounded off value of num blocks
+oneD_numslice = ceil((max_X-min_X)/oneD_slicelen);
+oneD_slicelen = (max_X-min_X)/oneD_numslice; %Update based on the rounded off value of num blocks
 oneD_x_grid = cell(oneD_numslice);
 oneD_x_gridloc = zeros(nObs, 2) -1; 
 oneD_y_grid = cell(oneD_numslice);

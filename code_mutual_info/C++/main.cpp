@@ -29,21 +29,24 @@ int main() {
 
         vector <double> X;
         vector <double> Y;
-        X = read_file("../del_X.txt"); //This data should be previously scaled to 0-1
-        Y = read_file("../del_Y.txt"); //This data should be previously scaled to 0-1
-        double max_X = *std::max_element(X.begin(), X.end());
-        double min_X = *std::min_element(X.begin(), X.end());
-        double max_Y = *std::max_element(Y.begin(), Y.end());
-        double min_Y = *std::min_element(Y.begin(), Y.end());
+        X = read_file("../../output_features_0"); //This data should be previously scaled to 0-1 (for Fast Kraskov only and histogram)
+        Y = read_file("../../output_features_1"); //This data should be previously scaled to 0-1 (for Fast Kraskov only and histogram)
         
         int k = 3;
+        
         clock_t start, end;
         start = clock();
         double kraskov_mi = kraskov_mutual_information(k, X, Y);
         end = clock();
-        std::cout << "Total k-NN Kraskov MI Calculation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
-        std::cout << " Kraskov Mutual Information: "<<kraskov_mi<<endl;
+        std::cout << "Fast Kraskov MI Calculation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
+        std::cout << " Fast Kraskov Mutual Information: "<<kraskov_mi<<endl;
        
+        start = clock();
+        double slow_kraskov_mi = slow_kraskov_mutual_information(k, X, Y);
+        end = clock();
+        std::cout << "Slow Kraskov MI Calculation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
+        std::cout << " Slow Kraskov Mutual Information: "<<slow_kraskov_mi<<endl;
+      
         int num_bins = 1000; 
         start = clock();
         double histogram_mi = histogram::mutual_inf(X, Y, num_bins, num_bins); 
@@ -54,6 +57,10 @@ int main() {
         return 0;
 }
 
+        //double max_X = *std::max_element(X.begin(), X.end());
+        //double min_X = *std::min_element(X.begin(), X.end());
+        //double max_Y = *std::max_element(Y.begin(), Y.end());
+        //double min_Y = *std::min_element(Y.begin(), Y.end());
         //std::cout<<"X max and min: "<<max_X<<" "<<min_X<<std::endl;
         //std::cout<<"Y max and min: "<<max_Y<<" "<<min_Y<<std::endl;
         //for (int i=0; i<X.size(); i++) {
