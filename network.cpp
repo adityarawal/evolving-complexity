@@ -314,6 +314,62 @@ bool Network::activate() {
 	return true;  
 }
 
+//Recursive finds activation value of a node. Activates any node only once.
+//Works only when there is no recurrent/loopy connection 
+void Network::recursive_activation(NNode* curnode){
+	std::vector<Link*>::iterator curlink;
+        //curnode-> active_flag = false;
+        curnode-> activesum = 0.0;
+
+        if ((curnode->type)==SENSOR) { //Sensor has already been activated by loading sensor values
+                curnode-> active_flag = true;
+        }
+        else if ((curnode-> active_flag)==false) {//If current node has not been activated before through a different path
+                for(curlink=(curnode->incoming).begin();curlink!=(curnode->incoming).end();++curlink) {
+                        recursive_activation((*curlink)->in_node); //Recursive function
+                        if ((*curlink)->in_node->active_flag) {//Only if the node is not floating, use its value 
+                                 curnode->activesum+= (((*curlink)->in_node)->get_active_out())*((*curlink)->weight);
+                                 curnode-> active_flag = true; //This node is active if at least one incoming link is active
+                        }
+                }
+                if ((curnode-> active_flag)) {
+		        //Now run the net activation through an activation function
+		        if (curnode->ftype==SIGMOID) {
+                                curnode->activation=NEAT::fsigmoid(curnode->activesum,1.0,2.4621365);  //Sigmoidal activation- see comments under fsigmoid //Changed slope from 4.924273 to 1.0 to allow for 4 different output node categories
+                        }
+                        else {
+                                curnode->activation=NEAT::fReLu(curnode->activesum,1.0,2.4621365);  //Rectified Linear Units {max(0,x)}
+                        }
+	                curnode->activation_count++;
+                        //Check to see if this node has been activated more than once
+                        if (curnode->activation_count > 1) {
+                                std::cout<< " ERRORR: Node: " <<curnode->node_id<<" being activated more than once"<<std::endl;
+                        }
+                }
+                else {
+                        std::cout<<" WARNINGGGGGGGGGGGGGGGGGGGGGGG: Node: "<< curnode->node_id<<" cannot be floating. Make sure memory_startgenes has valid paths to output. Otherwise, could be a BUG (NOT NECESSARILY)"<<std::endl;
+                        exit(0);
+                }
+        }
+}
+
+// Activates the net such that all paths to the output are activated just once. 
+// Used for static problems like image classification
+// Works only when there is no recurrent/loopy connection 
+// Returns true on success;
+bool Network::activate_static() {
+	std::vector<NNode*>::iterator curnode;
+
+	for(curnode=outputs.begin();curnode!=outputs.end();++curnode) {
+                recursive_activation(*curnode);
+	}
+        if (outputsoff()) {//If any output is floating
+                return false;
+        }
+        else {
+                return true;
+        }
+}
 // THIS WAS NOT USED IN THE FINAL VERSION, AND NOT FULLY IMPLEMENTED,   
 // BUT IT SHOWS HOW SOMETHING LIKE THIS COULD BE INITIATED
 // Note that checking networks for loops in general in not necessary

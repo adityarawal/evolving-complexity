@@ -509,12 +509,13 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
                   //std::cout<<input_data[step][k]<<" ";
           }
           //std::cout<<"End Input data: "<<std::endl;
-          success=net->activate();
+          success=net->activate_static(); //Special activate for static problems like image classification
           if (!success) {
                   org->error = 1;
-  		//std::cout << " Again Net not activating"<<std::endl;//memory_startgenes makes sure no floating outputs
-                  //std::ofstream outFile("not_activating",std::ios::out);
-                  //((org)->gnome)->print_to_file(outFile);
+  		  std::cout << " Again Net not activating. No path to output"<<std::endl;//memory_startgenes makes sure no floating outputs
+                  std::ofstream outFile("not_activating",std::ios::out);
+                  ((org)->gnome)->print_to_file(outFile);
+                  exit(0);
           }
           //std::cout<<" Output: ";
           for (int i=0; i<=num_output_nodes-1; i++) {//Storing output from each output node 
