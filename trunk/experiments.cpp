@@ -337,7 +337,7 @@ class histogram
         	for(double x=0.0000001;x<1.0;x=x+granularity_x) {//Starting with x=0.0000001 to avoid double inaccuracy
                         double px=hx.probability(x);
                         if (px == 1) {//Diversity experiment (to ensure neuron value is not fixed)
-                                entropy = 0;
+                                entropy = 0.0;
                         }
                         else if(px!=0.0) {
         			entropy+=(-1.0)*px*(log_anybase(px, x_num_bins));
@@ -512,10 +512,11 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
           success=net->activate_static(); //Special activate for static problems like image classification
           if (!success) {
                   org->error = 1;
-  		  std::cout << " Again Net not activating. No path to output"<<std::endl;//memory_startgenes makes sure no floating outputs
-                  std::ofstream outFile("not_activating",std::ios::out);
-                  ((org)->gnome)->print_to_file(outFile);
-                  exit(0);
+  		  std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
+                  break;
+                  //std::ofstream outFile("not_activating",std::ios::out);
+                  //((org)->gnome)->print_to_file(outFile);
+                  //exit(0);
           }
           //std::cout<<" Output: ";
           for (int i=0; i<=num_output_nodes-1; i++) {//Storing output from each output node 
@@ -555,25 +556,33 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   if (success) {
 
     double mutual_information = 0.0;
-    double std_dev = 0.0; //Standard Deviation of each non-frozen output node
+    vector <double> entropy(num_output_nodes);
+    double large_number = 100.0;
     int mi_count = 0;
-    int std_dev_count = 0;
+    //double std_dev = 0.0; //Standard Deviation of each non-frozen output node
+    //int std_dev_count = 0;
 
     //start = clock();
     //org->error=errorsum/(active_time_steps*num_trials);
     //org->fitness1 = (1 - org->error)*100; 
    
-    //Compute pairwise mutual information between all the output nodes
-    //Also, compute entropy of each variable 
+    //Compute entropy of each output variable (Later: No need to recompute this for the frozen network) 
     for (int i=0; i<=num_output_nodes-1; i++) {
-            double temp;
-            if(!((net->outputs[i])->frozen)) {//Skip frozen node
-                    temp = compute_standev_scaled(num_bin, 0, 0, active_output_sequences[i]);
-                    std_dev += temp;
-                    std_dev_count += 1;
-                    //std::cout<<"Standard Deviation of Output "<<i+1+num_input_nodes<<" : "<<temp<<std::endl;
-            }
-            //temp = compute_entropy(num_bin, active_output_sequences[i]); //Ranges between 0-1
+             entropy[i] = compute_entropy(num_bin, active_output_sequences[i]); //Ranges between 0-1
+    }       
+
+    //Compute pairwise NORMALIZED mutual information between all the output nodes 
+    for (int i=0; i<=num_output_nodes-1; i++) {
+            //double temp;
+            //if(!((net->outputs[i])->frozen)) {//Skip frozen node
+            //        temp = compute_entropy(num_bin, active_output_sequences[i]); //Ranges between 0-1
+            //        entropy += temp;
+            //        entropy_count += 1;                
+            //        //temp = compute_standev_scaled(num_bin, 0, 0, active_output_sequences[i]);
+            //        //std_dev += temp;
+            //        //std_dev_count += 1;
+            //        //std::cout<<"Standard Deviation of Output "<<i+1+num_input_nodes<<" : "<<temp<<std::endl;
+            //}
             //if (i+1+num_input_nodes == 109) {
             //std::cout<<"OUTPUT"<<endl;
             //for (int k=0; k<active_output_sequences[i].size(); k++) {
@@ -588,9 +597,22 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
             //std::cout<<endl;
             //std::cout<<i<<"  entropy: "<<temp<<std::endl;
             //entropy += temp;
-
+            double mi, norm_mi;
             for (int j=0; j<=num_output_nodes-1; j++) {
                     if ((i != j && j > i) && (!((net->outputs[i])->frozen) || !((net->outputs[j])->frozen))) {//Skip frozen node pairs
+                            if (entropy[i] == 0.0 || entropy[j] == 0.0) {//If one of the outputs is fixed
+                                    norm_mi = large_number; //Large number (Avoid division by zero)
+                            }
+                            else {
+                                    mi = kraskov_mutual_information(K, active_output_sequences[i], active_output_sequences[j]);
+                                    if (entropy[i]<entropy[j]) {
+                                            norm_mi = mi/entropy[i];  //ref: Pablo estez (2009) - Normalized mutual information 
+                                    }
+                                    else {
+                                            norm_mi = mi/entropy[j];  //ref: Pablo estez (2009) - Normalized mutual information
+                                    }
+                            }
+                            mutual_information += norm_mi;
                             mi_count += 1; //Used for averaging mutual_information later
                             //if ((i+1+num_input_nodes == 5) && (j+1+num_input_nodes == 6)){
                             //        for (int p = 0; p < active_output_sequences[i].size(); p++) {
@@ -599,9 +621,8 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
 
                             //}
                             //temp = compute_mutual_information(num_bin, active_output_sequences[i], active_output_sequences[j]);
-                            double temp2 = kraskov_mutual_information(K, active_output_sequences[i], active_output_sequences[j]);
+
                             //std::cout<<"Mutual Information between Outputs "<<i+1+num_input_nodes<<" "<<j+1+num_input_nodes<<": "<<temp2<<std::endl;
-                            mutual_information += temp2;
                     }
             }
             //for (int k=1; k<= num_input_nodes-1; k++) {//Start index from 1 so that bias is skipped
@@ -615,14 +636,14 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     //std::cout<< "Total mutual_information: "<<mutual_information<<" "<<"Total entropy: "<<entropy<<std::endl;  
     //Averaging
     mutual_information = mutual_information/mi_count; //Scaling it back to 0-large number
-    std_dev = std_dev/std_dev_count; //Scaling it back to 0-1
+    //std_dev = std_dev/std_dev_count; //Scaling it back to 0-1
     //entropy = entropy/num_output_nodes;
     org->fitness1 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
 
     //org->fitness2 = mutual_information*100.0/((double)(max_history-min_history+1)); //To scale it to 0-100
     //std::cout<<"Mutual Information: "<<mutual_information<<" Entropy: "<<entropy<<" Fitness2: "<<org->fitness2<<std::endl;
     //op_ip_mutual_info (input_sequences, output_sequences, y_x_delay, num_bin, active_time_steps, max_history, min_history);
-    org->fitness2 = std_dev*100; //To scale it to 0-100
+    org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
     org->evaluated = true; //Aditya: for speed-up by preventing re-evaluation of the elites
   }
   else {
@@ -639,11 +660,11 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   else{
        //org->winner = false;
   }
-  if (org->fitness2>=90.0) {
+  if (org->fitness2>=95.0) {
         //org->winner = true;
         std::cout<<"OBJECTIVE2 ACHIEVED:: WINNER FOUND"<<std::endl;
   }
-  if (org->fitness1>=95.0 && org->fitness2>=90.0) {
+  if (org->fitness1>=95.0 && org->fitness2>=95.0) {
           org->winner = true;
   }
   else {
@@ -704,10 +725,10 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   //  pop->snapshot();
 
   //Only print to file every print_every generations
-  if  (win||
-       ((generation%(NEAT::print_every))==0))
+  if  (win) {//||
+//       ((generation%(NEAT::print_every))==0)) //Print every generation happens inside epoch_multiobj
     pop->print_to_file_by_species(filename);
-
+  }
 
   if (win) {
     for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
@@ -725,7 +746,7 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   else {
 //  if(generation <= 999)
         //pop->epoch(generation);
-        pop->epoch_multiobj(generation); //Aditya (NSGA-2)
+        pop->epoch_multiobj(generation, filename); //Aditya (NSGA-2)
   //if  (win||
   //     ((generation%(NEAT::print_every))==0))
   //  pop->print_to_file_by_species(strcat(filename, "_del"));

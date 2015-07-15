@@ -344,11 +344,12 @@ void Network::recursive_activation(NNode* curnode){
                         //Check to see if this node has been activated more than once
                         if (curnode->activation_count > 1) {
                                 std::cout<< " ERRORR: Node: " <<curnode->node_id<<" being activated more than once"<<std::endl;
+                                exit(0);
                         }
                 }
                 else {
-                        std::cout<<" WARNINGGGGGGGGGGGGGGGGGGGGGGG: Node: "<< curnode->node_id<<" cannot be floating. Make sure memory_startgenes has valid paths to output. Otherwise, could be a BUG (NOT NECESSARILY)"<<std::endl;
-                        exit(0);
+                        //std::cout<<" WARNINGGGGGGGGGGGGGGGGGGGGGGG: Node: "<< curnode->node_id<<" cannot be floating. Make sure memory_startgenes has valid paths to output. Otherwise, could be a BUG (NOT NECESSARILY)"<<std::endl;
+                        //exit(0);
                 }
         }
 }
