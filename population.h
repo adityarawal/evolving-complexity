@@ -91,7 +91,7 @@ namespace NEAT {
 		bool epoch(int generation);
 	
                 //**  Aditya (NSGA-2)Adding new functions **//        
-                bool epoch_multiobj(int generation);
+                bool epoch_multiobj(int generation,char *filename);
                 bool p_dominates_q (Organism* p, Organism* q);
                 void assign_crowding_distance (std::vector<Organism*>, int num_obj);
                 std::vector< std::vector<Organism*> > assign_domination_fronts();

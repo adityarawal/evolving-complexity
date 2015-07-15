@@ -1,6 +1,6 @@
 clear all; clc; close all;
 rng('shuffle');
-len = 1000
+len = 300
 % X = 0 + (1-0).*randn(len,1);
 % Y = X+rand(len,1);
 % Y = Y-mean(Y);
@@ -52,6 +52,7 @@ else
     display('Correct; I1 and I1_fast match');
 end
 
+[X_entropy] = entropy_nearest_neighbor(X);
 %[X Y points_knn fast_points_knn]
 %[X Y dist_knn fast_dist_knn]
 

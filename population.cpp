@@ -286,7 +286,7 @@ bool Population::spawn(Genome *g,int size) {
 
 		new_genome=g->duplicate(count); 
 		//new_genome->mutate_link_weights(1.0,1.0,GAUSSIAN);
-		//new_genome->mutate_link_weights(1.0,1.0,COLDGAUSSIAN);
+		new_genome->mutate_link_weights(1.0,1.0,COLDGAUSSIAN);
 		//new_genome->randomize_traits(); Aditya: No need to change traits since they are not being used
 		new_organism=new Organism(0.0, 0.0, new_genome,1);//(Aditya: for NSGA-2)
 		organisms.push_back(new_organism);
@@ -559,7 +559,7 @@ void Population::assign_crowding_distance(std::vector<Organism*> front, int num_
         }
 }
 
-bool Population::epoch_multiobj(int generation) {
+bool Population::epoch_multiobj(int generation, char *filename) {
 
         std::vector<Species*>::iterator curspecies;
 
@@ -720,8 +720,11 @@ bool Population::epoch_multiobj(int generation) {
 		std::cout<<highest_last_changed2<<" generations since last population fitness2 record: "<<highest_fitness2<<std::endl;
 	}
 
-
-
+        //Print to file the top pop_size/2 organisms
+        if  ((generation%(NEAT::print_every))==0){ //Print every generation happens inside epoch_multiobj
+                print_to_file_by_species(filename);
+        }
+        
         //Reproduce
 	curspecies=species.begin();//Only one species in NSGA-2
         (*curspecies)->reproduce_multiobj(generation, this);
