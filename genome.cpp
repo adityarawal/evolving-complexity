@@ -960,6 +960,13 @@ double Genome::get_last_gene_innovnum() {
                 //Check weights of frozen genes
                 if (!((*curgene)->lnk->weight==(*curgene2)->lnk->weight)) {
                         std::cout<<" Gene weights do not match between frozen and the new genome:"<<std::endl;
+                        std::cout<<"Frozen Node IDs: "<<inode_id<<" "<<onode_id<<" "<<(*curgene)->lnk->weight<<std::endl;
+                        std::cout<<"New Node IDs: "<<inode_id2<<" "<<onode_id2<<" "<<(*curgene2)->lnk->weight<<std::endl;
+                        return false;
+                }
+                //Check enable of frozen genes
+                if (!((*curgene)->enable==(*curgene2)->enable)) {
+                        std::cout<<" Gene Enable do not match between frozen and the new genome:"<<std::endl;
                         std::cout<<"Frozen Node IDs: "<<inode_id<<" "<<onode_id<<std::endl;
                         std::cout<<"New Node IDs: "<<inode_id2<<" "<<onode_id2<<std::endl;
                         return false;
@@ -1422,7 +1429,9 @@ void Genome::mutate_toggle_enable(int times) {
 		        	if (checkgene!=genes.end())
 		        		(*thegene)->enable=false;
 		        }
-		        else (*thegene)->enable=true;
+		        else {
+                                (*thegene)->enable=true;
+                        }
                 }
 	}
 }
@@ -1450,6 +1459,7 @@ void Genome::mutate_gene_reenable() {
                                        exit(0); 
                                 }
                                 else {
+                                        std::cout<<"Re-enable: "<<(*thegene)->lnk->in_node->node_id<<" "<<(*thegene)->lnk->out_node->node_id<<std::endl;
                                         (*thegene)->enable=true;
                                         done = true;
 
@@ -2447,10 +2457,12 @@ Genome *Genome::mate_multipoint(Genome *g,int genomeid,double fitness1,double fi
 
 				//Add the Gene
 				newgene=new Gene(chosengene,newtraits[traitnum],new_inode,new_onode);
-				if (disable) {
-					newgene->enable=false;
-					disable=false;
-				}
+				if (!newgene->frozen) {//Toggle gene enable randomly if the gene is not frozen
+                                        if (disable) {
+                                                newgene->enable=false;
+					        disable=false;
+				        }
+                                }
 				newgenes.push_back(newgene);
 			}
 
@@ -2633,9 +2645,14 @@ Genome *Genome::mate_multipoint_avg(Genome *g,int genomeid,double fitness1,doubl
 					avgene->innovation_num=(*p1gene)->innovation_num;
 					avgene->mutation_num=((*p1gene)->mutation_num+(*p2gene)->mutation_num)/2.0;
 
-					if ((((*p1gene)->enable)==false)||
-						(((*p2gene)->enable)==false)) 
-						if (randfloat()<0.75) avgene->enable=false;
+                                        if (!avgene->frozen) {//If gene is not frozen, then randomly toggle the enable
+					        if ((((*p1gene)->enable)==false)||
+						(((*p2gene)->enable)==false))
+                                                        if (randfloat()<0.75) avgene->enable=false;
+                                        }
+                                        else {//No change if the parent genes are frozen
+                                                avgene->enable=((*p1gene)->enable);//p1 and p2 frozen gene should have the same enable status
+                                        }
 
 					chosengene=avgene;
 					++p1gene;
@@ -2935,10 +2952,14 @@ Genome *Genome::mate_singlepoint(Genome *g,int genomeid) {
 					avgene->innovation_num=(*p1gene)->innovation_num;
 					avgene->mutation_num=((*p1gene)->mutation_num+(*p2gene)->mutation_num)/2.0;
 
-					if ((((*p1gene)->enable)==false)||
-						(((*p2gene)->enable)==false)) 
-						avgene->enable=false;
-
+                                        if (!avgene->frozen) {//If gene is not frozen, then disable the gene if either parent gene is disabled
+					        if ((((*p1gene)->enable)==false)||
+						(((*p2gene)->enable)==false))
+                                                        avgene->enable=false;
+                                        }
+                                        else {//No change if the parent genes are frozen
+                                                avgene->enable=((*p1gene)->enable);//p1 and p2 frozen gene should have the same enable status
+                                        }
 					chosengene=avgene;
 				}
 
