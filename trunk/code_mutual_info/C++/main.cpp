@@ -29,8 +29,8 @@ int main() {
 
         vector <double> X;
         vector <double> Y;
-        X = read_file("../../output_features_0"); //This data should be previously scaled to 0-1 (for Fast Kraskov only and histogram)
-        Y = read_file("../../output_features_1"); //This data should be previously scaled to 0-1 (for Fast Kraskov only and histogram)
+        X = read_file("../../output_features_63"); //This data should be previously scaled to 0-1 (for Fast Kraskov only and histogram)
+        Y = read_file("../../output_features_90"); //This data should be previously scaled to 0-1 (for Fast Kraskov only and histogram)
         
         int k = 3;
         
@@ -47,12 +47,19 @@ int main() {
         std::cout << "Slow Kraskov MI Calculation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
         std::cout << " Slow Kraskov Mutual Information: "<<slow_kraskov_mi<<endl;
       
-        int num_bins = 1000; 
+        int num_bin = 1000; 
         start = clock();
-        double histogram_mi = histogram::mutual_inf(X, Y, num_bins, num_bins); 
+        double histogram_mi = histogram::mutual_inf(X, Y, num_bin, num_bin); 
         end = clock();
         std::cout << "Total Histogram MI Calculation Time: "<< (double)(end-start)/CLOCKS_PER_SEC<< " seconds." << "\n";
         std::cout << " Histogram Mutual Information: "<<histogram_mi<<endl;
+  
+        num_bin = 100; 
+        double entropy;
+        entropy = histogram::entropy(X, num_bin);
+        std::cout << " Entropy of X: "<<entropy<<endl;
+        entropy = histogram::entropy(Y, num_bin);
+        std::cout << " Entropy of Y: "<<entropy<<endl;
         
         return 0;
 }

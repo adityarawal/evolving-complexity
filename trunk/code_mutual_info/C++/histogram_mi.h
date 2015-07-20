@@ -133,7 +133,7 @@ class histogram
         	for(double x=0.0000001;x<1.0;x=x+granularity_x) {//Starting with x=0.0000001 to avoid double inaccuracy
                         double px=hx.probability(x);
                         if (px == 1) {//Diversity experiment (to ensure neuron value is not fixed)
-                                entropy = 0;
+                                entropy = 0.0;
                         }
                         else if(px!=0.0) {
         			entropy+=(-1.0)*px*(log_anybase(px, x_num_bins));

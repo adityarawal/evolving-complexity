@@ -47,7 +47,7 @@ Population *memory_test(int gens) {
     int expcount;
     int samples;  //For averaging
 
-    int max_output_nodes = 3; //Incrementally add independent features (memorystartgene has few output nodes to start with)
+    int max_output_nodes = 50; //Incrementally add independent features (memorystartgene has few output nodes to start with)
     int current_output_nodes;
     int block_size = 1;//Number of new nodes to be added at a time
     vector<Organism*>::iterator curorg;
@@ -476,6 +476,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
 
   int net_depth; //The max depth of the network to be activated
   int step; //Activates until relaxation
+  double large_number = 100.0;
  
   
   //Parameters for information objective (Used to specify history window)
@@ -516,7 +517,6 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
                   break;
                   //std::ofstream outFile("not_activating",std::ios::out);
                   //((org)->gnome)->print_to_file(outFile);
-                  //exit(0);
           }
           //std::cout<<" Output: ";
           for (int i=0; i<=num_output_nodes-1; i++) {//Storing output from each output node 
@@ -538,7 +538,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   //int j, k;
   //for ( j = 0 ; j < active_output_sequences.size() ; j++ ) { 
   //        char temp[50];
-  //        sprintf (temp, "output_features_%d", j);
+  //        sprintf (temp, "output_features_%d", j+1+num_input_nodes);
   //        ofstream output_file(temp);
   //        ostream_iterator<double> output_iterator(output_file, " ");
   //        row.clear();
@@ -555,9 +555,8 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   //Fitness
   if (success) {
 
-    double mutual_information = 0.0;
+    double mutual_information = 0.0; //Mutual information range: 0 to Large number
     vector <double> entropy(num_output_nodes);
-    double large_number = 100.0;
     int mi_count = 0;
     //double std_dev = 0.0; //Standard Deviation of each non-frozen output node
     //int std_dev_count = 0;
@@ -566,9 +565,10 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     //org->error=errorsum/(active_time_steps*num_trials);
     //org->fitness1 = (1 - org->error)*100; 
    
-    //Compute entropy of each output variable (Later: No need to recompute this for the frozen network) 
+    //Compute entropy of each output variable (Future Work: No need to recompute this for the frozen network) 
     for (int i=0; i<=num_output_nodes-1; i++) {
              entropy[i] = compute_entropy(num_bin, active_output_sequences[i]); //Ranges between 0-1
+             //std::cout<<"Entropy of Output "<<i+1+num_input_nodes<<" : "<<entropy[i]<<std::endl;
     }       
 
     //Compute pairwise NORMALIZED mutual information between all the output nodes 
@@ -612,8 +612,10 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
                                             norm_mi = mi/entropy[j];  //ref: Pablo estez (2009) - Normalized mutual information
                                     }
                             }
-                            mutual_information += norm_mi;
-                            mi_count += 1; //Used for averaging mutual_information later
+                            if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
+                                    mutual_information = norm_mi;
+                            }
+                            //mi_count += 1; //Used for averaging mutual_information later
                             //if ((i+1+num_input_nodes == 5) && (j+1+num_input_nodes == 6)){
                             //        for (int p = 0; p < active_output_sequences[i].size(); p++) {
                             //                std::cout<<input_sequences[1][p]<<" "<<input_sequences[2][p]<<" "<<input_sequences[3][p]<<" ::::: "<<active_output_sequences[i][p]<<" "<<active_output_sequences[j][p]<<std::endl;
@@ -622,7 +624,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
                             //}
                             //temp = compute_mutual_information(num_bin, active_output_sequences[i], active_output_sequences[j]);
 
-                            //std::cout<<"Mutual Information between Outputs "<<i+1+num_input_nodes<<" "<<j+1+num_input_nodes<<": "<<temp2<<std::endl;
+                            //std::cout<<"Mutual Information between Outputs "<<i+1+num_input_nodes<<" "<<j+1+num_input_nodes<<": "<<mi<<" "<<norm_mi<<std::endl;
                     }
             }
             //for (int k=1; k<= num_input_nodes-1; k++) {//Start index from 1 so that bias is skipped
@@ -635,7 +637,7 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
     //exit(0);
     //std::cout<< "Total mutual_information: "<<mutual_information<<" "<<"Total entropy: "<<entropy<<std::endl;  
     //Averaging
-    mutual_information = mutual_information/mi_count; //Scaling it back to 0-large number
+    //mutual_information = mutual_information/mi_count; //Scaling it back to 0-large number
     //std_dev = std_dev/std_dev_count; //Scaling it back to 0-1
     //entropy = entropy/num_output_nodes;
     org->fitness1 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
@@ -649,8 +651,8 @@ bool memory_evaluate(Organism *org, int generation, std::vector < vector < doubl
   else {
     //The network is flawed (shouldnt happen)
     errorsum=999.0;
-    org->fitness1=0.001;
-    org->fitness2=0.001;
+    org->fitness1=(1.0-large_number)*100;
+    org->fitness2=(1.0-large_number)*100;
   }
 
   if (org->fitness1>=95.000) {
