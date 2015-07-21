@@ -47,9 +47,7 @@ Population *memory_test(int gens) {
     int expcount;
     int samples;  //For averaging
 
-    int max_output_nodes = 50; //Incrementally add independent features (memorystartgene has few output nodes to start with)
     int current_output_nodes;
-    int block_size = 1;//Number of new nodes to be added at a time
     vector<Organism*>::iterator curorg;
     
     memset (evals, 0, NEAT::num_runs * sizeof(int));
@@ -67,6 +65,26 @@ Population *memory_test(int gens) {
     cout<<"Reading in Genome id "<<id<<endl;
     start_genome=new Genome(id,iFile);
     iFile.close();
+
+    //Freeze the startgenome if required
+    if (frozen_startgenome==1) {
+         std::cout<<"Freezing start genome"<<std::endl;
+         //Freeze the winning genome so that new stuff can be added to it
+         start_genome->freeze_genome(); //Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
+         //Find the last innovation number
+         double max_innov_num =0.0;
+         std::vector<Gene*>::iterator curgene;
+         for(curgene=start_genome->genes.begin();curgene!=start_genome->genes.end();++curgene) {
+         	if ((*curgene)->innovation_num > max_innov_num) {
+                     max_innov_num = (*curgene)->innovation_num;
+             }
+         }
+         max_innov_num = max_innov_num + 1.0;//points to the newly added node
+
+         //Add #NEAT::batch_size new output nodes
+         std::cout<<"Adding "<<batch_size<<" new output nodes to the frozen genome"<<std::endl;
+         start_genome->add_output_nodes(NEAT::batch_size, max_innov_num);
+    }
 
     //Count number of input nodes, so that only so many features are read from the file
     int num_input_nodes = 0;
@@ -125,7 +143,7 @@ Population *memory_test(int gens) {
         bool success = false;
         success = memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, output_labels);
         //Check for success
-	if  (success && (current_output_nodes == max_output_nodes)) {//If all independent output features have been discovered
+	if  (success && (current_output_nodes == NEAT::max_output_nodes)) {//If all independent output features have been discovered
                 //Collect Stats on end of experiment
 	        evals[expcount]=NEAT::pop_size*(gen-1)+winnernum;
 	        genes[expcount]=winnergenes;
@@ -161,14 +179,14 @@ Population *memory_test(int gens) {
                 //Freeze the winning genome so that new stuff can be added to it
                 new_winner_genome->freeze_genome(); //Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
 
-                //Add #block_size new output nodes
-                new_winner_genome->add_output_nodes(block_size, pop->cur_innov_num);
+                //Add #NEAT::batch_size new output nodes
+                new_winner_genome->add_output_nodes(NEAT::batch_size, pop->cur_innov_num);
 
 
                 delete pop;//Is this required??
                 
                 //RE-SPAWN THE POPULATION
-                cout<<"Spawning Population off Genome "<<winner_genomeid<<" with "<<current_output_nodes <<" frozen + "<<block_size<<" new output nodes"<<endl;
+                cout<<"Spawning Population off Genome "<<winner_genomeid<<" with "<<current_output_nodes <<" frozen + "<<NEAT::batch_size<<" new output nodes"<<endl;
                 pop=new Population(new_winner_genome,NEAT::pop_size);
                 cout<<"Verifying Spawned Pop"<<endl;
                 pop->verify();

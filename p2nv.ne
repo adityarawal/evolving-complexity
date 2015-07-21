@@ -28,6 +28,9 @@ recur_only_prob 0.0
 pop_size 200
 dropoff_age 150
 newlink_tries 20
-print_every 10
+print_every 1
 babies_stolen 0
 num_runs 1
+batch_size 1
+max_output_nodes 3
+frozen_startgenome 1
