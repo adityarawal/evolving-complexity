@@ -52,6 +52,9 @@ int NEAT::newlink_tries = 0;  // Number of tries mutate_add_link will attempt to
 int NEAT::print_every = 0; // Tells to print population to file every n generations 
 int NEAT::babies_stolen = 0; // The number of babies to siphen off to the champions 
 int NEAT::num_runs = 0;
+int NEAT::batch_size = 1;
+int NEAT::max_output_nodes = 3;
+int NEAT::frozen_startgenome = 0;
 //MRandomR250 NEAT::NEATRandGen = MRandomR250(Platform::getRealMilliseconds()); // Random number generator; can pass seed value as argument here
 //MRandomR250 NEAT::NEATRandGen = MRandomR250();
 
@@ -376,6 +379,14 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
     paramFile>>curword;
 	paramFile>>NEAT::num_runs;
 	
+    paramFile>>curword;
+	paramFile>>NEAT::batch_size;
+
+    paramFile>>curword;
+	paramFile>>NEAT::max_output_nodes;
+    
+    paramFile>>curword;
+	paramFile>>NEAT::frozen_startgenome;
 
     if(output) {
 	    printf("trait_param_mut_prob=%f\n",trait_param_mut_prob);
@@ -411,6 +422,9 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
 	    printf("print_every=%d\n",print_every);
 	    printf("babies_stolen=%d\n",babies_stolen);
 	    printf("num_runs=%d\n",num_runs);
+	    printf("batch_size=%d\n",batch_size);
+	    printf("max_output_nodes=%d\n",max_output_nodes);
+	    printf("frozen_startgenome=%d\n",frozen_startgenome);
     }
 
 	paramFile.close();

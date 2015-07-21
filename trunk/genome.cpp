@@ -1459,7 +1459,6 @@ void Genome::mutate_gene_reenable() {
                                        exit(0); 
                                 }
                                 else {
-                                        std::cout<<"Re-enable: "<<(*thegene)->lnk->in_node->node_id<<" "<<(*thegene)->lnk->out_node->node_id<<std::endl;
                                         (*thegene)->enable=true;
                                         done = true;
 
@@ -1828,7 +1827,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
 					//ADDED: CONSIDER connections out of outputs recurrent
 					if (((nodep1->type)==OUTPUT)||
-						((nodep2->type)==OUTPUT))
+						((nodep2->type)==OUTPUT))//Aditya: Useless. Node type is either SENSOR(1) or NEURON(0).
 						recurflag=true;
 
 					//Exit if the network is faulty (contains an infinite loop)
@@ -1890,8 +1889,8 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 					count=0;
 					recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
 					//ADDED: CONSIDER connections out of outputs recurrent
-					if (((nodep1->type)==OUTPUT)||
-						((nodep2->type)==OUTPUT))
+                                        if (((nodep1->type)==OUTPUT)||
+						((nodep2->type)==OUTPUT))  //Aditya: Useless. Node type is either SENSOR(1) or NEURON(0).  
 						recurflag=true;
 
 					//Exit if the network is faulty (contains an infinite loop)
@@ -1935,6 +1934,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 					//cout<<"ERROR: Attempt to add link to genome with no phenotype"<<std::endl;
 					return false;
 				}
+
 
 				//Useful for debugging
 				//cout<<"nodep1 id: "<<nodep1->node_id<<std::endl;
