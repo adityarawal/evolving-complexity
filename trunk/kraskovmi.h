@@ -10,10 +10,10 @@
 using namespace std;
 
 //Use Kraskov's nearest-neighbor approach to calculate mutual information
-double kraskov_mutual_information(int k, vector<double> X, vector<double> Y);
+double kraskov_mutual_information(int k, const vector<double> &X, const vector<double> &Y);
 
 //Use SLOW Kraskov's nearest-neighbor approach to calculate mutual information
-double slow_kraskov_mutual_information(int k, vector<double> X, vector<double> Y);
+double slow_kraskov_mutual_information(int k, const vector<double> &X, const vector<double> &Y);
 
 vector<double> calc_ring_blocks(int block_x_loc, int block_y_loc, int ring_num,
                                 int grid_x_max, int grid_x_min, int grid_y_max, int grid_y_min);

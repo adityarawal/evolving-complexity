@@ -6,7 +6,7 @@ bool sort_pred(const std::pair<double,int> &left, const std::pair<double,int> &r
         return left.first < right.first;
 }
 
-double kraskov_mutual_information(int k, vector<double> X, vector<double> Y) {
+double kraskov_mutual_information(int k, const vector<double> &X, const vector<double> &Y) {
         //Create a 2D grid for the x, y points
         
         if (X.size() != Y.size()) {
@@ -55,12 +55,12 @@ double kraskov_mutual_information(int k, vector<double> X, vector<double> Y) {
 
         clock_t start, end, start1, end1;
         for (int i=0; i<nObs; i++) {
-            if (X[i] == 1) {
-                X[i] = X[i] - 0.0000001; //Subtract small number to make sure last block is seleced
-            }
-            if (Y[i] == 1){
-                Y[i] = Y[i] - 0.0000001; //Subtract small number to make sure last block is selected
-            }
+            //if (X[i] == 1) {
+            //    X[i] = X[i] - 0.0000001; //Subtract small number to make sure last block is seleced
+            //}
+            //if (Y[i] == 1){
+            //    Y[i] = Y[i] - 0.0000001; //Subtract small number to make sure last block is selected
+            //}
             //Create 2D grid
             int block_x_loc = floor((double)X[i]/twoD_blocklen); //Change ceil to floor for python/c++
             int block_y_loc = floor((double)Y[i]/twoD_blocklen); //Change ceil to floor for python/c++
@@ -438,7 +438,7 @@ double digama ( double x)
   return value;
 }
 
-double slow_kraskov_mutual_information(int k, vector<double> X, vector<double> Y) {
+double slow_kraskov_mutual_information(int k, const vector<double> &X, const vector<double> &Y) {
         if (X.size() != Y.size()) {
             std::cout<<" Error('X and Y must contain the same number of samples')"<<std::endl;
         }
