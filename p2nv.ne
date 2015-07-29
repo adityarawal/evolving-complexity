@@ -25,12 +25,12 @@ mate_multipoint_avg_prob 0.4
 mate_singlepoint_prob 0.0
 mate_only_prob 0.2
 recur_only_prob 0.0
-pop_size 200
+pop_size 200 
 dropoff_age 150
 newlink_tries 20
-print_every 1
+print_every 50
 babies_stolen 0
 num_runs 1
 batch_size 1
 max_output_nodes 3
-frozen_startgenome 1
+frozen_startgenome 0
