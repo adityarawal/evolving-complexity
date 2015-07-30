@@ -581,7 +581,6 @@ bool Population::epoch_multiobj(int generation, char *filename) {
 	//Offspring
 	double skim; 
 	int total_expected;  //precision checking
-	int total_organisms=organisms.size();
 	int max_expected;
 	Species *best_species;
 	int final_expected;
@@ -665,6 +664,7 @@ bool Population::epoch_multiobj(int generation, char *filename) {
 	}
 
 	std::cout<<"Number of Species: "<<num_species<<std::endl;
+	int total_organisms=organisms.size();
 
 	//Go through the organisms and add up their fitnesses to compute the
 	//overall average
@@ -682,8 +682,8 @@ bool Population::epoch_multiobj(int generation, char *filename) {
         //file1.close();
         
 	//Check for Population-level stagnation
-        double cur_highest_fitness1 = 0.0;
-        double cur_highest_fitness2 = 0.0;
+        double cur_highest_fitness1 = -10000.0;
+        double cur_highest_fitness2 = -10000.0;
         int index = 0; 
 	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
                 if ((*curorg)->fitness1 > cur_highest_fitness1) {
