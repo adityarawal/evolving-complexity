@@ -585,7 +585,7 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
             }
             for (int j=0; j<independent_archive.size(); j++) {
                     norm_mi = normalized_kraskov_mi(output_activations[org_index*num_active_outputs+i], 
-                                                    independent_archive[j], entropy[i], entropy[j], K);
+                                                    independent_archive[j], entropy[i], entropy_archive[j], K);
                     if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
                                     mutual_information = norm_mi;
                     }
