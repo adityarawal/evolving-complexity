@@ -1493,6 +1493,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 
 	int trycount;  //Take a few tries to find an open node
 	bool found;
+	int first_nonfrozen_gene;//Gene number of the first non-frozen gene. Genes are always ordered. Non-frozen genes are later in the gene list.
 
 	//First, find a random gene already in the genome  
 	trycount=0;
@@ -1531,6 +1532,14 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 	//version of NEAT
 	//NOTE: 7/2/01 now we use this after all
 	else {
+                //Find the first non-frozen gene. Add nodes to only non-frozen genes.
+	        first_nonfrozen_gene=0;
+	        thegene=genes.begin();
+	        while(((*thegene)->frozen==true)) {
+	        	first_nonfrozen_gene++;
+	        	++thegene;
+	        }
+
 		while ((trycount<100)&&(!found)) {//Aditya parameter
 
 			//Choose a random genenum
@@ -1543,17 +1552,21 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 			//This old totally random selection is bad- splitting
 			//inside something recently splitted adds little power
 			//to the system (should use a gaussian if doing it this way)
-			genenum=randint(0,genes.size()-1);
+			genenum=randint(first_nonfrozen_gene,genes.size()-1);
 
 			//find the gene
 			thegene=genes.begin();
 			for(int genecount=0;genecount<genenum;genecount++)
 				++thegene;
 
+                        if ((*thegene)->frozen==true) { //For verification purposes
+                                std::cout<<"ERRRRRORRRRRRRRR in mutate_add_node: gene pointer should not be at frozen gene"<<std::endl;
+                                exit(0);
+                        }
+
 			//If either the gene is disabled, or it has a bias input, or is frozen, try again
 			if (!(((*thegene)->enable==false)||
-				(((((*thegene)->lnk)->in_node)->gen_node_label)==BIAS) || 
-                                ((*thegene)->frozen==true) ))
+				(((((*thegene)->lnk)->in_node)->gen_node_label)==BIAS)))
 				found=true;
 
 			++trycount;
@@ -1658,6 +1671,8 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 	//Now add the new NNode and new Genes to the Genome
 	//genes.push_back(newgene1);   //Old way to add genes- may result in genes becoming out of order
 	//genes.push_back(newgene2);
+        //std::cout<<"Genome id: "<<genome_id<<" mutate_add_node: "<<newgene1->lnk->in_node->node_id<<" "<<newgene1->lnk->out_node->node_id <<" "<<newgene1->lnk->weight <<std::endl;
+        //std::cout<<"Genome id: "<<genome_id<<" mutate_add_node: "<<newgene2->lnk->in_node->node_id<<" "<<newgene2->lnk->out_node->node_id <<" "<<newgene1->lnk->weight <<std::endl;
 	add_gene(genes,newgene1);  //Add genes in correct order
 	add_gene(genes,newgene2);
 	node_insert(nodes,newnode);
@@ -1992,6 +2007,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
 		//Now add the new Genes to the Genome
 		//genes.push_back(newgene);  //Old way - could result in out-of-order innovation numbers in rtNEAT
+        //std::cout<<"Genome id: "<<genome_id<<" mutate_add_link: "<<newgene->lnk->in_node->node_id<<" "<<newgene->lnk->out_node->node_id <<" "<<newgene->lnk->weight <<std::endl;
 		add_gene(genes,newgene);  //Adds the gene in correct order
 
 
