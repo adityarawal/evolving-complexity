@@ -562,7 +562,7 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
     //Compute entropy of each output variable  
     for (int i=0; i<output_end_index-output_start_index; i++) {
              entropy[i] = compute_entropy(num_bin, output_activations[org_index*num_active_outputs+i]); //Ranges between 0-1
-             //std::cout<<"Entropy of Output "<<i+1+num_input_nodes+num_output_nodes-num_active_outputs<<" : "<<entropy[i]<<std::endl;
+             //std::cout<<"Entropy of Output Node ID: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" : "<<entropy[i]<<std::endl;
     }      
     //Entropy of the Archived features (Future Work: No need to recompute this for the frozen network)
     for (int i=0; i<independent_archive.size(); i++) {
@@ -580,7 +580,7 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
                              if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
                                              mutual_information = norm_mi;
                              }
-                             //std::cout<<"Mutual Information between Outputs "<<i+1+num_input_nodes+num_output_nodes-num_active_outputs<<" "<<j+1+num_input_nodes+num_output_nodes-num_active_outputs<<": "<<norm_mi<<std::endl;
+                             //std::cout<<"Mutual Information between Outputs Node IDs: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" "<<org->net->outputs[independent_archive.size()+j]->node_id<<": "<<norm_mi<<std::endl;
                     }
             }
             for (int j=0; j<independent_archive.size(); j++) {
@@ -589,7 +589,7 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
                     if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
                                     mutual_information = norm_mi;
                     }
-                    //std::cout<<"Mutual Information between Archived Feature and Output "<<j<<" "<<i+1+num_input_nodes+num_output_nodes-num_active_outputs<<": "<<norm_mi<<std::endl;
+                    //std::cout<<"Mutual Information between Archived Feature and Output Node ID: "<<j<<" "<<org->net->outputs[independent_archive.size()+i]->node_id<<": "<<norm_mi<<std::endl;
 
             }
     }
@@ -664,6 +664,9 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                   if ((net->outputs[i])->activation > 1.0) {
                           std::cout<<"ERRORR:: OUTPUT VALUE CANNOT BE GREATER THAN 1.0: "<<(net->outputs[i])->activation<<std::endl;
                           exit(0);
+                  }
+                  if ((net->outputs[i])->activation == 1.0){//Kraskov mutual information implementation cannot handles values >= 1.0
+                          (net->outputs[i])->activation = (net->outputs[i])->activation - 0.0000001;
                   }
                   //std::cout<<"00000000000: "<<org_index*num_active_outputs+i <<std::endl;
                   output_activations[org_index*num_active_outputs+count][step] = (net->outputs[i])->activation;
