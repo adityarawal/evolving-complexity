@@ -646,10 +646,18 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   
   //Load and activate the network on each input
   for (step=0;step< input_data.size(); step++) {//For each input image
-         
+        
+          bool network_error = false; 
           //Activate NN
           net->load_sensors((input_data[step]));
-          success=net->activate_static(); //Special activate for static problems like image classification
+          success=net->activate_static(network_error); //Special activate for static problems like image classification
+          if(network_error) {//Checks if the static network had multiple activations of a node in a single recursion path 
+                  std::ofstream outFile("network_activate_error.txt",std::ios::out);
+                  ((org)->gnome)->print_to_file(outFile);
+                  std::cout<< " ERRORR in activate_static(): Node being activated more than once"<<std::endl;
+                  exit(0);
+          }
+
           if (!success) {
                   org->error = 1;
   		  //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs

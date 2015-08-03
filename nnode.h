@@ -89,7 +89,10 @@ namespace NEAT {
 		double activation; // The total activation entering the NNode 
 		bool active_flag;  // To make sure outputs are active
 
-		// NOT USED IN NEAT - covered by "activation" above
+                //Set visited when entering a hidden or output node recursion for the first time and reset when exiting the recursion
+                bool visited; //Check for loop during static network activation (if a node is re-visited, ignore its activity)
+		
+                // NOT USED IN NEAT - covered by "activation" above
 		double output;  // Output of the NNode- the value in the NNode 
 
 		// ************ LEARNING PARAMETERS *********** 

@@ -91,10 +91,10 @@ namespace NEAT {
 		bool activate();
 		
                 // Activates the net such that all paths to the output are activated just once.
-		bool activate_static();
+		bool activate_static(bool &network_error);
 
                 //Recursive finds activation value of a node
-                void recursive_activation(NNode* node);
+                void recursive_activation(NNode* node, bool &network_error);
 
 		// Prints the values of its outputs
 		void show_activation();
