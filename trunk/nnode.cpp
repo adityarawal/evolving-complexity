@@ -20,6 +20,7 @@ using namespace NEAT;
 
 NNode::NNode(nodetype ntype,int nodeid) {
 	active_flag=false;
+	visited=false;
 	activesum=0;
 	activation=0;
 	output=0;
@@ -42,6 +43,7 @@ NNode::NNode(nodetype ntype,int nodeid) {
 
 NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze) {
 	active_flag=false;
+	visited=false;
 	activesum=0;
 	activation=0;
 	output=0;
@@ -67,6 +69,7 @@ NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze) {
 
 NNode::NNode(NNode *n,Trait *t) {
 	active_flag=false;
+	visited=false;
 	activation=0;
 	output=0;
 	last_activation=0;
@@ -139,6 +142,7 @@ NNode::NNode (const char *argline, std::vector<Trait*> &traits) {
 NNode::NNode (const NNode& nnode)
 {
 	active_flag = nnode.active_flag;
+	visited = nnode.visited;
 	activesum = nnode.activesum;
 	activation = nnode.activation;
 	output = nnode.output;
@@ -232,6 +236,8 @@ double NNode::get_active_out_td() {
 // This recursively flushes everything leading into and including this NNode, including recurrencies
 void NNode::flushback() {
 	std::vector<Link*>::iterator curlink;
+	
+        visited=false;
 
 	//A sensor should not flush black
 	if (type!=SENSOR) {
