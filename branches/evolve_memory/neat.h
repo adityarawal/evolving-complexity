@@ -73,6 +73,7 @@ namespace NEAT {
         extern int batch_size; //Number of the output nodes to be added to the frozen network at a time
         extern int max_output_nodes; //Maximum number of output nodes possible (= batch_size*(some integer) + output nodes in memory_startgenes)
         extern int frozen_startgenome;//Indicates whether the startgenome from memory_startgenes is frozen or not 
+        extern int input_sequence_len;//Indicates the number of time steps for which the input sequence has valid inputs 
 	//extern MRandomR250 NEATRandGen; // Random number generator; can pass seed value as argument
 
 	//const char *getUnit(const char *string, int index, const char *set);
