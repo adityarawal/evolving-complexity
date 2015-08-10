@@ -1,0 +1,25 @@
+- Extract pair of features (scaled to 0-1) from the MNIST SVD vectors by running
+python dump_features.py
+                          OR 
+- Dump pair of vectors from MATLAB (scaled to 0-1). If pairs are normally distributed, 
+  can calculate exact value of mutual information 
+
+- Output data files (scaled to 0-1)
+
+- Scaling/Normalizing to (0-1) is requirement for both the Fast Kraskov code and Histogram code. 
+  Currently, NN outputs are sigmoids so already their values lie in the range of 0-1. 
+  Kraskov is sensitive to any extra scaling (because of maxdist(X, Y)). Therefore, avoid scaling NN outputs
+  before calculating their mutual information.
+
+***********   For C++ (Both Kraskov and Histogram approach) *********
+g++ main.cpp ../../kraskovmi.cpp histogram_mi.h
+a.out
+
+***********   For Python (Histogram approach) *********
+python mutual_info.py
+
+***********   For Matlab (Kraskov approach) *********
+- Edit code to read del_X.txt and del_Y.txt or dump new vector pair
+X = dlmread('del_X.txt');
+Y = dlmread('del_Y.txt');
+kraskov_top.m
