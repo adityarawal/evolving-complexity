@@ -20,32 +20,54 @@
 #include <math.h>
 #include <iterator>     // std::ostream_iterator
 #include <algorithm>    // std::copy
-    ; //Image data
 
-void read_input_data(std::vector < vector < double > > &input_data, int num_input_nodes) {
-    cout<<"Reading Image Data "<<endl;
-    ifstream XtrainFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/F.txt",ios::in);//Image Data
-    ifstream YtrainFile("Y_train.txt");//("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/Y.txt",ios::in);//Image Labels (Digits)
-    double d;
-    std::string lineData;
+void read_input_data(std::vector < vector < double > > &input_data, int num_input_nodes){
+    
+    cout<<"Generating Input Sequence Data "<<endl;
+    input_data.resize(4, std::vector<double>(num_input_nodes));//HAck
+    input_data[0][0] = -1;
+    input_data[0][1] = -1;
+    input_data[1][0] = -1;
+    input_data[1][1] =  1;
+    input_data[2][0] =  1;
+    input_data[2][1] = -1;
+    input_data[3][0] =  1;
+    input_data[3][1] =  1;
+    //for (int i=0; i<num_trials; i++) {
+    //        for (int j = 0; j<num_input_nodes; j++) {
+    //                double rand_num = randfloat();
+    //                if (rand_num < 0.5) {
+    //                        input_data[i][j] = -1.0;
+    //                }
+    //                else {
+    //                        input_data[i][j] = 1.0;
+    //                }
+    //        }
+    //}
+                            
+    //cout<<"Reading Image Data "<<endl;
+    //ifstream XtrainFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/F.txt",ios::in);//Image Data
+    //ifstream YtrainFile("Y_train.txt");//("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/Y.txt",ios::in);//Image Labels (Digits)
+    //double d;
+    //std::string lineData;
 
-    while (getline(XtrainFile, lineData)) {
-            std::vector < double > input_row;
-            std::stringstream lineStream(lineData);
-            int feature_count = 1;
+    //while (getline(XtrainFile, lineData)) {
+    //        std::vector < double > input_row;
+    //        std::stringstream lineStream(lineData);
+    //        int feature_count = 1;
 
-            input_row.push_back(1.0); //Inserting 1.0 for Bias node
-            while ((lineStream >> d) && (feature_count <= num_input_nodes)) {//Read only as many features as there are input nodes
-                    feature_count += 1;
-                    input_row.push_back(d);
-            }
-            input_data.push_back(input_row);
-    }
-    XtrainFile.close();
-    YtrainFile.close();
-    cout<<"Completed Reading Image Data, Number of examples: "<<input_data.size()<<", Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
-    cout<<"Also Inserted Ones at the start of each input image feature for bias node "<<endl;
-}
+    //        input_row.push_back(1.0); //Inserting 1.0 for Bias node
+    //        while ((lineStream >> d) && (feature_count <= num_input_nodes)) {//Read only as many features as there are input nodes
+    //                feature_count += 1;
+    //                input_row.push_back(d);
+    //        }
+    //        input_data.push_back(input_row);
+    //}
+    //XtrainFile.close();
+    //YtrainFile.close();
+    //cout<<"Completed Reading Image Data, Number of examples: "<<input_data.size()<<", Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
+    //cout<<"Also Inserted Ones at the start of each input image feature for bias node "<<endl;
+} 
 
 
 void freeze_update_genome(Genome *start_genome) {
@@ -120,18 +142,18 @@ Population *memory_test(int gens) {
           start_genome=new Genome(id,iFile);
           iFile.close();
 
-          //Count number of input nodes, so that only so many features are read from the file
-          int num_input_nodes = 0;
-          for (int i=0; i<start_genome->nodes.size(); i++) {
-                  if (start_genome->nodes[i]->gen_node_label==1) {//Input node
-                          num_input_nodes += 1;
-                  }
-                  if (start_genome->nodes[i]->gen_node_label==2) {//Output node
-                          current_output_nodes += 1;
-                  }
-          }
-          std::cout << "Number of Start Genome Input nodes: "<< num_input_nodes<<std::endl;    
-          std::cout << "Number of Start Genome Output nodes: "<< current_output_nodes<<std::endl;    
+          ////Count number of input nodes, so that only so many features are read from the file
+          //int num_input_nodes = 0;
+          //for (int i=0; i<start_genome->nodes.size(); i++) {
+          //        if (start_genome->nodes[i]->gen_node_label==1) {//Input node
+          //                num_input_nodes += 1;
+          //        }
+          //        if (start_genome->nodes[i]->gen_node_label==2) {//Output node
+          //                current_output_nodes += 1;
+          //        }
+          //}
+          //std::cout << "Number of Start Genome Input nodes: "<< num_input_nodes<<std::endl;    
+          //std::cout << "Number of Start Genome Output nodes: "<< current_output_nodes<<std::endl;    
 
           //Freeze the startgenome if required
           if (NEAT::frozen_startgenome==1) {
@@ -142,7 +164,7 @@ Population *memory_test(int gens) {
           independent_archive.clear();
 
           //Read the Image data and output labels (digits) from text file
-          read_input_data(input_data, num_input_nodes);
+          read_input_data(input_data, NEAT::input_sequence_len);
 
           //Spawn the Population
           cout<<"Spawning Population off Genome "<<start_genome->genome_id<<endl;;
@@ -518,7 +540,7 @@ double normalized_kraskov_mi(const vector <double> &X, const vector <double> &Y,
         return norm_mi;
 }
 
-bool memory_evaluate(Organism *org, int generation, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &independent_archive, const std::vector < vector <double> > &output_activations) {
+bool memory_evaluate(Organism *org, int generation, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &independent_archive, const std::vector < vector <double> > &output_activations, const std::vector < vector < double > > &input_data) {
   
   double errorsum = 0.0;
   int num_output_nodes = org->net->outputs.size();
@@ -595,7 +617,6 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
     }
     org->fitness1 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
     org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
-    org->evaluated = true; //Aditya: for speed-up by preventing re-evaluation of the elites
   }
   else {
     //The network is flawed (shouldnt happen)
@@ -630,61 +651,134 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
   #endif
   //exit(0);
 
+  org->evaluated = true; //Aditya: for speed-up by preventing re-evaluation of the elites
   return org->winner;
 }
 
-void memory_activate(Organism *org, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &input_data, std::vector < vector <double> > &output_activations) {
+bool memory_activate(Organism *org, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &input_data) {
   
   Network *net;
   bool success;  //Check for successful activation
-  int step; //Activates until relaxation
-  int count;
+  int count=0;
+  double output_error = 0.0;
+  double average_output_error;
+  double in[3]; //3-bit input - Bias, number, Recall(1)/Instruct(0)
+  in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
-
+  int num_trials = 100;
   net=org->net;
   //net_depth=net->max_depth();
   
   //Load and activate the network on each input
-  for (step=0;step< input_data.size(); step++) {//For each input image
+  for (int trial=0;trial< num_trials; trial++) {//Repeat several times for the same set of sequence
+          for(int seqnum=0; seqnum < input_data.size(); seqnum++) {//For each new input sequence
+                   //std::cout<<" Input Sequence: ";
+                   for (int step=0;step< input_data[seqnum].size(); step++) { //WRITE PHASE:: For each step in the input sequence
         
-          bool network_error = false; 
-          //Activate NN
-          net->load_sensors((input_data[step]));
-          success=net->activate_static(network_error); //Special activate for static problems like image classification
-          if(network_error) {//Checks if the static network had multiple activations of a node in a single recursion path 
-                  std::ofstream outFile("network_activate_error.txt",std::ios::out);
-                  ((org)->gnome)->print_to_file(outFile);
-                  std::cout<< " ERRORR in activate_static(): Node being activated more than once"<<std::endl;
-                  exit(0);
-          }
+                            //Activate NN
+                            in[1] = input_data[seqnum][step]; //Input Data
+                            in[2] = 0; //Recall signal
+                            //std::cout<<in[1]<<" ";
+                            net->load_sensors(in);
+                            success=net->activate(); 
+                            //std::cout<<" Some Output: "<<(net->outputs[0])->activation <<" ";
 
-          if (!success) {
-                  org->error = 1;
-  		  //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
-                  break;
-                  //std::ofstream outFile("not_activating",std::ios::out);
-                  //((org)->gnome)->print_to_file(outFile);
+                            if (!success) {
+                                    org->error = 1;
+  	                            //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
+                                    break;//Breaks inner for-loop
+                                    //std::ofstream outFile("not_activating",std::ios::out);
+                                    //((org)->gnome)->print_to_file(outFile);
+                            }
+                   }
+                   if (org->error == 1){
+                            break;//Breaks outer for-loop
+                   }
+                   else { 
+                           //std::cout<<" Random Output: ";
+                           for (int step=0;step< input_data[seqnum].size(); step++) {//RECALL PHASE:: For each step in the input sequence
+
+                                   //Insert Zero (Don't-care) input activations at random time-steps
+                                   in[1] = 0;//Input data
+                                   in[2] = 0;//Recall signal
+                                   int rand_num = round(100*randfloat())+10;//ranges between 10-110
+                                   //Activate NN for random time-steps
+                                   for (int i=0; i<rand_num; i++) {//Don't-care activate 
+                                           net->load_sensors(in); 
+                                           success=net->activate(); 
+                                           //std::cout<<(net->outputs[0])->activation<<" ";
+                                   }
+
+                                   //Activate NN once after random-time steps for recall
+                                   in[1] = 0;
+                                   in[2] = 1;//Recall signal
+                                   net->load_sensors(in); //Give zeroes as input during recall phase
+                                   //std::cout<<" Actual Output: ";
+                                   success=net->activate(); 
+                                   for (int i=output_start_index; i<output_end_index; i++) {//Storing output from each non-frozen output node 
+                                           if ((net->outputs[i])->activation > 1.0) {
+                                                   std::cout<<"ERRORR:: OUTPUT VALUE CANNOT BE GREATER THAN 1.0: "<<(net->outputs[i])->activation<<std::endl;
+                                                   exit(0);
+                                           }
+                                           //std::cout<<(net->outputs[i])->activation<<" ";
+                                           if (((net->outputs[i])->activation >= 0.5 && input_data[seqnum][step]==-1.0) ||
+                                               ((net->outputs[i])->activation < 0.5 && input_data[seqnum][step]==1.0)){
+                                                   output_error = output_error + 1;
+                                           }
+                                           count = count+1;//Count for averaging the error
+
+                                           //if ((net->outputs[i])->activation == 1.0){//Kraskov mutual information implementation cannot handles values >= 1.0
+                                           //        (net->outputs[i])->activation = (net->outputs[i])->activation - 0.0000001;
+                                           //}
+                                           //std::cout<<((net->outputs[i])->activation)<<" "<<std::endl;
+                                   }
+                                   //std::cout<<endl;
+                           }
+                   }
+          //std::cout<<std::endl; 
+          net->flush(); //Flush after each sequence
           }
-          
-          //std::cout<<" Output: ";
-          count = 0;
-          for (int i=output_start_index; i<output_end_index; i++) {//Storing output from each non-frozen output node 
-                  if ((net->outputs[i])->activation > 1.0) {
-                          std::cout<<"ERRORR:: OUTPUT VALUE CANNOT BE GREATER THAN 1.0: "<<(net->outputs[i])->activation<<std::endl;
-                          exit(0);
-                  }
-                  if ((net->outputs[i])->activation == 1.0){//Kraskov mutual information implementation cannot handles values >= 1.0
-                          (net->outputs[i])->activation = (net->outputs[i])->activation - 0.0000001;
-                  }
-                  //std::cout<<"00000000000: "<<org_index*num_active_outputs+i <<std::endl;
-                  output_activations[org_index*num_active_outputs+count][step] = (net->outputs[i])->activation;
-                  count++;
-                  //std::cout<<((net->outputs[i])->activation)<<" "<<std::endl;
+          if (org->error == 1){
+                   break;//Breaks outer for-loop
           }
-          //std::cout<<endl;
-          
-          net->flush();
   }
+
+  if (org->error == 1){
+        //The network is flawed (shouldnt happen)
+        std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
+        org->fitness1=0.0;
+        org->fitness2=0.0;
+  }
+  else {
+        average_output_error = output_error/count;//Ranges between 0-1
+        org->fitness1 = (1-average_output_error)*100; //Ranges between 0-100  
+        org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
+  }
+  if (org->fitness1>=99.000) {
+        //org->winner = true;
+        std::cout<<"OBJECTIVE1 ACHIEVED:: WINNER FOUND"<<std::endl;
+  }
+  else{
+       //org->winner = false;
+  }
+  if (org->fitness2>=99.0) {
+        //org->winner = true;
+        std::cout<<"OBJECTIVE2 ACHIEVED:: WINNER FOUND"<<std::endl;
+  }
+  if (org->fitness1>=99.0 && org->fitness2>=99.0) {
+          org->winner = true;
+  }
+  else {
+          org->winner = false;
+  }
+
+  #ifndef NO_SCREEN_OUT
+  cout<<"Org "<<(org->gnome)->genome_id<<"                                     error: "<<org->error<<endl;
+  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness1: "<<org->fitness1<<endl;
+  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness2: "<<org->fitness2<<endl;
+  #endif
+  org->evaluated = true; //Aditya: for speed-up by preventing re-evaluation of the elites
+  return org->winner;
 
 }
 
@@ -700,20 +794,20 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   std::vector<int> unevaluated_org; //Stores the organism number for the individuals which haven't been evaluated in the population 
   //time_t start_seconds, end_seconds; 
 
-  //If the startgenome was frozen, create the archive of the independent activations (of frozen outputs) at the start
-  if (NEAT::frozen_startgenome == 1 && generation==1) {
-          num_active_outputs = num_output_nodes-NEAT::batch_size;
-          output_start_index = 0;
-          output_end_index = num_active_outputs;
-          independent_archive.resize(num_active_outputs, std::vector<double>(input_data.size()));
-          std::cout<<" num_active_outputs: "<< num_active_outputs<<std::endl;
-          for (int i=0; i < pop->organisms.size(); i++) {
-                  memory_activate(pop->organisms[i], 0, num_active_outputs, output_start_index, output_end_index, input_data, independent_archive);
-                  if (pop->organisms[i]->error !=1) { //If all outputs were activated
-                          break;
-                  }
-          }
-  }
+  ////If the startgenome was frozen, create the archive of the independent activations (of frozen outputs) at the start
+  //if (NEAT::frozen_startgenome == 1 && generation==1) {
+  //        num_active_outputs = num_output_nodes-NEAT::batch_size;
+  //        output_start_index = 0;
+  //        output_end_index = num_active_outputs;
+  //        independent_archive.resize(num_active_outputs, std::vector<double>(input_data.size()));
+  //        std::cout<<" num_active_outputs: "<< num_active_outputs<<std::endl;
+  //        for (int i=0; i < pop->organisms.size(); i++) {
+  //                memory_activate(pop->organisms[i], 0, num_active_outputs, output_start_index, output_end_index, input_data, independent_archive);
+  //                if (pop->organisms[i]->error !=1) { //If all outputs were activated
+  //                        break;
+  //                }
+  //        }
+  //}
 
   if (independent_archive.size()==0) { //If we are starting from scratch, activate all the output neurons
           num_active_outputs = num_output_nodes;
@@ -728,25 +822,25 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
                   unevaluated_org.push_back(i); 
           }
   }
-  std::vector< vector <double> > output_activations(unevaluated_org.size()*num_active_outputs, std::vector<double>(input_data.size()));//Vector of non-frozen output activations for each organism
+  //std::vector< vector < vector <double> > > output_activations(unevaluated_org.size()*num_active_outputs, std:vector <double> (input_data.size(), std::vector<double>(input_data[0].size())));//Vector of non-frozen output activations for each organism
   std::vector<int> org_win(unevaluated_org.size(), 0);//Win/Loss status for an organism
 
   //Activate networks of each non-evaluated organism with input data 
   output_start_index = num_output_nodes-num_active_outputs;
   output_end_index = num_output_nodes;
-  #pragma omp parallel for //Parallelization of for loop 
+  //#pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < unevaluated_org.size(); i++) {
-          memory_activate(pop->organisms[unevaluated_org[i]], i, num_active_outputs, output_start_index, output_end_index, input_data, output_activations);
+          org_win[i] = memory_activate(pop->organisms[unevaluated_org[i]], i, num_active_outputs, output_start_index, output_end_index, input_data);
   }
 
-  //Evaluate each organism for its independent output features (number of features = num_active_outputs)
-  output_start_index = 0;
-  output_end_index = num_active_outputs;
-  //start_seconds = time(NULL); //Current Time in seconds since January 1, 1970
-  #pragma omp parallel for //Parallelization of for loop 
-  for (int i=0; i < unevaluated_org.size(); i++) {
-          org_win[i] = memory_evaluate(pop->organisms[unevaluated_org[i]], generation, i, num_active_outputs, output_start_index, output_end_index, independent_archive, output_activations);
-  }
+  ////Evaluate each organism for its independent output features (number of features = num_active_outputs)
+  //output_start_index = 0;
+  //output_end_index = num_active_outputs;
+  ////start_seconds = time(NULL); //Current Time in seconds since January 1, 1970
+  //#pragma omp parallel for //Parallelization of for loop 
+  //for (int i=0; i < unevaluated_org.size(); i++) {
+  //        org_win[i] = memory_evaluate(pop->organisms[unevaluated_org[i]], generation, i, num_active_outputs, output_start_index, output_end_index, independent_archive, output_activations, input_data);
+  //}
   //end_seconds = time(NULL); //Current Time in seconds since January 1, 1970
   //std::cout << "Total Organism Evaluation Time: "<< (double)(end_seconds-start_seconds)<< " seconds." << "\n";
  
@@ -757,10 +851,10 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
             winnernum=pop->organisms[unevaluated_org[i]]->gnome->genome_id;
             winnergenes=pop->organisms[unevaluated_org[i]]->gnome->extrons();
             winnernodes=(pop->organisms[unevaluated_org[i]]->gnome->nodes).size();
-            //Push in the num_active_outputs features
-            for (int j=0; j<num_active_outputs; j++) {
-                    independent_archive.push_back(output_activations[i*num_active_outputs+j]);
-            }
+            ////Push in the num_active_outputs features
+            //for (int j=0; j<num_active_outputs; j++) {
+            //        independent_archive.push_back(output_activations[i*num_active_outputs+j]);
+            //}
             break;
           }
   }
@@ -799,7 +893,6 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
 	print_Genome_tofile((*curorg)->gnome,temp);
       }
     }
-    
   }
   else {
 //  if(generation <= 999)
