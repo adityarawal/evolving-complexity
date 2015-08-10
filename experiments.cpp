@@ -20,24 +20,30 @@
 #include <math.h>
 #include <iterator>     // std::ostream_iterator
 #include <algorithm>    // std::copy
-    ; //Image data
 
-void read_input_data(std::vector < vector < double > > &input_data, int num_input_nodes) {
+void read_input_data(std::vector < vector < double > > &input_data, int num_input_nodes){
     
     cout<<"Generating Input Sequence Data "<<endl;
-    int num_trials = 100;
-    input_data.resize(num_trials, std::vector<double>(num_input_nodes));
-    for (int i=0; i<num_trials; i++) {
-            for (int j = 0; j<num_input_nodes; j++) {
-                    double rand_num = randfloat();
-                    if (rand_num < 0.5) {
-                            input_data[i][j] = -1.0;
-                    }
-                    else {
-                            input_data[i][j] = 1.0;
-                    }
-            }
-    }
+    input_data.resize(4, std::vector<double>(num_input_nodes));//HAck
+    input_data[0][0] = -1;
+    input_data[0][1] = -1;
+    input_data[1][0] = -1;
+    input_data[1][1] =  1;
+    input_data[2][0] =  1;
+    input_data[2][1] = -1;
+    input_data[3][0] =  1;
+    input_data[3][1] =  1;
+    //for (int i=0; i<num_trials; i++) {
+    //        for (int j = 0; j<num_input_nodes; j++) {
+    //                double rand_num = randfloat();
+    //                if (rand_num < 0.5) {
+    //                        input_data[i][j] = -1.0;
+    //                }
+    //                else {
+    //                        input_data[i][j] = 1.0;
+    //                }
+    //        }
+    //}
                             
     //cout<<"Reading Image Data "<<endl;
     //ifstream XtrainFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/F.txt",ios::in);//Image Data
@@ -61,7 +67,7 @@ void read_input_data(std::vector < vector < double > > &input_data, int num_inpu
     //YtrainFile.close();
     //cout<<"Completed Reading Image Data, Number of examples: "<<input_data.size()<<", Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
     //cout<<"Also Inserted Ones at the start of each input image feature for bias node "<<endl;
-}
+} 
 
 
 void freeze_update_genome(Genome *start_genome) {
@@ -653,82 +659,88 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   
   Network *net;
   bool success;  //Check for successful activation
-  int trial; //Activates until relaxation
-  int step; //Activates until relaxation
   int count=0;
   double output_error = 0.0;
   double average_output_error;
   double in[3]; //3-bit input - Bias, number, Recall(1)/Instruct(0)
   in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
-
+  int num_trials = 100;
   net=org->net;
   //net_depth=net->max_depth();
   
   //Load and activate the network on each input
-  for (trial=0;trial< input_data.size(); trial++) {//For each new input sequence
-          in[2] = 0;
-          //std::cout<<" Input: ";
-          for (step=0;step< input_data[trial].size(); step++) { //WRITE PHASE:: For each step in the input sequence
+  for (int trial=0;trial< num_trials; trial++) {//Repeat several times for the same set of sequence
+          for(int seqnum=0; seqnum < input_data.size(); seqnum++) {//For each new input sequence
+                   //std::cout<<" Input Sequence: ";
+                   for (int step=0;step< input_data[seqnum].size(); step++) { //WRITE PHASE:: For each step in the input sequence
         
-                   //Activate NN
-                   in[1] = input_data[trial][step];
-                   //std::cout<<in[1]<<" ";
-                   net->load_sensors(in);
-                   success=net->activate(); 
+                            //Activate NN
+                            in[1] = input_data[seqnum][step]; //Input Data
+                            in[2] = 0; //Recall signal
+                            //std::cout<<in[1]<<" ";
+                            net->load_sensors(in);
+                            success=net->activate(); 
+                            //std::cout<<" Some Output: "<<(net->outputs[0])->activation <<" ";
 
-                   if (!success) {
-                           org->error = 1;
-  	                   //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
-                           break;//Breaks inner for-loop
-                           //std::ofstream outFile("not_activating",std::ios::out);
-                           //((org)->gnome)->print_to_file(outFile);
+                            if (!success) {
+                                    org->error = 1;
+  	                            //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
+                                    break;//Breaks inner for-loop
+                                    //std::ofstream outFile("not_activating",std::ios::out);
+                                    //((org)->gnome)->print_to_file(outFile);
+                            }
                    }
+                   if (org->error == 1){
+                            break;//Breaks outer for-loop
+                   }
+                   else { 
+                           //std::cout<<" Random Output: ";
+                           for (int step=0;step< input_data[seqnum].size(); step++) {//RECALL PHASE:: For each step in the input sequence
+
+                                   //Insert Zero (Don't-care) input activations at random time-steps
+                                   in[1] = 0;//Input data
+                                   in[2] = 0;//Recall signal
+                                   int rand_num = round(100*randfloat())+10;//ranges between 10-110
+                                   //Activate NN for random time-steps
+                                   for (int i=0; i<rand_num; i++) {//Don't-care activate 
+                                           net->load_sensors(in); 
+                                           success=net->activate(); 
+                                           //std::cout<<(net->outputs[0])->activation<<" ";
+                                   }
+
+                                   //Activate NN once after random-time steps for recall
+                                   in[1] = 0;
+                                   in[2] = 1;//Recall signal
+                                   net->load_sensors(in); //Give zeroes as input during recall phase
+                                   //std::cout<<" Actual Output: ";
+                                   success=net->activate(); 
+                                   for (int i=output_start_index; i<output_end_index; i++) {//Storing output from each non-frozen output node 
+                                           if ((net->outputs[i])->activation > 1.0) {
+                                                   std::cout<<"ERRORR:: OUTPUT VALUE CANNOT BE GREATER THAN 1.0: "<<(net->outputs[i])->activation<<std::endl;
+                                                   exit(0);
+                                           }
+                                           //std::cout<<(net->outputs[i])->activation<<" ";
+                                           if (((net->outputs[i])->activation >= 0.5 && input_data[seqnum][step]==-1.0) ||
+                                               ((net->outputs[i])->activation < 0.5 && input_data[seqnum][step]==1.0)){
+                                                   output_error = output_error + 1;
+                                           }
+                                           count = count+1;//Count for averaging the error
+
+                                           //if ((net->outputs[i])->activation == 1.0){//Kraskov mutual information implementation cannot handles values >= 1.0
+                                           //        (net->outputs[i])->activation = (net->outputs[i])->activation - 0.0000001;
+                                           //}
+                                           //std::cout<<((net->outputs[i])->activation)<<" "<<std::endl;
+                                   }
+                                   //std::cout<<endl;
+                           }
+                   }
+          //std::cout<<std::endl; 
+          net->flush(); //Flush after each sequence
           }
           if (org->error == 1){
                    break;//Breaks outer for-loop
           }
-          else { 
-                  //std::cout<<" Output: ";
-                  for (step=0;step< input_data[trial].size(); step++) {//RECALL PHASE:: For each step in the input sequence
-
-                          //Insert Zero input activations at random time-steps
-                          in[1] = 0;
-                          in[2] = 0;
-                          int rand_num = round(10*randfloat());//ranges between 0-10
-                          //Activate NN for random time-steps
-                          for (int i=0; i<rand_num; i++) {//Don't-care activate 
-                                  net->load_sensors(in); 
-                                  success=net->activate(); 
-                          }
-
-                          //Activate NN once after random-time steps for recall
-                          in[1] = 0;
-                          in[2] = 1;
-                          net->load_sensors(in); //Give zeroes as input during recall phase
-                          success=net->activate(); 
-                          for (int i=output_start_index; i<output_end_index; i++) {//Storing output from each non-frozen output node 
-                                  if ((net->outputs[i])->activation > 1.0) {
-                                          std::cout<<"ERRORR:: OUTPUT VALUE CANNOT BE GREATER THAN 1.0: "<<(net->outputs[i])->activation<<std::endl;
-                                          exit(0);
-                                  }
-                                  //std::cout<<(net->outputs[i])->activation<<" ";
-                                  if (((net->outputs[i])->activation >= 0.5 && input_data[trial][step]==-1.0) ||
-                                      ((net->outputs[i])->activation < 0.5 && input_data[trial][step]==1.0)){
-                                          output_error = output_error + 1;
-                                  }
-                                  count = count+1;//Count for averaging the error
-
-                                  //if ((net->outputs[i])->activation == 1.0){//Kraskov mutual information implementation cannot handles values >= 1.0
-                                  //        (net->outputs[i])->activation = (net->outputs[i])->activation - 0.0000001;
-                                  //}
-                                  //std::cout<<((net->outputs[i])->activation)<<" "<<std::endl;
-                          }
-                          //std::cout<<endl;
-                  }
-          }
-          //std::cout<<std::endl; 
-          net->flush(); //Flush after each trial
   }
 
   if (org->error == 1){
@@ -765,7 +777,6 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness1: "<<org->fitness1<<endl;
   cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness2: "<<org->fitness2<<endl;
   #endif
-
   org->evaluated = true; //Aditya: for speed-up by preventing re-evaluation of the elites
   return org->winner;
 
@@ -817,7 +828,7 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   //Activate networks of each non-evaluated organism with input data 
   output_start_index = num_output_nodes-num_active_outputs;
   output_end_index = num_output_nodes;
-  #pragma omp parallel for //Parallelization of for loop 
+  //#pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < unevaluated_org.size(); i++) {
           org_win[i] = memory_activate(pop->organisms[unevaluated_org[i]], i, num_active_outputs, output_start_index, output_end_index, input_data);
   }
