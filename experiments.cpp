@@ -21,18 +21,40 @@
 #include <iterator>     // std::ostream_iterator
 #include <algorithm>    // std::copy
 
+void ConvertToBinary(int n, std::vector <int> &sequence)
+{
+    if (n / 2 != 0) {
+        ConvertToBinary(n / 2, sequence);
+    }
+    sequence.push_back(n%2);
+}
+
 void read_input_data(std::vector < vector < double > > &input_data, int num_input_nodes){
     
     cout<<"Generating Input Sequence Data "<<endl;
-    input_data.resize(4, std::vector<double>(num_input_nodes));//HAck
-    input_data[0][0] = -1;
-    input_data[0][1] = -1;
-    input_data[1][0] = -1;
-    input_data[1][1] =  1;
-    input_data[2][0] =  1;
-    input_data[2][1] = -1;
-    input_data[3][0] =  1;
-    input_data[3][1] =  1;
+    int num_sequences = pow(2, NEAT::input_sequence_len);
+    input_data.resize(num_sequences, std::vector<double>());
+
+    std::vector <int> sequence;
+    for (int i=0; i <num_sequences; i++) {
+            sequence.clear();
+            ConvertToBinary(i, sequence);
+            if (sequence.size()<NEAT::input_sequence_len){//If sequence length is less than the required
+                    for (int j=0; j<NEAT::input_sequence_len-sequence.size();j++) {
+                            input_data[i].push_back(0);
+                    }
+            }
+            for (int j=0; j < sequence.size(); j++) {
+                    input_data[i].push_back(sequence[j]);
+            }
+    }
+    for (int i=0; i<input_data.size(); i++) {
+            for (int j=0; j<input_data[i].size(); j++) {
+                    if(input_data[i][j] == 0) {//Swap 0s with -1s
+                            input_data[i][j] = -1;
+                    }
+            }
+    }
     //for (int i=0; i<num_trials; i++) {
     //        for (int j = 0; j<num_input_nodes; j++) {
     //                double rand_num = randfloat();
@@ -662,10 +684,11 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   int count=0;
   double output_error = 0.0;
   double average_output_error;
-  double in[3]; //3-bit input - Bias, number, Recall(1)/Instruct(0)
+  double in[2]; //3-bit input - Bias, number, Recall(1)/Instruct(0)
   in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
-  int num_trials = 100;
+  int num_trials = 1;
+  int max_rand_activate = 0;
   net=org->net;
   //net_depth=net->max_depth();
   
@@ -677,7 +700,7 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
         
                             //Activate NN
                             in[1] = input_data[seqnum][step]; //Input Data
-                            in[2] = 0; //Recall signal
+                            //in[2] = 0; //Recall signal
                             //std::cout<<in[1]<<" ";
                             net->load_sensors(in);
                             success=net->activate(); 
@@ -700,8 +723,8 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
 
                                    //Insert Zero (Don't-care) input activations at random time-steps
                                    in[1] = 0;//Input data
-                                   in[2] = 0;//Recall signal
-                                   int rand_num = round(100*randfloat())+10;//ranges between 10-110
+                                   //in[2] = 0;//Recall signal
+                                   int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
                                    //Activate NN for random time-steps
                                    for (int i=0; i<rand_num; i++) {//Don't-care activate 
                                            net->load_sensors(in); 
@@ -711,7 +734,7 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
 
                                    //Activate NN once after random-time steps for recall
                                    in[1] = 0;
-                                   in[2] = 1;//Recall signal
+                                   //in[2] = 0;//Recall signal
                                    net->load_sensors(in); //Give zeroes as input during recall phase
                                    //std::cout<<" Actual Output: ";
                                    success=net->activate(); 
@@ -828,7 +851,7 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   //Activate networks of each non-evaluated organism with input data 
   output_start_index = num_output_nodes-num_active_outputs;
   output_end_index = num_output_nodes;
-  //#pragma omp parallel for //Parallelization of for loop 
+  #pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < unevaluated_org.size(); i++) {
           org_win[i] = memory_activate(pop->organisms[unevaluated_org[i]], i, num_active_outputs, output_start_index, output_end_index, input_data);
   }
