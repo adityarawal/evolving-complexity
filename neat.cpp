@@ -56,6 +56,7 @@ int NEAT::batch_size = 1;
 int NEAT::max_output_nodes = 3;
 int NEAT::frozen_startgenome = 0;
 int NEAT::input_sequence_len = 2;
+double NEAT::mutate_add_lstm_node_prob = 0;
 //MRandomR250 NEAT::NEATRandGen = MRandomR250(Platform::getRealMilliseconds()); // Random number generator; can pass seed value as argument here
 //MRandomR250 NEAT::NEATRandGen = MRandomR250();
 
@@ -392,6 +393,9 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
     paramFile>>curword;
 	paramFile>>NEAT::input_sequence_len;
     
+    paramFile>>curword;
+	paramFile>>NEAT::mutate_add_lstm_node_prob;
+    
     if(output) {
 	    printf("trait_param_mut_prob=%f\n",trait_param_mut_prob);
 	    printf("trait_mutation_power=%f\n",trait_mutation_power);
@@ -430,6 +434,7 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
 	    printf("max_output_nodes=%d\n",max_output_nodes);
 	    printf("frozen_startgenome=%d\n",frozen_startgenome);
 	    printf("input_sequence_len=%d\n",input_sequence_len);
+	    printf("mutate_add_lstm_node_prob=%f\n",mutate_add_lstm_node_prob);
     }
 
 	paramFile.close();

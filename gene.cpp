@@ -27,29 +27,43 @@ Gene::Gene(double w, NNode *inode, NNode *onode, bool recur, double innov, doubl
 	enable = true;
 
 	frozen = false;
+        gate_type=NONE;
         std::cout<<"ERROR in gene.cpp first constructor. This should not have been called "<<std::endl;
         exit(0);
 }
 
-
 Gene::Gene(Trait *tp,double w,NNode *inode,NNode *onode,bool recur,double innov,double mnum) {
-	lnk=new Link(tp,w,inode,onode,recur);
 	innovation_num=innov;
 	mutation_num=mnum;
 
 	enable=true;
 
 	frozen=false;
+        gate_type = NONE;
+	lnk=new Link(tp,w,inode,onode,recur, gate_type);
+}
+
+
+Gene::Gene(Trait *tp,double w,NNode *inode,NNode *onode,bool recur,double innov,double mnum, lstm_gate_type gtype) {
+	innovation_num=innov;
+	mutation_num=mnum;
+
+	enable=true;
+
+	frozen=false;
+        gate_type = gtype;
+	lnk=new Link(tp,w,inode,onode,recur, gate_type);
 }
 
 Gene::Gene(Gene *g,Trait *tp,NNode *inode,NNode *onode) {
 	//cout<<"Trying to attach nodes: "<<inode<<" "<<onode<<endl;
-	lnk=new Link(tp,(g->lnk)->weight,inode,onode,(g->lnk)->is_recurrent);
 	innovation_num=g->innovation_num;
 	mutation_num=g->mutation_num;
 	enable=g->enable;
 
 	frozen=g->frozen;
+        gate_type=g->gate_type;
+	lnk=new Link(tp,(g->lnk)->weight,inode,onode,(g->lnk)->is_recurrent, gate_type);
 }
 
 Gene::Gene(const char *argline, std::vector<Trait*> &traits, std::vector<NNode*> &nodes) {
@@ -97,6 +111,7 @@ Gene::Gene(const char *argline, std::vector<Trait*> &traits, std::vector<NNode*>
     //std::cout << mutation_num << " " << enable << std::endl;
 
 	frozen=false; //TODO: MAYBE CHANGE
+        gate_type=(lstm_gate_type)mutation_num;//When writing to file, gate_type is stored as mutation number
 
 	//Get a pointer to the linktrait
 	if (traitnum==0) traitptr=0;
@@ -119,7 +134,7 @@ Gene::Gene(const char *argline, std::vector<Trait*> &traits, std::vector<NNode*>
 		++curnode;
 	onode=(*curnode);
 
-	lnk=new Link(traitptr,weight,inode,onode,recur);
+	lnk=new Link(traitptr,weight,inode,onode,recur,gate_type);
 }
 
 Gene::Gene(const Gene& gene)
@@ -128,6 +143,7 @@ Gene::Gene(const Gene& gene)
 	mutation_num = gene.mutation_num;
 	enable = gene.enable;
 	frozen = gene.frozen;
+        gate_type = gene.gate_type;
 
 	lnk = new Link(*gene.lnk);
 }

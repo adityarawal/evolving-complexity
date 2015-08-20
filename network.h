@@ -96,7 +96,13 @@ namespace NEAT {
                 //Recursive finds activation value of a node
                 void recursive_activation(NNode* node, bool &network_error);
 
-		// Prints the values of its outputs
+                //Setup LSTM inputs for activation
+                void setup_lstm_activate(NNode* curnode);
+		
+                //LSTM activation
+                void lstm_activate(NNode* curnode);
+                
+                // Prints the values of its outputs
 		void show_activation();
 
 		void show_input();

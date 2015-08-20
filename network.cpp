@@ -156,6 +156,69 @@ void Network::print_links_tofile(char *filename) {
 
 } //print_links_tofile
 
+void Network::lstm_activate(NNode* curnode){
+	if (curnode->active_flag) {
+		//cout<<"Activating "<<curnode->node_id<<" with "<<curnode->activesum<<": ";
+
+		//Keep a memory of activations for potential time delayed connections
+		curnode->last_activation2=curnode->last_activation;
+		curnode->last_activation=curnode->activation;
+
+                //Activate gate controls
+                double rd_gate_activation =  NEAT::fsigmoid(curnode->activesum_rd,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
+                double wr_gate_activation =  NEAT::fsigmoid(curnode->activesum_wr,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
+                double fg_gate_activation =  NEAT::fsigmoid(curnode->activesum_fg,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
+                
+                curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
+
+                double lstm_out =  (curnode->lstm_cell_state) * rd_gate_activation; //Output gating
+
+                curnode->activation=NEAT::ftanh(lstm_out,1.0,2.4621365); //Evolino uses tanh. Can try sigmoid as well
+
+		//Increment the activation_count
+		//First activation cannot be from nothing!!
+		curnode->activation_count++;
+	}
+
+}
+void Network::setup_lstm_activate(NNode* curnode){
+	curnode->activesum=0;
+	curnode->activesum_rd=0;
+	curnode->activesum_wr=0;
+	curnode->activesum_fg=0;
+	curnode->active_flag=false;  //This will tell us if it has any active inputs
+	std::vector<Link*>::iterator curlink;
+        double add_amount = 0.0;
+        bool active_flag_rd, active_flag_wr, active_flag_fg, active_flag_inputdata=false;
+	// For each incoming connection, add the activity from the connection to the activesum 
+	for(curlink=(curnode->incoming).begin();curlink!=(curnode->incoming).end();++curlink) {
+                add_amount = 0.0;
+                add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out());
+                if((*curlink)->link_gtype==NONE) {
+			curnode->activesum+=add_amount;
+			if ((((*curlink)->in_node)->active_flag)||
+				(((*curlink)->in_node)->type==SENSOR)) active_flag_inputdata=true;
+                }
+                else if ((*curlink)->link_gtype==READ) {
+			curnode->activesum_rd+=add_amount;
+			if ((((*curlink)->in_node)->active_flag)||
+				(((*curlink)->in_node)->type==SENSOR)) active_flag_rd=true;
+                }
+                else if ((*curlink)->link_gtype==WRITE) {
+			curnode->activesum_wr+=add_amount;
+			if ((((*curlink)->in_node)->active_flag)||
+				(((*curlink)->in_node)->type==SENSOR)) active_flag_wr=true;
+                }
+                else if ((*curlink)->link_gtype==FORGET) {
+			curnode->activesum_fg+=add_amount;
+			if ((((*curlink)->in_node)->active_flag)||
+				(((*curlink)->in_node)->type==SENSOR)) active_flag_fg=true;
+                }
+        }
+        if (active_flag_rd && active_flag_wr && active_flag_fg && active_flag_inputdata) {//LSTM node is active only when all its inputs are active
+                curnode->active_flag=true;
+        }
+}
 // Activates the net such that all outputs are active
 // Returns true on success;
 bool Network::activate() {
@@ -199,27 +262,32 @@ bool Network::activate() {
 			//cout<<"On node "<<(*curnode)->node_id<<endl;
 
 			if (((*curnode)->type)!=SENSOR) {
-				(*curnode)->activesum=0;
-				(*curnode)->active_flag=false;  //This will tell us if it has any active inputs
+                                if (((*curnode)->type)!=LSTM) {//For regular hidden neurons and output nodes
+				        (*curnode)->activesum=0;
+				        (*curnode)->active_flag=false;  //This will tell us if it has any active inputs
 
-				// For each incoming connection, add the activity from the connection to the activesum 
-				for(curlink=((*curnode)->incoming).begin();curlink!=((*curnode)->incoming).end();++curlink) {
-					//Handle possible time delays
-					if (!((*curlink)->time_delay)) {
-						add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out());
-						if ((((*curlink)->in_node)->active_flag)||
-							(((*curlink)->in_node)->type==SENSOR)) (*curnode)->active_flag=true;
-						(*curnode)->activesum+=add_amount;
-						//std::cout<<"Node "<<(*curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<std::endl;
-					}
-					else {
-						//Input over a time delayed connection
-						add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out_td());
-						(*curnode)->activesum+=add_amount;
-					}
+				        // For each incoming connection, add the activity from the connection to the activesum 
+				        for(curlink=((*curnode)->incoming).begin();curlink!=((*curnode)->incoming).end();++curlink) {
+				        	//Handle possible time delays
+				        	if (!((*curlink)->time_delay)) {
+				        		add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out());
+				        		if ((((*curlink)->in_node)->active_flag)||
+				        			(((*curlink)->in_node)->type==SENSOR)) (*curnode)->active_flag=true;
+				        		(*curnode)->activesum+=add_amount;
+				        		//std::cout<<"Node "<<(*curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<std::endl;
+				        	}
+				        	else {
+				        		//Input over a time delayed connection
+				        		add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out_td());
+				        		(*curnode)->activesum+=add_amount;
+				        	}
 
-				} //End for over incoming links
+				        } //End for over incoming links
+                                }//End if !LSTM
+                                else {//For LSTM nodes
+                                        setup_lstm_activate((*curnode));
 
+                                }
 			} //End if (((*curnode)->type)!=SENSOR) 
 
 		} //End for over all nodes
@@ -228,35 +296,40 @@ bool Network::activate() {
 		for(curnode=all_nodes.begin();curnode!=all_nodes.end();++curnode) {
 
 			if (((*curnode)->type)!=SENSOR) {
-				//Only activate if some active input came in
-				if ((*curnode)->active_flag) {
-					//cout<<"Activating "<<(*curnode)->node_id<<" with "<<(*curnode)->activesum<<": ";
+                                if (((*curnode)->type)!=LSTM) {//For regular hidden neurons and output nodes
+				        //Only activate if some active input came in
+				        if ((*curnode)->active_flag) {
+				        	//cout<<"Activating "<<(*curnode)->node_id<<" with "<<(*curnode)->activesum<<": ";
 
-					//Keep a memory of activations for potential time delayed connections
-					(*curnode)->last_activation2=(*curnode)->last_activation;
-					(*curnode)->last_activation=(*curnode)->activation;
+				        	//Keep a memory of activations for potential time delayed connections
+				        	(*curnode)->last_activation2=(*curnode)->last_activation;
+				        	(*curnode)->last_activation=(*curnode)->activation;
 
-					//If the node is being overrided from outside,
-					//stick in the override value
-					if ((*curnode)->overridden()) {
-						//Set activation to the override value and turn off override
-						(*curnode)->activate_override();
-					}
-					else {
-						//Now run the net activation through an activation function
-						if ((*curnode)->ftype==SIGMOID) {
-                                                        (*curnode)->activation=NEAT::fsigmoid((*curnode)->activesum,1.0,2.4621365);  //Sigmoidal activation- see comments under fsigmoid //Changed slope from 4.924273 to 1.0 to allow for 4 different output node categories
+				        	//If the node is being overrided from outside,
+				        	//stick in the override value
+				        	if ((*curnode)->overridden()) {
+				        		//Set activation to the override value and turn off override
+				        		(*curnode)->activate_override();
+				        	}
+				        	else {
+				        		//Now run the net activation through an activation function
+				        		if ((*curnode)->ftype==SIGMOID) {
+                                                                (*curnode)->activation=NEAT::fsigmoid((*curnode)->activesum,1.0,2.4621365);  //Sigmoidal activation- see comments under fsigmoid //Changed slope from 4.924273 to 1.0 to allow for 4 different output node categories
+                                                        }
+                                                        else {
+                                                                (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Rectified Linear Units {max(0,x)}
+                                                        }
                                                 }
-                                                else {
-                                                        (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Rectified Linear Units {max(0,x)}
-                                                }
+				        	//cout<<(*curnode)->activation<<endl;
+
+				        	//Increment the activation_count
+				        	//First activation cannot be from nothing!!
+				        	(*curnode)->activation_count++;
+				        }
+                                        else { //For LSTM Nodes
+                                                lstm_activate((*curnode));
                                         }
-					//cout<<(*curnode)->activation<<endl;
-
-					//Increment the activation_count
-					//First activation cannot be from nothing!!
-					(*curnode)->activation_count++;
-				}
+                                }
 			}
 		}
 

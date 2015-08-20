@@ -523,6 +523,10 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 				new_genome->mutate_add_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
 				mut_struct_baby=true;
 			}
+			else if (randfloat()<NEAT::mutate_add_lstm_node_prob) {//Adding LSTM node is less preferred than regular node
+                                new_genome->mutate_add_lstm_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
+				mut_struct_baby=true;
+                        }
 			else if (randfloat()<NEAT::mutate_add_link_prob) {
 				//std::cout<<"mutate add link"<<std::endl;
 				net_analogue=new_genome->genesis(generation);
@@ -597,6 +601,10 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 					//  std::cout<<"mutate_add_node: "<<new_genome<<std::endl;
 					mut_struct_baby=true;
 				}
+		        	else if (randfloat()<NEAT::mutate_add_lstm_node_prob) {//Adding LSTM node is less preferred than regular node
+                                        new_genome->mutate_add_lstm_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
+		        		mut_struct_baby=true;
+                                }
 				else if (randfloat()<NEAT::mutate_add_link_prob) {
 					net_analogue=new_genome->genesis(generation);
 					new_genome->mutate_add_link(pop->innovations,pop->cur_innov_num,NEAT::newlink_tries);
@@ -836,6 +844,10 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 						new_genome->mutate_add_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
 						mut_struct_baby=true;
 					}
+		                 	else if (randfloat()<NEAT::mutate_add_lstm_node_prob) {//Adding LSTM node is less preferred than regular node
+		                 		new_genome->mutate_add_lstm_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
+		                 		mut_struct_baby=true;
+                                         }
 					else if (randfloat()<NEAT::mutate_add_link_prob) {
 						//std::cout<<"mutate add link"<<std::endl;
 						net_analogue=new_genome->genesis(generation);
@@ -999,6 +1011,10 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 						//  std::cout<<"mutate_add_node: "<<new_genome<<std::endl;
 						mut_struct_baby=true;
 					}
+		                 	else if (randfloat()<NEAT::mutate_add_lstm_node_prob) {//Adding LSTM node is less preferred than regular node
+		                 		new_genome->mutate_add_lstm_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
+		                 		mut_struct_baby=true;
+                                        }
 					else if (randfloat()<NEAT::mutate_add_link_prob) {
 						net_analogue=new_genome->genesis(generation);
 						new_genome->mutate_add_link(pop->innovations,pop->cur_innov_num,NEAT::newlink_tries);

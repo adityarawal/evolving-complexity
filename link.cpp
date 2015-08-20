@@ -26,9 +26,10 @@ Link::Link(double w,NNode *inode,NNode *onode,bool recur) {
 	linktrait=0;
 	time_delay=false;
 	trait_id=1;
+        link_gtype=NONE;
 }
 
-Link::Link(Trait *lt,double w,NNode *inode,NNode *onode,bool recur) {
+Link::Link(Trait *lt,double w,NNode *inode,NNode *onode,bool recur, lstm_gate_type lnk_gtype) {
 	weight=w;
 	in_node=inode;
 	out_node=onode;
@@ -39,6 +40,7 @@ Link::Link(Trait *lt,double w,NNode *inode,NNode *onode,bool recur) {
 	if (lt!=0)
 		trait_id=lt->trait_id;
 	else trait_id=1;
+        link_gtype=lnk_gtype;
 }	
 
 Link::Link(double w) {
@@ -48,6 +50,7 @@ Link::Link(double w) {
 	linktrait=0;
 	time_delay=false;
 	trait_id=1;
+        link_gtype=NONE;
 }
 
 Link::Link(const Link& link)
@@ -60,6 +63,7 @@ Link::Link(const Link& link)
 	linktrait = link.linktrait;
 	time_delay = link.time_delay;
 	trait_id = link.trait_id;
+        link_gtype=link.link_gtype;
 }
 
 void Link::derive_trait(Trait *curtrait) {
