@@ -27,12 +27,33 @@ Innovation::Innovation(int nin,int nout,double num1,double num2,int newid,double
 	old_innov_num=oldinnov;
 
 	//Unused parameters set to zero
+	innovation_num3=0;
+	innovation_num4=0;
+	innovation_num5=0;
 	new_weight=0;
 	new_traitnum=0;
 	recur_flag=false;
 }
 
-Innovation::Innovation(int nin,int nout,double num1,double w,int t) {
+Innovation::Innovation(int nin,int nout,double num1,double num2,double num3,double num4,double num5,int newid,double oldinnov, innovtype innov_type) {
+	innovation_type=innov_type;
+	node_in_id=nin;
+	node_out_id=nout;
+	innovation_num1=num1;
+	innovation_num2=num2;
+	innovation_num3=num3;
+	innovation_num4=num4;
+	innovation_num5=num5;
+	newnode_id=newid;
+	old_innov_num=oldinnov;
+
+	//Unused parameters set to zero
+	new_weight=0;
+	new_traitnum=0;
+	recur_flag=false;
+}
+
+Innovation::Innovation(int nin,int nout,double num1,double w,int t) {//(Used By mutate_add_sensor)
 	innovation_type=NEWLINK;
 	node_in_id=nin;
 	node_out_id=nout;
@@ -42,12 +63,15 @@ Innovation::Innovation(int nin,int nout,double num1,double w,int t) {
 
 	//Unused parameters set to zero
 	innovation_num2=0;
+	innovation_num3=0;
+	innovation_num4=0;
+	innovation_num5=0;
 	newnode_id=0;
 	recur_flag=false;
 }
 
-Innovation::Innovation(int nin,int nout,double num1,double w,int t,bool recur) {
-	innovation_type=NEWLINK;
+Innovation::Innovation(int nin,int nout,double num1,double w,int t,bool recur, innovtype innov_type) {
+	innovation_type=innov_type;
 	node_in_id=nin;
 	node_out_id=nout;
 	innovation_num1=num1;
@@ -56,6 +80,9 @@ Innovation::Innovation(int nin,int nout,double num1,double w,int t,bool recur) {
 
 	//Unused parameters set to zero
 	innovation_num2=0;
+	innovation_num3=0;
+	innovation_num4=0;
+	innovation_num5=0;
 	newnode_id=0;
 	recur_flag=recur;
 }

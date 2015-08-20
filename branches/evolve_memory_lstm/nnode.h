@@ -26,7 +26,9 @@ namespace NEAT {
 
 	enum nodetype {
 		NEURON = 0,
-		SENSOR = 1
+		SENSOR = 1,
+                LSTM = 7 //Choosing number 7 to represent LSTM node so that it stands out in the output genome file
+                         //This is fine because code only checks for SENSOR or NOT SENSOR to treat the node differently 
 	};
 
 	enum nodeplace {
@@ -85,9 +87,11 @@ namespace NEAT {
 		functype ftype; // type is either SIGMOID ..or others that can be added
 		nodetype type; // type is either NEURON or SENSOR 
 
-		double activesum;  // The incoming activity before being processed 
+		double activesum;  // The incoming activity of input data before being processed 
+		double activesum_wr, activesum_rd, activesum_fg;  // The incoming activity of LSTM control gates before being processed 
 		double activation; // The total activation entering the NNode 
 		bool active_flag;  // To make sure outputs are active
+                double lstm_cell_state; //Stores the LSTM cell state internal value (without the masking by read gate)
 
                 //Set visited when entering a hidden or output node recursion for the first time and reset when exiting the recursion
                 bool visited; //Check for loop during static network activation (if a node is re-visited, ignore its activity)
@@ -118,7 +122,7 @@ namespace NEAT {
 		NNode(nodetype ntype,int nodeid);
 
 		NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze);
-
+		
 		// Construct a NNode off another NNode for genome purposes
 		NNode(NNode *n,Trait *t);
 

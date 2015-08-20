@@ -22,6 +22,13 @@
 
 namespace NEAT {
 
+	enum lstm_gate_type {
+		NONE = 0,//Represents standard/non-lstm gate gene (lstm input and output data genes are also labelled as NONE)
+                READ = 1,
+		WRITE = 2,
+		FORGET = 3
+	};
+
 	class NNode;
 
 	// ----------------------------------------------------------------------- 
@@ -29,7 +36,8 @@ namespace NEAT {
 	// It can be marked as recurrent 
 	// Its parameters are made public for efficiency 
 	class Link {
-	public: 
+	public:
+                lstm_gate_type link_gtype; 
 		double weight; // Weight of connection
 		NNode *in_node; // NNode inputting into the link
 		NNode *out_node; // NNode that the link affects
@@ -49,7 +57,7 @@ namespace NEAT {
 		Link(double w,NNode *inode,NNode *onode,bool recur);
 
 		// Including a trait pointer in the Link creation
-		Link(Trait *lt,double w,NNode *inode,NNode *onode,bool recur);
+		Link(Trait *lt,double w,NNode *inode,NNode *onode,bool recur, lstm_gate_type lnk_gtype);
 
 		// For when you don't know the connections yet
 		Link(double w);

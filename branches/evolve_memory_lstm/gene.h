@@ -31,12 +31,16 @@ namespace NEAT {
 		double mutation_num;  //Used to see how much mutation has changed the link
 		bool enable;  //When this is off the Gene is disabled
 		bool frozen;  //When frozen, the linkweight cannot be mutated
+                lstm_gate_type gate_type; //Indicates whether the gene belongs to lstm gate control inputs and which type is it (READ/WRITE/FORGET) 
 
 		//Construct a gene with no trait
 		Gene(double w,NNode *inode,NNode *onode,bool recur,double innov,double mnum);
 
 		//Construct a gene with a trait
 		Gene(Trait *tp,double w,NNode *inode,NNode *onode,bool recur,double innov,double mnum);
+
+		//Construct a gene with a trait
+		Gene(Trait *tp,double w,NNode *inode,NNode *onode,bool recur,double innov,double mnum, lstm_gate_type gtype);
 
 		//Construct a gene off of another gene as a duplicate
 		Gene(Gene *g,Trait *tp,NNode *inode,NNode *onode);

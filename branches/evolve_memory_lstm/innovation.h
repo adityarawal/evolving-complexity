@@ -20,7 +20,12 @@ namespace NEAT {
 
 	enum innovtype {
 		NEWNODE = 0,
-		NEWLINK = 1
+		NEWLINK = 1,
+		NEWLSTMNODE = 2,
+                NEWLSTMLINK_RD = 3,
+                NEWLSTMLINK_WR = 4,
+                NEWLSTMLINK_FG = 5
+
 	};
 
 	// ------------------------------------------------------------
@@ -37,10 +42,6 @@ namespace NEAT {
 	// ------------------------------------------------------------ 
 	class Innovation {
 	private:
-		enum innovtype {
-			NEWNODE = 0,
-			NEWLINK = 1
-		};
 
 		//typedef int innovtype;
 		//const int NEWNODE = 0;
@@ -55,7 +56,12 @@ namespace NEAT {
 		double innovation_num1;  //The number assigned to the innovation
 		double innovation_num2;  // If this is a new node innovation, then there are 2 innovations (links) added for the new node 
 
-		double new_weight;   //  If a link is added, this is its weight 
+                //Innovations for a new LSTM node (these correspond to the control gate genes (READ/WRITE/FORGET)
+		double innovation_num3;  
+		double innovation_num4;  
+		double innovation_num5;  
+
+                double new_weight;   //  If a link is added, this is its weight 
 		int new_traitnum; // If a link is added, this is its connected trait 
 
 		int newnode_id;  // If a new node was created, this is its node_id 
@@ -67,11 +73,15 @@ namespace NEAT {
 		//Constructor for the new node case
 		Innovation(int nin,int nout,double num1,double num2,int newid,double oldinnov);
 
-		//Constructor for new link case
+
+		//Constructor for the new LSTM node case (There are 5 new genes associated with each new LSTM node)
+		Innovation(int nin,int nout,double num1,double num2,double num3,double num4,double num5,int newid,double oldinnov,innovtype innov_type);
+
+		//Constructor for new link case (Used By mutate_add_sensor) 
 		Innovation(int nin,int nout,double num1,double w,int t);
 
 		//Constructor for a recur link
-		Innovation(int nin,int nout,double num1,double w,int t,bool recur);
+		Innovation(int nin,int nout,double num1,double w,int t,bool recur,innovtype innov_type);
 
 	};
 

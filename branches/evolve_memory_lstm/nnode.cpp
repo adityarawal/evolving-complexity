@@ -22,11 +22,15 @@ NNode::NNode(nodetype ntype,int nodeid) {
 	active_flag=false;
 	visited=false;
 	activesum=0;
+	activesum_rd=0;
+	activesum_wr=0;
+	activesum_fg=0;
 	activation=0;
+        lstm_cell_state = 0.0;
 	output=0;
 	last_activation=0;
 	last_activation2=0;
-	type=ntype; //NEURON or SENSOR type
+	type=ntype; //NEURON or SENSOR OR (LSTM NEURON) type
 	activation_count=0; //Inactive upon creation
 	node_id=nodeid;
 	ftype=SIGMOID;
@@ -45,11 +49,15 @@ NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze) {
 	active_flag=false;
 	visited=false;
 	activesum=0;
+	activesum_rd=0;
+	activesum_wr=0;
+	activesum_fg=0;
 	activation=0;
+        lstm_cell_state = 0.0;
 	output=0;
 	last_activation=0;
 	last_activation2=0;
-	type=ntype; //NEURON or SENSOR type
+	type=ntype; //NEURON or SENSOR OR (LSTM NEURON) type
 	activation_count=0; //Inactive upon creation
 	node_id=nodeid;
 	nodetrait=0;
@@ -71,10 +79,15 @@ NNode::NNode(NNode *n,Trait *t) {
 	active_flag=false;
 	visited=false;
 	activation=0;
+	activesum=0;
+	activesum_rd=0;
+	activesum_wr=0;
+	activesum_fg=0;
+        lstm_cell_state = 0.0;
 	output=0;
 	last_activation=0;
 	last_activation2=0;
-	type=n->type; //NEURON or SENSOR type
+	type=n->type; //NEURON or SENSOR OR (LSTM NEURON) type
 	activation_count=0; //Inactive upon creation
 	node_id=n->node_id;
 	nodetrait=0;
@@ -99,9 +112,18 @@ NNode::NNode (const char *argline, std::vector<Trait*> &traits) {
 	int traitnum;
 	std::vector<Trait*>::iterator curtrait;
 
+        activation=0;
+        visited=false;
 	activesum=0;
+	activesum_rd=0;
+	activesum_wr=0;
+	activesum_fg=0;
+        lstm_cell_state = 0.0;
+	last_activation=0;
+	last_activation2=0;
+	activation_count=0; //Inactive upon creation
 
-    std::stringstream ss(argline);
+        std::stringstream ss(argline);
 	//char curword[128];
 	//char delimiters[] = " \n";
 	//int curwordnum = 0;
@@ -116,10 +138,19 @@ NNode::NNode (const char *argline, std::vector<Trait*> &traits) {
 	//strcpy(curword, NEAT::getUnit(argline, curwordnum++, delimiters));
 	//gen_node_label = (nodeplace)atoi(curword);
 
-    int nodety, nodepl;
-    ss >> node_id >> traitnum >> nodety >> nodepl;
-    type = (nodetype)nodety;
-    gen_node_label = (nodeplace)nodepl;
+        int nodety, nodepl;
+        ss >> node_id >> traitnum >> nodety >> nodepl;
+        type = (nodetype)nodety;
+        gen_node_label = (nodeplace)nodepl;
+
+        //The following lines to assign ftype have been missing from the code previously. 
+        //Could be a major bug during testing winners
+	if (gen_node_label == OUTPUT) {
+                ftype=SIGMOID; //Output nodes have sigmoid non-linearity
+        }
+        else {
+                ftype=RELU; //Hidden nodes have relu non-linearity
+        }
 
 	// Get the Sensor Identifier and Parameter String
 	// mySensor = SensorRegistry::getSensor(id, param);
@@ -144,11 +175,15 @@ NNode::NNode (const NNode& nnode)
 	active_flag = nnode.active_flag;
 	visited = nnode.visited;
 	activesum = nnode.activesum;
+	activesum_rd = nnode.activesum_rd;
+    	activesum_wr = nnode.activesum_wr;
+	activesum_fg = nnode.activesum_fg;
 	activation = nnode.activation;
+        lstm_cell_state = nnode.lstm_cell_state;
 	output = nnode.output;
 	last_activation = nnode.last_activation;
 	last_activation2 = nnode.last_activation2;
-	type = nnode.type; //NEURON or SENSOR type
+	type = nnode.type; //NEURON or SENSOR OR (LSTM NEURON) type
 	activation_count = nnode.activation_count; //Inactive upon creation
 	node_id = nnode.node_id;
 	ftype = nnode.ftype;
@@ -171,7 +206,7 @@ NNode::~NNode() {
 	//if (nodetrait!=0) delete nodetrait;
 }
 
-//Returns the type of the node, NEURON or SENSOR
+//Returns the type of the node, NEURON or SENSOR OR (LSTM NEURON)
 const nodetype NNode::get_type() {
 	return type;
 }
@@ -248,6 +283,7 @@ void NNode::flushback() {
 			last_activation=0;
 			last_activation2=0;
                         active_flag = false;      //ADITYA: BUG?? Currently, once active, a node remains active despite the network getting flushed. Can lead to network outputs getting activated with incoming 0. To fix this, reset the active_flag. This ensures that network-flush resets all active paths to outputs.
+                        lstm_cell_state = 0.0;  //Reset LSTM cell value
 		}
 
 		//Flush back recursively

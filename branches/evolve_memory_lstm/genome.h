@@ -147,6 +147,9 @@ namespace NEAT {
 		// Mutate genome by adding a node respresentation 
 		bool mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,double &curinnov);
 
+                // Mutate genome by adding a LSTM node
+                bool mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_id,double &curinnov); 
+
 		// Mutate the genome by adding a new link between 2 random NNodes 
 		bool mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,int tries); 
 
