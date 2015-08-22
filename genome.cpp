@@ -238,6 +238,8 @@ Genome::Genome(int id, std::ifstream &iFile) {
 
 
 Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob) {
+        std::cout<<"Inside Genome constructor ...linkprob). Should not be called"<<std::endl;
+        exit(0);
 	int totalnodes;
 	bool *cm; //The connection matrix which will be randomized
 	bool *cmp; //Connection matrix pointer
@@ -397,6 +399,8 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 
 
 Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
+        std::cout<<"Inside Genome constructor ... (num_in, ..). Should not be called"<<std::endl;
+        exit(0);
 
 	//Temporary lists of nodes
 	std::vector<NNode*> inputs;
@@ -1639,16 +1643,16 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
         
 			//Create the new Genes
 			if (thelink->is_recurrent) {
-				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,curinnov,NONE);//gate_type stored as mut_num
-				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,NONE);//gate_type stored as mut_num
+				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,curinnov,NONE,NONE);//gate_type stored as mut_num
+				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,(*thegene)->gate_type,(*thegene)->gate_type);//gate_type stored as mut_num
 	                        newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+2,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+3,WRITE,WRITE);//gate_type stored as mut_num
 	                        newgene5=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
 				curinnov+=5.0;
 			}
 			else {
-				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,curinnov,NONE);//gate_type stored as mut_num
-				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,NONE);//gate_type stored as mut_num
+				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,curinnov,NONE,NONE);//gate_type stored as mut_num
+				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,(*thegene)->gate_type,(*thegene)->gate_type);//gate_type stored as mut_num
 	                        newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+2,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+3,WRITE,WRITE);//gate_type stored as mut_num
 	                        newgene5=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
@@ -1688,15 +1692,15 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 
 			//Create the new Genes
 			if (thelink->is_recurrent) {
-				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,(*theinnov)->innovation_num1,NONE);//gate_type stored as mut_num
-				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,NONE);//gate_type stored as mut_num
+				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,(*theinnov)->innovation_num1,NONE,NONE);
+				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,(*thegene)->gate_type,(*thegene)->gate_type);
 	                        newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num3,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num4,WRITE,WRITE);//gate_type stored as mut_num
 	                        newgene5=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
 			}
 			else {
-				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,(*theinnov)->innovation_num1,NONE);//gate_type stored as mut_num
-				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,NONE);//gate_type stored as mut_num
+				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,(*theinnov)->innovation_num1,NONE,NONE);
+				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,(*thegene)->gate_type,(*thegene)->gate_type);
 	                        newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num3,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num4,WRITE,WRITE);//gate_type stored as mut_num
 	                        newgene5=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
@@ -1864,13 +1868,13 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 
 			//Create the new Genes
 			if (thelink->is_recurrent) {
-				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,curinnov,NONE);
-				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,NONE);
+				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,curinnov,NONE,NONE);
+				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,(*thegene)->gate_type,(*thegene)->gate_type);
 				curinnov+=2.0;
 			}
 			else {
-				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,curinnov,NONE);
-				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,NONE);
+				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,curinnov,NONE,NONE);
+				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,(*thegene)->gate_type,(*thegene)->gate_type);
 				curinnov+=2.0;
 			}
 
@@ -1907,12 +1911,12 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 
 			//Create the new Genes
 			if (thelink->is_recurrent) {
-				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,(*theinnov)->innovation_num1,NONE);
-				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,NONE);
+				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,(*theinnov)->innovation_num1,NONE,NONE);
+				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,(*thegene)->gate_type,(*thegene)->gate_type);
 			}
 			else {
-				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,(*theinnov)->innovation_num1,NONE);
-				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,NONE);
+				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,(*theinnov)->innovation_num1,NONE,NONE);
+				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,(*thegene)->gate_type,(*thegene)->gate_type);
 			}
 
 			done=true;
@@ -1982,7 +1986,7 @@ void Genome::add_link(int nodenum1, int nodenum2, double weight, double &curinno
 	thetrait=traits.begin();
 
 	//Create the new gene
-	newgene=new Gene(((thetrait[traitnum])),weight,nodep1,nodep2,recurflag,curinnov,NONE);
+	newgene=new Gene(((thetrait[traitnum])),weight,nodep1,nodep2,recurflag,curinnov,NONE,NONE);
 	
         add_gene(genes,newgene);  //Add genes in correct order
 	
@@ -2022,7 +2026,11 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 	int thresh=(nodes.size())*(nodes.size());
 	int count=0;
 
-	//Make attempts to find an unconnected pair
+        //For incoming links to LSTM, create the gene and label it randomly as one of the following types
+        lstm_gate_type gtype;//Indicates whether the gene belongs to lstm gate control inputs and which type is it (READ/WRITE/FORGET) 
+        innovtype innov_type;//Indicates the type of innovation (NEWLINK/NEWNODE/NEWLSTMNODE/NEWLSTMLINK_RD/NEWLSTMLINK_WR/NEWLSTMLINK_FG)
+	
+        //Make attempts to find an unconnected pair
 	trycount=0;
 
 
@@ -2076,13 +2084,43 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                         nodep1=(*thenode1);
 			nodep2=(*thenode2);
 
+                        //Randomly assign a type to the gene (LSTM Read/Write/Forget control or LSTM/Regular input/output data)
+                        if (nodep2->type==LSTM) {//For incoming links to LSTM
+                                double rand_num = randfloat();
+                                if (rand_num < 0.25) {
+                                        //Input Data
+                                        gtype = NONE;
+                                        innov_type = NEWLINK;
+                                }
+                                else if (rand_num < 0.5) {
+                                        //Read Gate Input
+                                        gtype = READ;
+                                        innov_type = NEWLSTMLINK_RD;
+                                }
+                                else if (rand_num < 0.75) {
+                                       //Write Gate Input
+                                        gtype = WRITE;
+                                        innov_type = NEWLSTMLINK_WR;
+                                }
+                                else {
+                                       //Forget Gate Input
+                                        gtype = FORGET;
+                                        innov_type = NEWLSTMLINK_FG;
+                                } 
+                        }
+                        else {//For Non-LSTM links or outgoing links from LSTM
+                                gtype = NONE;
+                                innov_type = NEWLINK;
+                        }
+
 			//See if a recur link already exists  ALSO STOP AT END OF GENES!!!!
 			thegene=genes.begin();
 			while ((thegene!=genes.end()) && 
 				((nodep2->type)!=SENSOR) &&   //Don't allow SENSORS to get input
 				(!((((*thegene)->lnk)->in_node==nodep1)&&
 				(((*thegene)->lnk)->out_node==nodep2)&&
-				((*thegene)->lnk)->is_recurrent))) {
+				((*thegene)->lnk)->is_recurrent)&&
+                                ((*thegene)->gate_type==gtype))) {
 					++thegene;
 				}
 
@@ -2138,6 +2176,35 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
 			nodep1=(*thenode1);
 			nodep2=(*thenode2);
+                
+                        //Randomly assign a type to the gene (LSTM Read/Write/Forget control or LSTM/Regular input/output data)
+                        if (nodep2->type==LSTM) {//For incoming links to LSTM
+                                double rand_num = randfloat();
+                                if (rand_num < 0.25) {
+                                        //Input Data
+                                        gtype = NONE;
+                                        innov_type = NEWLINK;
+                                }
+                                else if (rand_num < 0.5) {
+                                        //Read Gate Input
+                                        gtype = READ;
+                                        innov_type = NEWLSTMLINK_RD;
+                                }
+                                else if (rand_num < 0.75) {
+                                       //Write Gate Input
+                                        gtype = WRITE;
+                                        innov_type = NEWLSTMLINK_WR;
+                                }
+                                else {
+                                       //Forget Gate Input
+                                        gtype = FORGET;
+                                        innov_type = NEWLSTMLINK_FG;
+                                } 
+                        }
+                        else {//For Non-LSTM links or outgoing links from LSTM
+                                gtype = NONE;
+                                innov_type = NEWLINK;
+                        }
 
 			//See if a link already exists  ALSO STOP AT END OF GENES!!!!
 			thegene=genes.begin();
@@ -2145,7 +2212,8 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 				((nodep2->type)!=SENSOR) &&   //Don't allow SENSORS to get input
 				(!((((*thegene)->lnk)->in_node==nodep1)&&
 				(((*thegene)->lnk)->out_node==nodep2)&&
-				(!(((*thegene)->lnk)->is_recurrent))))) {
+				(!(((*thegene)->lnk)->is_recurrent))&&
+                                ((*thegene)->gate_type==gtype)))) {
 					++thegene;
 				}
 
@@ -2181,37 +2249,6 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
 	//Continue only if an open link was found
 	if (found) {
-
-                //For incoming links to LSTM, create the gene and label it randomly as one of the following types
-                lstm_gate_type gtype;//Indicates whether the gene belongs to lstm gate control inputs and which type is it (READ/WRITE/FORGET) 
-                innovtype innov_type;//Indicates the type of innovation (NEWLINK/NEWNODE/NEWLSTMNODE/NEWLSTMLINK_RD/NEWLSTMLINK_WR/NEWLSTMLINK_FG)
-                if (nodep2->type==LSTM) {//For incoming links to LSTM
-                        double rand_num = randfloat();
-                        if (rand_num < 0.25) {
-                                //Input Data
-                                gtype = NONE;
-                                innov_type = NEWLINK;
-                        }
-                        else if (rand_num < 0.5) {
-                                //Read Gate Input
-                                gtype = READ;
-                                innov_type = NEWLSTMLINK_RD;
-                        }
-                        else if (rand_num < 0.75) {
-                               //Write Gate Input
-                                gtype = WRITE;
-                                innov_type = NEWLSTMLINK_WR;
-                        }
-                        else {
-                               //Forget Gate Input
-                                gtype = FORGET;
-                                innov_type = NEWLSTMLINK_FG;
-                        } 
-                }
-                else {//For Non-LSTM links or outgoing links from LSTM
-                        gtype = NONE;
-                        innov_type = NEWLINK;
-                }
 
 		//Check to see if this innovation already occured in the population
 		theinnov=innovs.begin();
@@ -2281,8 +2318,8 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
 					thetrait=traits.begin();
 
-					//Create new gene (Default gate_type is NONE)
-					newgene=new Gene(((thetrait[(*theinnov)->new_traitnum])),(*theinnov)->new_weight,nodep1,nodep2,recurflag,(*theinnov)->innovation_num1,NONE);
+					//Create new gene 
+					newgene=new Gene(((thetrait[(*theinnov)->new_traitnum])),(*theinnov)->new_weight,nodep1,nodep2,recurflag,(*theinnov)->innovation_num1,gtype, gtype);//gate_type stored as mut_num
 
 					done=true;
 
@@ -2297,7 +2334,6 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 		//genes.push_back(newgene);  //Old way - could result in out-of-order innovation numbers in rtNEAT
         //std::cout<<"Genome id: "<<genome_id<<" mutate_add_link: "<<newgene->lnk->in_node->node_id<<" "<<newgene->lnk->out_node->node_id <<" "<<newgene->lnk->weight <<std::endl;
 		add_gene(genes,newgene);  //Adds the gene in correct order
-
 
 		return true;
 	}
@@ -2403,7 +2439,7 @@ void Genome::mutate_add_sensor(std::vector<Innovation*> &innovs,double &curinnov
 					//Create the new gene
 					newgene=new Gene(((thetrait[traitnum])),
 						newweight,sensor,output,false,
-						curinnov,NONE);
+						curinnov,NONE,NONE);
 
 					//Add the innovation
 					innovs.push_back(new Innovation(sensor->node_id,
@@ -2425,7 +2461,7 @@ void Genome::mutate_add_sensor(std::vector<Innovation*> &innovs,double &curinnov
 						newgene=
 							new Gene(((thetrait[(*theinnov)->new_traitnum])),
 							(*theinnov)->new_weight,sensor,output,
-							false,(*theinnov)->innovation_num1,NONE);
+							false,(*theinnov)->innovation_num1,NONE,NONE);
 
 						done=true;
 
@@ -2564,7 +2600,6 @@ Genome *Genome::mate_multipoint(Genome *g,int genomeid,double fitness1,double fi
 
 	}
 
-
 	//Now move through the Genes of each parent until both genomes end
 	p1gene=genes.begin();
 	p2gene=(g->genes).begin();
@@ -2594,12 +2629,12 @@ Genome *Genome::mate_multipoint(Genome *g,int genomeid,double fitness1,double fi
                                         if (!(((*p1gene)->lnk)->in_node->node_id==((*p2gene)->lnk)->in_node->node_id) ||
                                             !(((*p1gene)->lnk)->out_node->node_id==((*p2gene)->lnk)->out_node->node_id)){
                                                 std::cout<<" Inside mate_multipoint(): Parent genes with same innovation number are connected to different nodes: P1, P2 "<<((*p1gene)->lnk)->in_node->node_id<<" "<<((*p1gene)->lnk)->out_node->node_id<<" "<<((*p2gene)->lnk)->in_node->node_id<<" "<<((*p2gene)->lnk)->out_node->node_id<<" "<<std::endl;
-                                std::ofstream outFile("Parent_genome1.txt",std::ios::out);
-	                        g->print_to_file(outFile);
-                                outFile.close();
-                                std::ofstream outFile2("Parent_genome2.txt",std::ios::out);
-	                        print_to_file(outFile2);
-                                outFile2.close();
+                                                std::ofstream outFile("Parent_genome1.txt",std::ios::out);
+	                                        g->print_to_file(outFile);
+                                                outFile.close();
+                                                std::ofstream outFile2("Parent_genome2.txt",std::ios::out);
+	                                        print_to_file(outFile2);
+                                                outFile2.close();
                                                 exit(0);
                                         }
 					if (randfloat()<0.5) {
@@ -2850,7 +2885,7 @@ Genome *Genome::mate_multipoint_avg(Genome *g,int genomeid,double fitness1,doubl
 	}
 
 	//Set up the avgene
-	avgene=new Gene(0,0,0,0,0,0,NONE);
+	avgene=new Gene(0,0,0,0,0,0,NONE,NONE);
 
 	//NEW 3/17/03 Make sure all sensors and outputs are included
 	for(curnode=(g->nodes).begin();curnode!=(g->nodes).end();++curnode) {
@@ -2982,6 +3017,7 @@ Genome *Genome::mate_multipoint_avg(Genome *g,int genomeid,double fitness1,doubl
                                                 avgene->enable=((*p1gene)->enable);//p1 and p2 frozen gene should have the same enable status
                                         }
                                         avgene->gate_type = (*p1gene)->gate_type;//If p1 and p2 have same innov number, then they should have the same type (NONE/READ/WRITE/FORGET) 
+                                        avgene->mutation_num = (*p1gene)->mutation_num;//If p1 and p2 have same innov number, then they should have the same type (NONE/READ/WRITE/FORGET) 
 					chosengene=avgene;
 					++p1gene;
 					++p2gene;
@@ -3199,7 +3235,7 @@ Genome *Genome::mate_singlepoint(Genome *g,int genomeid) {
 	}
 
 	//Set up the avgene
-	avgene=new Gene(0,0,0,0,0,0,NONE);
+	avgene=new Gene(0,0,0,0,0,0,NONE,NONE);
 
 	//Decide where to cross  (p1gene will always be in smaller Genome)
 	if (genes.size()<(g->genes).size()) {
@@ -3304,6 +3340,7 @@ Genome *Genome::mate_singlepoint(Genome *g,int genomeid) {
                                                 avgene->enable=((*p1gene)->enable);//p1 and p2 frozen gene should have the same enable status
                                         }
                                         avgene->gate_type = (*p1gene)->gate_type;//If p1 and p2 have same innov number, then they should have the same type (NONE/READ/WRITE/FORGET) 
+                                        avgene->mutation_num = (*p1gene)->mutation_num;//If p1 and p2 have same innov number, then they should have the same type (NONE/READ/WRITE/FORGET) 
 					chosengene=avgene;
 				}
 

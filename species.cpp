@@ -459,7 +459,52 @@ Organism* Species::binary_tournament_select(int size) {
                 return org2; 
         }
 }
+void check_lstm_genes(Genome *last_genome, Genome *new_genome, char *s){//Added for verification purposes only
 
+	std::vector<Gene*>::iterator p1gene;
+	std::vector<Gene*>::iterator p2gene;
+        for (p1gene=(new_genome->genes).begin(); p1gene!=(new_genome->genes).end(); p1gene++) {
+                if (!((*p1gene)->gate_type==(int)(*p1gene)->mutation_num)) {
+                std::cout<<s<<" gate_type does not match mutation_num: "<<(*p1gene)->innovation_num<<" "<<(*p1gene)->gate_type<<" "<<(*p1gene)->mutation_num<<std::endl;
+                                                std::ofstream outFile("last_genome.txt",std::ios::out);
+	                                        last_genome->print_to_file(outFile);
+                                                outFile.close();
+                                                std::ofstream outFile2("new_genome.txt",std::ios::out);
+	                                        new_genome->print_to_file(outFile2);
+                                                outFile2.close();
+                exit(0);
+                }
+        }
+        for (p1gene=(last_genome->genes).begin(); p1gene!=(last_genome->genes).end(); p1gene++) {
+                for (p2gene=(new_genome->genes).begin(); p2gene!=(new_genome->genes).end(); p2gene++) {
+                        if ((*p1gene)->innovation_num == (*p2gene)->innovation_num) {
+                                if (!((*p1gene)->gate_type == (*p2gene)->gate_type)) {
+                                                std::cout<<s<<" Gate_type mismatch ERROR  ";
+                                                std::cout<<(*p1gene)->innovation_num<<" "<<(*p1gene)->gate_type<<" "<< (*p2gene)->gate_type <<std::endl;
+                                                std::cout<<(*p1gene)->innovation_num<<" "<<(*p1gene)->mutation_num<<" "<< (*p2gene)->mutation_num <<std::endl;
+                                                std::ofstream outFile("last_genome.txt",std::ios::out);
+	                                        last_genome->print_to_file(outFile);
+                                                outFile.close();
+                                                std::ofstream outFile2("new_genome.txt",std::ios::out);
+	                                        new_genome->print_to_file(outFile2);
+                                                outFile2.close();
+                                        exit(0);
+                                }
+                                if (!((*p1gene)->mutation_num == (*p2gene)->mutation_num)) {
+                                                std::cout<<s<<" Mutation_num mismatch ERROR  ";
+                                                std::cout<<(*p1gene)->innovation_num<<" "<<(*p1gene)->mutation_num<<" "<< (*p2gene)->mutation_num <<std::endl;
+                                                std::ofstream outFile("last_genome.txt",std::ios::out);
+	                                        last_genome->print_to_file(outFile);
+                                                outFile.close();
+                                                std::ofstream outFile2("new_genome.txt",std::ios::out);
+	                                        new_genome->print_to_file(outFile2);
+                                                outFile2.close();
+                                        exit(0);
+                                }
+                        }
+                }
+        }
+}
 bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - NSGA2)
 	int count;
 	std::vector<Organism*>::iterator curorg;
@@ -471,6 +516,7 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 	Organism *baby;  //The new Organism
 
 	Genome *new_genome;  //For holding baby's genes
+	Genome *last_genome;  //For holding baby's genes
 
 	std::vector<Species*>::iterator curspecies;  //For adding baby
 
@@ -514,6 +560,7 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
                         mom = binary_tournament_select(poolsize);
 
 			new_genome=(mom->gnome)->duplicate(count);
+			last_genome=(mom->gnome)->duplicate(count);
 
 			//Do the mutation depending on probabilities of 
 			//various mutations
@@ -522,15 +569,24 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 				//std::cout<<"mutate add node"<<std::endl;
 				new_genome->mutate_add_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
 				mut_struct_baby=true;
+                                char *s = "mutate_add_node";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 			}
 			else if (randfloat()<NEAT::mutate_add_lstm_node_prob) {//Adding LSTM node is less preferred than regular node
                                 new_genome->mutate_add_lstm_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
 				mut_struct_baby=true;
+                                char *s = "mutate_add_lstm_node";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
                         }
 			else if (randfloat()<NEAT::mutate_add_link_prob) {
 				//std::cout<<"mutate add link"<<std::endl;
 				net_analogue=new_genome->genesis(generation);
 				new_genome->mutate_add_link(pop->innovations,pop->cur_innov_num,NEAT::newlink_tries);
+                                char *s = "mutate_add_link";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 				delete net_analogue;
 				mut_struct_baby=true;
 			}
@@ -554,15 +610,24 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 				if (randfloat()<NEAT::mutate_link_weights_prob) {
 					//std::cout<<"mutate_link_weights"<<std::endl;
 					new_genome->mutate_link_weights(mut_power,1.0,GAUSSIAN);
+                                char *s = "mutate_link_weights";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 				}
 				if (randfloat()<NEAT::mutate_toggle_enable_prob) {
 					//std::cout<<"mutate toggle enable"<<std::endl;
 					new_genome->mutate_toggle_enable(1);
 
+                                char *s = "mutate_add_toggle_enable";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 				}
 				if (randfloat()<NEAT::mutate_gene_reenable_prob) {
 					//std::cout<<"mutate gene reenable"<<std::endl;
 					new_genome->mutate_gene_reenable();
+                                char *s = "mutate_add_gene_reenable";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 				}
 			}
 
@@ -575,12 +640,19 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
                         mom = binary_tournament_select(poolsize);
                         dad = binary_tournament_select(poolsize);
 
+			last_genome=(mom->gnome)->duplicate(count);
 			//Perform mating based on probabilities of differrent mating types
 			if (randfloat()<NEAT::mate_multipoint_prob) { 
 				new_genome=(mom->gnome)->mate_multipoint(dad->gnome,count,mom->fitness1,dad->fitness1,outside);
+                                char *s = "mutate_mate_multipoint";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 			}
 			else if (randfloat()<(NEAT::mate_multipoint_avg_prob/(NEAT::mate_multipoint_avg_prob+NEAT::mate_singlepoint_prob))) {
 				new_genome=(mom->gnome)->mate_multipoint_avg(dad->gnome,count,mom->fitness1,dad->fitness1,outside);
+                                char *s = "mutate_mate_multipoint_avg";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 			}
 			else {
 				new_genome=(mom->gnome)->mate_singlepoint(dad->gnome,count);
@@ -600,14 +672,23 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 					new_genome->mutate_add_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
 					//  std::cout<<"mutate_add_node: "<<new_genome<<std::endl;
 					mut_struct_baby=true;
+                                char *s = "mutate_add_node";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 				}
 		        	else if (randfloat()<NEAT::mutate_add_lstm_node_prob) {//Adding LSTM node is less preferred than regular node
                                         new_genome->mutate_add_lstm_node(pop->innovations,pop->cur_node_id,pop->cur_innov_num);
 		        		mut_struct_baby=true;
+                                char *s = "mutate_add_lstm_node";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
                                 }
 				else if (randfloat()<NEAT::mutate_add_link_prob) {
 					net_analogue=new_genome->genesis(generation);
 					new_genome->mutate_add_link(pop->innovations,pop->cur_innov_num,NEAT::newlink_tries);
+                                char *s = "mutate_add_link";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 					delete net_analogue;
 					//std::cout<<"mutate_add_link: "<<new_genome<<std::endl;
 					mut_struct_baby=true;
@@ -630,14 +711,23 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 					if (randfloat()<NEAT::mutate_link_weights_prob) {
 						new_genome->mutate_link_weights(mut_power,1.0,GAUSSIAN);
 						//std::cout<<"mutate_link_weights: "<<new_genome<<std::endl;
+                                char *s = "mutate_link_weights";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 					}
 					if (randfloat()<NEAT::mutate_toggle_enable_prob) {
 						new_genome->mutate_toggle_enable(1);
 						//std::cout<<"mutate_toggle_enable: "<<new_genome<<std::endl;
+                                char *s = "mutate_toggle_enable";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 					}
 					if (randfloat()<NEAT::mutate_gene_reenable_prob) {
 						new_genome->mutate_gene_reenable(); 
 						//std::cout<<"mutate_gene_reenable: "<<new_genome<<std::endl;
+                                char *s = "mutate_gene_reenable_prob";
+                                check_lstm_genes(last_genome, new_genome, s);
+			        last_genome=(new_genome)->duplicate(1);
 					}
 				}
 
