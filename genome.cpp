@@ -712,7 +712,7 @@ Network *Genome::genesis(int id) {
 			onode=(curlink->out_node)->analogue;
 			//NOTE: This line could be run through a recurrency check if desired
 			// (no need to in the current implementation of NEAT)
-			newlink=new Link(curlink->weight,inode,onode,curlink->is_recurrent);
+			newlink=new Link(curlink->weight,inode,onode,curlink->is_recurrent, (*curgene)->gate_type);
 
 			(onode->incoming).push_back(newlink);
 			(inode->outgoing).push_back(newlink);

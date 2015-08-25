@@ -239,19 +239,19 @@ bool NNode::sensor_load(double value) {
 // 2. It allows genetic control of the proportion of connections
 //    that may become recurrent
 
-// Add an incoming connection a node
-void NNode::add_incoming(NNode *feednode,double weight,bool recur) {
-	Link *newlink=new Link(weight,feednode,this,recur);
-	incoming.push_back(newlink);
-	(feednode->outgoing).push_back(newlink);
-}
-
-// Nonrecurrent version
-void NNode::add_incoming(NNode *feednode,double weight) {
-	Link *newlink=new Link(weight,feednode,this,false);
-	incoming.push_back(newlink);
-	(feednode->outgoing).push_back(newlink);
-}
+//// Add an incoming connection a node
+//void NNode::add_incoming(NNode *feednode,double weight,bool recur) {
+//	Link *newlink=new Link(weight,feednode,this,recur);
+//	incoming.push_back(newlink);
+//	(feednode->outgoing).push_back(newlink);
+//}
+//
+//// Nonrecurrent version
+//void NNode::add_incoming(NNode *feednode,double weight) {
+//	Link *newlink=new Link(weight,feednode,this,false);
+//	incoming.push_back(newlink);
+//	(feednode->outgoing).push_back(newlink);
+//}
 
 // Return activation currently in node, if it has been activated
 double NNode::get_active_out() {

@@ -168,12 +168,27 @@ void Network::lstm_activate(NNode* curnode){
                 double rd_gate_activation =  NEAT::fsigmoid(curnode->activesum_rd,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
                 double wr_gate_activation =  NEAT::fsigmoid(curnode->activesum_wr,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
                 double fg_gate_activation =  NEAT::fsigmoid(curnode->activesum_fg,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
-                
+             
+                //Making control signals binary 
+                if (rd_gate_activation>=0.5) rd_gate_activation=1.0;
+                else rd_gate_activation=0.0;
+                if (wr_gate_activation>=0.5) wr_gate_activation=1.0;
+                else wr_gate_activation=0.0;
+                if (fg_gate_activation>=0.5) fg_gate_activation=1.0;
+                else fg_gate_activation=0.0;
+                //std::cout<<"rd: "<<curnode->activesum_rd<< " "<<rd_gate_activation<<std::endl;
+                //std::cout<<"wr: "<<curnode->activesum_wr<< " "<<wr_gate_activation<<std::endl;
+                //std::cout<<"fg: "<<curnode->activesum_fg<< " "<<fg_gate_activation<<std::endl;
+                //std::cout<<"last_Cell_state: "<< curnode->lstm_cell_state<<std::endl;
+                //std::cout<<"activesum: "<< curnode->activesum<<std::endl;
                 curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
+                //std::cout<<"new_Cell_state: "<< curnode->lstm_cell_state<<std::endl;
 
                 double lstm_out =  (curnode->lstm_cell_state) * rd_gate_activation; //Output gating
+                //std::cout<<"lstm_out: "<< lstm_out<<std::endl;
 
-                curnode->activation=NEAT::ftanh(lstm_out,1.0,2.4621365); //Evolino uses tanh. Can try sigmoid as well
+                curnode->activation=lstm_out;//NEAT::ftanh(lstm_out,1.0,2.4621365); //Evolino uses tanh. Can try sigmoid as well
+                //std::cout<<"lstm_final_out: "<< curnode->activation<<std::endl;
 
 		//Increment the activation_count
 		//First activation cannot be from nothing!!
@@ -194,25 +209,31 @@ void Network::setup_lstm_activate(NNode* curnode){
 	for(curlink=(curnode->incoming).begin();curlink!=(curnode->incoming).end();++curlink) {
                 add_amount = 0.0;
                 add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out());
+		//std::cout<<"LSTM Node "<<(curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<std::endl;
+                //std::cout<<"Link Type: "<<(*curlink)->link_gtype<<std::endl;
                 if((*curlink)->link_gtype==NONE) {
 			curnode->activesum+=add_amount;
 			if ((((*curlink)->in_node)->active_flag)||
 				(((*curlink)->in_node)->type==SENSOR)) active_flag_inputdata=true;
+		        //std::cout<<"LSTM Node Input Data activesum: "<<curnode->activesum<<" active_flag: "<<active_flag_inputdata <<std::endl;
                 }
                 else if ((*curlink)->link_gtype==READ) {
 			curnode->activesum_rd+=add_amount;
 			if ((((*curlink)->in_node)->active_flag)||
 				(((*curlink)->in_node)->type==SENSOR)) active_flag_rd=true;
+		        //std::cout<<"LSTM Node READ activesum: "<<curnode->activesum_rd<<" active_flag: "<<active_flag_rd <<std::endl;
                 }
                 else if ((*curlink)->link_gtype==WRITE) {
 			curnode->activesum_wr+=add_amount;
 			if ((((*curlink)->in_node)->active_flag)||
 				(((*curlink)->in_node)->type==SENSOR)) active_flag_wr=true;
+		        //std::cout<<"LSTM Node WRITE activesum: "<<curnode->activesum_wr<<" active_flag: "<<active_flag_rd <<std::endl;
                 }
                 else if ((*curlink)->link_gtype==FORGET) {
 			curnode->activesum_fg+=add_amount;
 			if ((((*curlink)->in_node)->active_flag)||
 				(((*curlink)->in_node)->type==SENSOR)) active_flag_fg=true;
+		        //std::cout<<"LSTM Node FORGET activesum: "<<curnode->activesum_fg<<" active_flag: "<<active_flag_fg <<std::endl;
                 }
         }
         if (active_flag_rd && active_flag_wr && active_flag_fg && active_flag_inputdata) {//LSTM node is active only when all its inputs are active
@@ -259,7 +280,7 @@ bool Network::activate() {
 		for(curnode=all_nodes.begin();curnode!=all_nodes.end();++curnode) {
 			//Ignore SENSORS
 
-			//cout<<"On node "<<(*curnode)->node_id<<endl;
+                        //std::cout<<"On node "<<(*curnode)->node_id<<std::endl;
 
 			if (((*curnode)->type)!=SENSOR) {
                                 if (((*curnode)->type)!=LSTM) {//For regular hidden neurons and output nodes
@@ -274,7 +295,7 @@ bool Network::activate() {
 				        		if ((((*curlink)->in_node)->active_flag)||
 				        			(((*curlink)->in_node)->type==SENSOR)) (*curnode)->active_flag=true;
 				        		(*curnode)->activesum+=add_amount;
-				        		//std::cout<<"Node "<<(*curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<std::endl;
+				        		//std::cout<<"Node "<<(*curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<" active_flag: "<<(*curnode)->active_flag <<std::endl;
 				        	}
 				        	else {
 				        		//Input over a time delayed connection
@@ -295,6 +316,7 @@ bool Network::activate() {
 		// Now activate all the non-sensor nodes off their incoming activation 
 		for(curnode=all_nodes.begin();curnode!=all_nodes.end();++curnode) {
 
+                                //std::cout<<"Node type: "<<((*curnode)->type)<<std::endl;
 			if (((*curnode)->type)!=SENSOR) {
                                 if (((*curnode)->type)!=LSTM) {//For regular hidden neurons and output nodes
 				        //Only activate if some active input came in
@@ -326,9 +348,9 @@ bool Network::activate() {
 				        	//First activation cannot be from nothing!!
 				        	(*curnode)->activation_count++;
 				        }
-                                        else { //For LSTM Nodes
-                                                lstm_activate((*curnode));
-                                        }
+                                }
+                                else { //For LSTM Nodes
+                                        lstm_activate((*curnode));
                                 }
 			}
 		}

@@ -20,7 +20,6 @@
 using namespace NEAT;
 
 Gene::Gene(double w, NNode *inode, NNode *onode, bool recur, double innov, double mnum) {
-	lnk = new Link(w, inode, onode, recur);
 	innovation_num = innov;
 	mutation_num = mnum;
 
@@ -28,6 +27,7 @@ Gene::Gene(double w, NNode *inode, NNode *onode, bool recur, double innov, doubl
 
 	frozen = false;
         gate_type=NONE;
+	lnk = new Link(w, inode, onode, recur, gate_type);
         std::cout<<"ERROR in gene.cpp first constructor. This should not have been called "<<std::endl;
         exit(0);
 }

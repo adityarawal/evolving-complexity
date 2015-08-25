@@ -687,8 +687,8 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   double in[3]; //3-bit input - Bias, number, Recall(1)/Instruct(0)
   in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
-  int num_trials = 20;
-  int max_rand_activate = 20;
+  int num_trials = 40;
+  int max_rand_activate = 40;
   net=org->net;
   //net_depth=net->max_depth();
   
@@ -718,7 +718,6 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                             break;//Breaks outer for-loop
                    }
                    else { 
-                           //std::cout<<" Random Output: ";
                            for (int step=0;step< input_data[seqnum].size(); step++) {//RECALL PHASE:: For each step in the input sequence
 
                                    //Insert Zero (Don't-care) input activations at random time-steps
@@ -726,6 +725,7 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                                    in[2] = 0;//Recall signal
                                    int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
                                    //Activate NN for random time-steps
+                                   //std::cout<<std::endl<<" Random Output: ";
                                    for (int i=0; i<rand_num; i++) {//Don't-care activate 
                                            net->load_sensors(in); 
                                            success=net->activate(); 
@@ -736,7 +736,7 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                                    in[1] = 0;
                                    in[2] = 1;//Recall signal
                                    net->load_sensors(in); //Give zeroes as input during recall phase
-                                   //std::cout<<" Actual Output: ";
+                                   //std::cout<<std::endl<<" Actual Output: ";
                                    success=net->activate(); 
                                    for (int i=output_start_index; i<output_end_index; i++) {//Storing output from each non-frozen output node 
                                            if ((net->outputs[i])->activation > 1.0) {
@@ -755,10 +755,9 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                                            //}
                                            //std::cout<<((net->outputs[i])->activation)<<" "<<std::endl;
                                    }
-                                   //std::cout<<endl;
                            }
                    }
-          //std::cout<<std::endl; 
+          //std::cout<<std::endl<<"FLUSH"<<std::endl; 
           net->flush(); //Flush after each sequence
           }
           if (org->error == 1){
@@ -800,6 +799,7 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness1: "<<org->fitness1<<endl;
   cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness2: "<<org->fitness2<<endl;
   #endif
+  //exit(0);
   org->evaluated = true; //Aditya: for speed-up by preventing re-evaluation of the elites
   return org->winner;
 

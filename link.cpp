@@ -17,7 +17,7 @@
 
 using namespace NEAT;
 
-Link::Link(double w,NNode *inode,NNode *onode,bool recur) {
+Link::Link(double w,NNode *inode,NNode *onode,bool recur, lstm_gate_type lnk_gtype) {
 	weight=w;
 	in_node=inode;
 	out_node=onode;
@@ -26,7 +26,7 @@ Link::Link(double w,NNode *inode,NNode *onode,bool recur) {
 	linktrait=0;
 	time_delay=false;
 	trait_id=1;
-        link_gtype=NONE;
+        link_gtype=lnk_gtype;
 }
 
 Link::Link(Trait *lt,double w,NNode *inode,NNode *onode,bool recur, lstm_gate_type lnk_gtype) {
