@@ -1,22 +1,22 @@
 import numpy as np
 import sys
 import os 
-max_value = 0.7
+max_value = 0.8
 step_size = 0.2
-min_value = 0.2
+min_value = 0.1
 p2nv_path = '/scratch/cluster/aditya/memory_expt_files/p2nv_files/'
 log_path = '/scratch/cluster/aditya/memory_expt_files/log_files/'
 dump_p2nv = True 
 
 if dump_p2nv: 
-    for param1 in np.arange(min_value,max_value,step_size): 
+    for param1 in np.arange(0.25,1.0,1.0): 
         for param2 in np.arange(min_value,max_value,step_size):
             for param3 in np.arange(min_value,max_value,step_size):
-                for param4 in np.arange(min_value,max_value,step_size):
+                for param4 in np.arange(0.15,1.0,1.0):
                     for param5 in np.arange(min_value,max_value,step_size):
                         for param6 in np.arange(min_value,max_value,step_size):
-                            for param7 in np.arange(min_value,max_value,step_size):
-                                for param8 in np.arange(min_value,max_value,step_size):
+                            for param7 in np.arange(0.2,1.0,1.0):
+                                for param8 in np.arange(0.0,1.0,1.0):
                                     for param9 in np.arange(min_value,max_value,step_size):
                                         param_str = str(param1)+'_'+str(param2)+'_'+str(param3)+'_'+str(param4)+'_'+str(param5)+'_'+str(param6)+'_'+str(param7)+'_'+str(param8)+'_'+str(param9)
                                         f_wr = open (p2nv_path+'p2nv_'+param_str+'.ne', "w")
@@ -57,26 +57,25 @@ if dump_p2nv:
                                         lines.append('batch_size 1\n')
                                         lines.append('max_output_nodes 1\n')
                                         lines.append('frozen_startgenome 0\n')
-                                        lines.append('input_sequence_len 2\n')
+                                        lines.append('input_sequence_len 3\n')
                                         lines.append('mutate_add_lstm_node_prob '+ str(param9)+'\n')
                                         
                                         f_wr.writelines(lines)
                                         f_wr.close()
-
-for param1 in np.arange(min_value,max_value,step_size):
+for param1 in np.arange(0.25,1.0,1.0): 
     for param2 in np.arange(min_value,max_value,step_size):
         for param3 in np.arange(min_value,max_value,step_size):
-            for param4 in np.arange(min_value,max_value,step_size):
+            for param4 in np.arange(0.15,1.0,1.0):
                 for param5 in np.arange(min_value,max_value,step_size):
                     for param6 in np.arange(min_value,max_value,step_size):
-                        for param7 in np.arange(min_value,max_value,step_size):
-                            for param8 in np.arange(min_value,max_value,step_size):
+                        for param7 in np.arange(0.2,1.0,1.0):
+                            for param8 in np.arange(0.0,1.0,1.0):
                                 for param9 in np.arange(min_value,max_value,step_size):
                                     param_str = str(param1)+'_'+str(param2)+'_'+str(param3)+'_'+str(param4)+'_'+str(param5)+'_'+str(param6)+'_'+str(param7)+'_'+str(param8)+'_'+str(param9)
                                     p2nv_file = p2nv_path+'p2nv_'+param_str+'.ne'
                                     lines = []
                                     lines.append('Getenv = True\n')
-                                    lines.append('Requirements = Trusty && InMastodon\n')
+                                    lines.append('Requirements = InMastodon\n')
                                     lines.append('Executable     = neat\n')
                                     lines.append('arguments = ' + p2nv_file +'\n') 
                                     lines.append('Log = '+log_path+'log_'+param_str+'.$(Process).txt\n')

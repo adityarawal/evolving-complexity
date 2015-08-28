@@ -684,11 +684,11 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   int count=0;
   double output_error = 0.0;
   double average_output_error;
-  double in[3]; //3-bit input - Bias, number, Recall(1)/Instruct(0)
+  double in[4]; //3-bit input - Bias, number, input data valid(1/0), Recall(1)/Instruct(0)
   in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
-  int num_trials = 40;
-  int max_rand_activate = 40;
+  int num_trials = 20;
+  int max_rand_activate = 20;
   net=org->net;
   //net_depth=net->max_depth();
   
@@ -700,7 +700,8 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
         
                             //Activate NN
                             in[1] = input_data[seqnum][step]; //Input Data
-                            in[2] = 0; //Recall signal
+                            in[2] = 1; //Input Data Valid signal
+                            in[3] = 0; //Recall signal
                             //std::cout<<in[1]<<" ";
                             net->load_sensors(in);
                             success=net->activate(); 
@@ -722,7 +723,8 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
 
                                    //Insert Zero (Don't-care) input activations at random time-steps
                                    in[1] = 0;//Input data
-                                   in[2] = 0;//Recall signal
+                                   in[2] = 0;//Input Data Valid
+                                   in[3] = 0;//Recall signal
                                    int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
                                    //Activate NN for random time-steps
                                    //std::cout<<std::endl<<" Random Output: ";
@@ -734,7 +736,8 @@ bool memory_activate(Organism *org, int org_index, int num_active_outputs, int o
 
                                    //Activate NN once after random-time steps for recall
                                    in[1] = 0;
-                                   in[2] = 1;//Recall signal
+                                   in[2] = 0;//Input Data Valid
+                                   in[3] = 1;//Recall signal
                                    net->load_sensors(in); //Give zeroes as input during recall phase
                                    //std::cout<<std::endl<<" Actual Output: ";
                                    success=net->activate(); 

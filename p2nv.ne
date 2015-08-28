@@ -34,5 +34,5 @@ num_runs 1
 batch_size 1
 max_output_nodes 1
 frozen_startgenome 0
-input_sequence_len 2
-mutate_add_lstm_node_prob 0.1
+input_sequence_len 3
+mutate_add_lstm_node_prob 0.3
