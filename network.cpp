@@ -158,7 +158,7 @@ void Network::print_links_tofile(char *filename) {
 
 void Network::lstm_activate(NNode* curnode){
 	if (curnode->active_flag) {
-		//cout<<"Activating "<<curnode->node_id<<" with "<<curnode->activesum<<": ";
+                //std::cout<<"Activating "<<curnode->node_id<<" with "<<curnode->activesum<<": ";
 
 		//Keep a memory of activations for potential time delayed connections
 		curnode->last_activation2=curnode->last_activation;
@@ -170,11 +170,11 @@ void Network::lstm_activate(NNode* curnode){
                 double fg_gate_activation =  NEAT::fsigmoid(curnode->activesum_fg,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
              
                 //Making control signals binary 
-                if (rd_gate_activation>=0.5) rd_gate_activation=1.0;
+                if (rd_gate_activation>0.5) rd_gate_activation=1.0;
                 else rd_gate_activation=0.0;
-                if (wr_gate_activation>=0.5) wr_gate_activation=1.0;
+                if (wr_gate_activation>0.5) wr_gate_activation=1.0;
                 else wr_gate_activation=0.0;
-                if (fg_gate_activation>=0.5) fg_gate_activation=1.0;
+                if (fg_gate_activation>0.5) fg_gate_activation=1.0;
                 else fg_gate_activation=0.0;
                 //std::cout<<"rd: "<<curnode->activesum_rd<< " "<<rd_gate_activation<<std::endl;
                 //std::cout<<"wr: "<<curnode->activesum_wr<< " "<<wr_gate_activation<<std::endl;
@@ -321,7 +321,7 @@ bool Network::activate() {
                                 if (((*curnode)->type)!=LSTM) {//For regular hidden neurons and output nodes
 				        //Only activate if some active input came in
 				        if ((*curnode)->active_flag) {
-				        	//cout<<"Activating "<<(*curnode)->node_id<<" with "<<(*curnode)->activesum<<": ";
+                                                //std::cout<<"Activating "<<(*curnode)->node_id<<" with "<<(*curnode)->activesum<<": ";
 
 				        	//Keep a memory of activations for potential time delayed connections
 				        	(*curnode)->last_activation2=(*curnode)->last_activation;
@@ -342,7 +342,7 @@ bool Network::activate() {
                                                                 (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Rectified Linear Units {max(0,x)}
                                                         }
                                                 }
-				        	//cout<<(*curnode)->activation<<endl;
+                                                //std::cout<<(*curnode)->activation<<std::endl;
 
 				        	//Increment the activation_count
 				        	//First activation cannot be from nothing!!

@@ -77,25 +77,30 @@ if __name__ == '__main__':
         output_nodes = []
         bias_nodes = []
         print 'Input node is Blue'
-        print 'Hidden node is Gray'
+        print 'Regular Hidden node is Gray'
+        print 'LSTM Hidden node is Yellow'
         print 'Bias node is Green'
         print 'Output node is Red'
         for line in f_rd:
                 if 'node' in line:#(node <node_id> <trait_number> <sensory-1/0> <hidden/input/output/bias>) 
                         words = line.strip().split()
                         node_id = str(words[1])
-                        node_type = str(words[-1])
+                        node_place = str(words[-1])
+                        node_type = str(words[-2])
                         node_id_list += [node_id]
-                        if node_type == '0': #Hidden Node
+                        if node_place == '0' and node_type == '0': #Regular Hidden Node
                                 hidden_nodes += [node_id]
                                 node_color_list += ['gray']
-                        elif node_type == '1': #Input node
+                        if node_place == '0' and node_type == '7': #LSTM Hidden Node
+                                hidden_nodes += [node_id]
+                                node_color_list += ['yellow']
+                        elif node_place == '1': #Input node
                                 input_nodes += [node_id]
                                 node_color_list += ['blue']
-                        elif node_type == '2': #Output node
+                        elif node_place == '2': #Output node
                                 output_nodes += [node_id]
                                 node_color_list += ['red']
-                        elif node_type == '3': #Bias node
+                        elif node_place == '3': #Bias node
                                 bias_nodes += [node_id]
                                 node_color_list += ['green']
                         else:
