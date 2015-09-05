@@ -648,7 +648,7 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
             }
     }
     org->fitness2 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
-    //org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
+    org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
   }
   else {
     //The network is flawed (shouldnt happen)
