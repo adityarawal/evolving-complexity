@@ -141,6 +141,10 @@ namespace NEAT {
 
 		// If all output are not active then return true
 		bool outputsoff();
+		
+                // Aditya: Turn off all the outputs at the start of every activate (For RECALL task)
+                // Ensures that the output node is activated again with the incoming active values each time 
+                void switch_outputsoff();
 
 		// Just print connections weights with carriage returns
 		void print_links_tofile(char *filename);

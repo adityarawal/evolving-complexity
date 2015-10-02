@@ -90,7 +90,8 @@ namespace NEAT {
 		double activesum;  // The incoming activity of input data before being processed 
 		double activesum_wr, activesum_rd, activesum_fg;  // The incoming activity of LSTM control gates before being processed 
 		double activation; // The total activation entering the NNode 
-		bool active_flag;  // To make sure outputs are active
+		bool active_in_flag;  // To indicate that incoming links to a node are active
+		bool active_out_flag;  // To indicate that the current node has a active value at its output
                 double lstm_cell_state; //Stores the LSTM cell state internal value (without the masking by read gate)
 
                 //Set visited when entering a hidden or output node recursion for the first time and reset when exiting the recursion

@@ -609,45 +609,45 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
   //Fitness
   if (org->error !=1) { //If all outputs were activated
 
-    double mutual_information = 0.0; //Mutual information range: 0 to Large number
-    vector <double> entropy(output_end_index-output_start_index, 0.0);
-    vector <double> entropy_archive(independent_archive.size(), 0.0);
-    int mi_count = 0;
-    //Compute entropy of each output variable  
-    for (int i=output_start_index; i<output_end_index; i++) {
-             entropy[i-output_start_index] = compute_entropy(num_bin, output_activations[org_index*num_active_outputs+i]); //Ranges between 0-1
-             //std::cout<<"Entropy of Output Node ID: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" : "<<entropy[i]<<std::endl;
-    }      
-    //Entropy of the Archived features (Future Work: No need to recompute this for the frozen network)
-    for (int i=0; i<independent_archive.size(); i++) {
-             entropy_archive[i] = compute_entropy(num_bin, independent_archive[i]); //Ranges between 0-1
-             //std::cout<<"Entropy of Archived Feature "<<i<<" : "<<entropy_archive[i]<<std::endl;
-    }       
+    //double mutual_information = 0.0; //Mutual information range: 0 to Large number
+    //vector <double> entropy(output_end_index-output_start_index, 0.0);
+    //vector <double> entropy_archive(independent_archive.size(), 0.0);
+    //int mi_count = 0;
+    ////Compute entropy of each output variable  
+    //for (int i=output_start_index; i<output_end_index; i++) {
+    //         entropy[i-output_start_index] = compute_entropy(num_bin, output_activations[org_index*num_active_outputs+i]); //Ranges between 0-1
+    //         //std::cout<<"Entropy of Output Node ID: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" : "<<entropy[i]<<std::endl;
+    //}      
+    ////Entropy of the Archived features (Future Work: No need to recompute this for the frozen network)
+    //for (int i=0; i<independent_archive.size(); i++) {
+    //         entropy_archive[i] = compute_entropy(num_bin, independent_archive[i]); //Ranges between 0-1
+    //         //std::cout<<"Entropy of Archived Feature "<<i<<" : "<<entropy_archive[i]<<std::endl;
+    //}       
 
-    //Compute pairwise NORMALIZED mutual information between all the newly added output nodes and between new outputs and the archive
-    for (int i=output_start_index; i<output_end_index; i++) {
-            double norm_mi;
-            for (int j=output_start_index; j<output_end_index; j++) {
-                    if (i != j && j > i) {//Skip duplicate pairs 
-                             norm_mi = normalized_mi(output_activations[org_index*num_active_outputs+i], 
-                                                             output_activations[org_index*num_active_outputs+j], entropy[i-output_start_index], entropy[j-output_start_index], K, num_bin);
-                             if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
-                                             mutual_information = norm_mi;
-                             }
-                             //std::cout<<"Mutual Information between Outputs Node IDs: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" "<<org->net->outputs[independent_archive.size()+j]->node_id<<": "<<norm_mi<<std::endl;
-                    }
-            }
-            for (int j=0; j<independent_archive.size(); j++) {
-                    norm_mi = normalized_mi(output_activations[org_index*num_active_outputs+i], 
-                                                    independent_archive[j], entropy[i-output_start_index], entropy_archive[j], K, num_bin);
-                    if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
-                                    mutual_information = norm_mi;
-                    }
-                    //std::cout<<"Mutual Information between Archived Feature and Output Node ID: "<<j<<" "<<org->net->outputs[independent_archive.size()+i]->node_id<<": "<<norm_mi<<std::endl;
+    ////Compute pairwise NORMALIZED mutual information between all the newly added output nodes and between new outputs and the archive
+    //for (int i=output_start_index; i<output_end_index; i++) {
+    //        double norm_mi;
+    //        for (int j=output_start_index; j<output_end_index; j++) {
+    //                if (i != j && j > i) {//Skip duplicate pairs 
+    //                         norm_mi = normalized_mi(output_activations[org_index*num_active_outputs+i], 
+    //                                                         output_activations[org_index*num_active_outputs+j], entropy[i-output_start_index], entropy[j-output_start_index], K, num_bin);
+    //                         if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
+    //                                         mutual_information = norm_mi;
+    //                         }
+    //                         //std::cout<<"Mutual Information between Outputs Node IDs: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" "<<org->net->outputs[independent_archive.size()+j]->node_id<<": "<<norm_mi<<std::endl;
+    //                }
+    //        }
+    //        for (int j=0; j<independent_archive.size(); j++) {
+    //                norm_mi = normalized_mi(output_activations[org_index*num_active_outputs+i], 
+    //                                                independent_archive[j], entropy[i-output_start_index], entropy_archive[j], K, num_bin);
+    //                if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
+    //                                mutual_information = norm_mi;
+    //                }
+    //                //std::cout<<"Mutual Information between Archived Feature and Output Node ID: "<<j<<" "<<org->net->outputs[independent_archive.size()+i]->node_id<<": "<<norm_mi<<std::endl;
 
-            }
-    }
-    org->fitness2 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
+    //        }
+    //}
+    //org->fitness2 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
     org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
   }
   else {

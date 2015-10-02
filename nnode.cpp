@@ -19,7 +19,8 @@
 using namespace NEAT;
 
 NNode::NNode(nodetype ntype,int nodeid) {
-	active_flag=false;
+	active_in_flag=false;
+	active_out_flag=false;
 	visited=false;
 	activesum=0;
 	activesum_rd=0;
@@ -46,7 +47,8 @@ NNode::NNode(nodetype ntype,int nodeid) {
 }
 
 NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze) {
-	active_flag=false;
+	active_in_flag=false;
+	active_out_flag=false;
 	visited=false;
 	activesum=0;
 	activesum_rd=0;
@@ -76,7 +78,8 @@ NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze) {
 }
 
 NNode::NNode(NNode *n,Trait *t) {
-	active_flag=false;
+	active_in_flag=false;
+	active_out_flag=false;
 	visited=false;
 	activation=0;
 	activesum=0;
@@ -172,7 +175,8 @@ NNode::NNode (const char *argline, std::vector<Trait*> &traits) {
 // This one might be incomplete
 NNode::NNode (const NNode& nnode)
 {
-	active_flag = nnode.active_flag;
+	active_in_flag = nnode.active_in_flag;
+	active_out_flag = nnode.active_out_flag;
 	visited = nnode.visited;
 	activesum = nnode.activesum;
 	activesum_rd = nnode.activesum_rd;
@@ -227,6 +231,8 @@ bool NNode::sensor_load(double value) {
 
 		activation_count++;  //Puts sensor into next time-step
 		activation=value;
+                active_in_flag = true; //Aditya: For the first time activate is called after network flush, this prevents output getting activated twice with the same input value
+                active_out_flag = true; //Aditya: For the first time activate is called after network flush, this prevents output getting activated twice with the same input value
 		return true;
 	}
 	else return false;
@@ -282,7 +288,8 @@ void NNode::flushback() {
 			activation=0;
 			last_activation=0;
 			last_activation2=0;
-                        active_flag = false;      //ADITYA: BUG?? Currently, once active, a node remains active despite the network getting flushed. Can lead to network outputs getting activated with incoming 0. To fix this, reset the active_flag. This ensures that network-flush resets all active paths to outputs.
+                        active_in_flag = false;      //ADITYA: BUG?? Currently, once active, a node remains active despite the network getting flushed. Can lead to network outputs getting activated with incoming 0. To fix this, reset the active_flag. This ensures that network-flush resets all active paths to outputs.
+                        active_out_flag = false;      //ADITYA: BUG?? Currently, once active, a node remains active despite the network getting flushed. Can lead to network outputs getting activated with incoming 0. To fix this, reset the active_flag. This ensures that network-flush resets all active paths to outputs.
                         lstm_cell_state = 0.0;  //Reset LSTM cell value
 		}
 
