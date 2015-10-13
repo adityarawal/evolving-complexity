@@ -29,9 +29,45 @@ void ConvertToBinary(int n, std::vector <int> &sequence)
     sequence.push_back(n%2);
 }
 
-void read_input_data(std::vector < vector < double > > &input_data, int num_input_nodes){
+void read_input_file_data(std::vector < vector < double > > &input_data, int num_input_nodes){
+
+    cout<<"Reading Input Sequence Data from file "<<endl;
+    ifstream XtrainFile("input_data.txt",ios::in);//File name("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/F.txt",ios::in)
+    double d;
+    std::string lineData;
+
+    while (getline(XtrainFile, lineData)) {
+            std::vector < double > input_row;
+            std::stringstream lineStream(lineData);
+            int feature_count = 1;
+
+            input_row.push_back(1.0); //Inserting 1.0 for Bias node
+            while ((lineStream >> d) && (feature_count <= num_input_nodes)) {//Read only as many features as there are input nodes
+                    feature_count += 1;
+                    input_row.push_back(d);
+            }
+            input_data.push_back(input_row);
+    }
+    XtrainFile.close();
+    cout<<"Completed Reading Sequence Data, Number of sequences: "<<input_data.size()<<", Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
+    cout<<"Also Inserted Ones at the start of each input image feature for bias node "<<endl;
+}
+
+void generate_real_input_data(std::vector < vector < double > > &input_data, int num_input_nodes, int num_sequences){
+
+    cout<<"Generating Real Input Sequence Data "<<endl;
+    input_data.resize(num_sequences, std::vector<double>());
+    for (int i=0; i <num_sequences; i++) {
+            for (int j=0; j<NEAT::input_sequence_len;j++) {
+                    double rand_num = randfloat();
+                    input_data[i].push_back(rand_num);
+            }
+    }
+}
+
+void generate_discrete_input_data(std::vector < vector < double > > &input_data, int num_input_nodes){
     
-    cout<<"Generating Input Sequence Data "<<endl;
+    cout<<"Generating Discrete Input Sequence Data "<<endl;
     int num_sequences = pow(2, NEAT::input_sequence_len);
     input_data.resize(num_sequences, std::vector<double>());
 
@@ -55,40 +91,6 @@ void read_input_data(std::vector < vector < double > > &input_data, int num_inpu
                     }
             }
     }
-    //for (int i=0; i<num_trials; i++) {
-    //        for (int j = 0; j<num_input_nodes; j++) {
-    //                double rand_num = randfloat();
-    //                if (rand_num < 0.5) {
-    //                        input_data[i][j] = -1.0;
-    //                }
-    //                else {
-    //                        input_data[i][j] = 1.0;
-    //                }
-    //        }
-    //}
-                            
-    //cout<<"Reading Image Data "<<endl;
-    //ifstream XtrainFile("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/F.txt",ios::in);//Image Data
-    //ifstream YtrainFile("Y_train.txt");//("/scratch/cluster/aditya/DBN_research/rp_deep/original_code/Y.txt",ios::in);//Image Labels (Digits)
-    //double d;
-    //std::string lineData;
-
-    //while (getline(XtrainFile, lineData)) {
-    //        std::vector < double > input_row;
-    //        std::stringstream lineStream(lineData);
-    //        int feature_count = 1;
-
-    //        input_row.push_back(1.0); //Inserting 1.0 for Bias node
-    //        while ((lineStream >> d) && (feature_count <= num_input_nodes)) {//Read only as many features as there are input nodes
-    //                feature_count += 1;
-    //                input_row.push_back(d);
-    //        }
-    //        input_data.push_back(input_row);
-    //}
-    //XtrainFile.close();
-    //YtrainFile.close();
-    //cout<<"Completed Reading Image Data, Number of examples: "<<input_data.size()<<", Number of Features in each Image (Including Bias input): "<<input_data[0].size()<<endl;
-    //cout<<"Also Inserted Ones at the start of each input image feature for bias node "<<endl;
 } 
 
 
@@ -164,29 +166,34 @@ Population *memory_test(int gens) {
           start_genome=new Genome(id,iFile);
           iFile.close();
 
-          ////Count number of input nodes, so that only so many features are read from the file
-          //int num_input_nodes = 0;
-          //for (int i=0; i<start_genome->nodes.size(); i++) {
-          //        if (start_genome->nodes[i]->gen_node_label==1) {//Input node
-          //                num_input_nodes += 1;
-          //        }
-          //        if (start_genome->nodes[i]->gen_node_label==2) {//Output node
-          //                current_output_nodes += 1;
-          //        }
-          //}
-          //std::cout << "Number of Start Genome Input nodes: "<< num_input_nodes<<std::endl;    
-          //std::cout << "Number of Start Genome Output nodes: "<< current_output_nodes<<std::endl;    
+          //Count number of input nodes, so that only so many features are read from the file
+          int num_input_nodes = 0;
+          for (int i=0; i<start_genome->nodes.size(); i++) {
+                  if (start_genome->nodes[i]->gen_node_label==1) {//Input node
+                          num_input_nodes += 1;
+                  }
+                  if (start_genome->nodes[i]->gen_node_label==2) {//Output node
+                          current_output_nodes += 1;
+                  }
+          }
+          std::cout << "Number of Start Genome Input nodes: "<< num_input_nodes<<std::endl;    
+          std::cout << "Number of Start Genome Output nodes: "<< current_output_nodes<<std::endl;    
 
           //Freeze the startgenome if required
           if (NEAT::frozen_startgenome==1) {
                freeze_update_genome(start_genome);
           }
+          //Resetting the pointers so that each run/experiment has new winners
+          new_winner_genome = NULL;
+          last_winner_genome = NULL;
           
           //Clear the archive for a new run
           independent_archive.clear();
 
           //Read the Image data and output labels (digits) from text file
-          read_input_data(input_data, NEAT::input_sequence_len);
+          int num_sequences = 1000;
+          int max_rand_activate = 20;
+          generate_real_input_data(input_data, NEAT::input_sequence_len, num_sequences);
 
           //Spawn the Population
           cout<<"Spawning Population off Genome "<<start_genome->genome_id<<endl;;
@@ -206,7 +213,7 @@ Population *memory_test(int gens) {
                   sprintf (temp, "gen_%d_%d", gen,current_output_nodes);
 
                   bool success = false;
-                  success = memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, independent_archive);
+                  success = memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, independent_archive, max_rand_activate);
                   //Check for success
                   if  (success && (current_output_nodes == NEAT::max_output_nodes)) {//If all independent output features have been discovered
                           //Collect Stats on end of experiment
@@ -214,7 +221,8 @@ Population *memory_test(int gens) {
                           genes[expcount]=winnergenes;
                           nodes[expcount]=winnernodes;
                           gen=gens;
-
+                          delete last_winner_genome;
+                          delete new_winner_genome;
                   }
                   else if (success && (current_output_nodes < NEAT::max_output_nodes)) { //If current outputs (<total outputs) are independent)
 
@@ -658,14 +666,14 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
     org->fitness2=(1.0-large_number)*100;
   }
 
-  if (org->fitness1>=99.000) {
+  if (org->fitness1>=95.000) {
         org->winner = true;
         std::cout<<"OBJECTIVE1 ACHIEVED:: WINNER FOUND"<<std::endl;
   }
   else{
         org->winner = false;
   }
-  if (org->fitness2>=99.0) {
+  if (org->fitness2>=95.0) {
         //org->winner = true;
         std::cout<<"OBJECTIVE2 ACHIEVED:: WINNER FOUND"<<std::endl;
   }
@@ -699,90 +707,129 @@ void save_output_activations(int org_index, int num_active_outputs, std::vector 
         //std::cout<<std::endl;
 }
 
-void memory_activate(Organism *org, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &input_data, std::vector < vector <double> > &output_activations, int num_trials) {
+void memory_activate(Organism *org, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &input_data, std::vector < vector <double> > &output_activations, int max_rand_activate) {
   
   Network *net;
   bool success;  //Check for successful activation
   int count=0;
-  double output_error = 0.0;
-  double average_output_error;
+  double output_error_1_step = 0.0;
+  double output_error_2_step = 0.0;
+  double average_output_error_1_step;
+  double average_output_error_2_step;
   double in[4]; //3-bit input - Bias, number, input data valid(1/0), Recall(1)/Instruct(0)
   in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
   //int num_trials = 20;
-  int max_rand_activate = 20;
+  //int max_rand_activate = 20;
   net=org->net;
+  double reward = 0.0;
+  std::vector <double> output_sequence;
   //net_depth=net->max_depth();
   
   //Load and activate the network on each input
-  for (int trial=0;trial< num_trials; trial++) {//Repeat several times for the same set of sequence
-          for(int seqnum=0; seqnum < input_data.size(); seqnum++) {//For each new input sequence
-                   //std::cout<<" Input Sequence: ";
-                   for (int step=0;step< input_data[seqnum].size(); step++) { //WRITE PHASE:: For each step in the input sequence
-        
-                            //Activate NN
-                            in[1] = input_data[seqnum][step]; //Input Data
-                            in[2] = 1; //Input Data Valid signal
-                            in[3] = 0; //Recall signal
-                            //std::cout<<in[1]<<" ";
-                            net->load_sensors(in);
-                            success=net->activate(); 
-                            //std::cout<<std::endl<<" Some Output: "<<std::endl;
-                            //std::cout<<(net->outputs[0])->activation <<" "<<(net->outputs[1])->activation <<std::endl;
-                            //save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
-                            if (!success) {
-                                    org->error = 1;
-  	                            //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
-                                    break;//Breaks inner for-loop
-                                    //std::ofstream outFile("not_activating",std::ios::out);
-                                    //((org)->gnome)->print_to_file(outFile);
-                            }
-                   }
-                   if (org->error == 1){
-                            break;//Breaks outer for-loop
-                   }
-                   else { 
-                           for (int step=0;step< input_data[seqnum].size(); step++) {//RECALL PHASE:: For each step in the input sequence
+  //for (int trial=0;trial< num_trials; trial++) {//Repeat several times for the same set of sequence
+  for(int seqnum=0; seqnum < input_data.size(); seqnum++) {//For each new input sequence
+           for (int step=0;step< input_data[seqnum].size(); step++) { //WRITE PHASE:: For each step in the input sequence
+  
+                    //Activate NN
+                    in[1] = input_data[seqnum][step]; //Input Data
+                    in[2] = 1; //Input Data Valid signal
+                    in[3] = 0; //Recall signal
+                    //std::cout<<" Input Sequence: ";
+                    //std::cout<<in[1]<<" ";
+                    net->load_sensors(in);
+                    success=net->activate(); 
+                    //std::cout<<std::endl<<" Some Output: "<<std::endl;
+                    //std::cout<<(net->outputs[0])->activation <<std::endl;
+                    //save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
+                    if (!success) {
+                            org->error = 1;
+                            //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
+                            break;//Breaks inner for-loop
+                            //std::ofstream outFile("not_activating",std::ios::out);
+                            //((org)->gnome)->print_to_file(outFile);
+                    }
+           }
+           if (org->error == 1){
+                    break;//Breaks outer for-loop
+           }
+           else { 
+                   for (int step=0;step< input_data[seqnum].size(); step++) {//RECALL PHASE:: For each step in the input sequence
 
-                                   //Insert Zero (Don't-care) input activations at random time-steps
-                                   in[1] = 0;//Input data
-                                   in[2] = 0;//Input Data Valid
-                                   in[3] = 0;//Recall signal
-                                   int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
-                                   //Activate NN for random time-steps
-                                   //std::cout<<std::endl<<" Random Output: "<<std::endl;
-                                   for (int i=0; i<rand_num; i++) {//Don't-care activate 
-                                           net->load_sensors(in); 
-                                           success=net->activate(); 
-                                           save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
-                                   }
-
-                                   //Activate NN once after random-time steps for recall
-                                   in[1] = 0;
-                                   in[2] = 0;//Input Data Valid
-                                   in[3] = 1;//Recall signal
-                                   net->load_sensors(in); //Give zeroes as input during recall phase
-                                   success=net->activate();
-                                   
-                                   //std::cout<<std::endl<<" Actual Output: "<<std::endl;
-                                   //std::cout<<(net->outputs[0])->activation<<" "<<(net->outputs[1])->activation<<std::endl;
+                           //Insert Zero (Don't-care) input activations at random time-steps
+                           in[1] = 0;//Input data
+                           in[2] = 0;//Input Data Valid
+                           in[3] = 0;//Recall signal
+                           int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
+                           //Activate NN for random time-steps
+                           //std::cout<<std::endl<<" Random Output: "<<std::endl;
+                           for (int i=0; i<rand_num; i++) {//Don't-care activate 
+                                   net->load_sensors(in); 
+                                   success=net->activate(); 
                                    save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
-                                   //First output is the actual stored value we are looking for 
-                                   if (((net->outputs[0])->activation >= 0.5 && input_data[seqnum][step]==-1.0) ||
-                                       ((net->outputs[0])->activation < 0.5 && input_data[seqnum][step]==1.0)){
-                                           output_error = output_error + 1;
-                                   }
-                                   count = count + 1;
+                                   //std::cout<<(net->outputs[0])->activation <<std::endl;
                            }
+
+                           //Activate NN once after random-time steps for recall
+                           in[1] = 0;
+                           in[2] = 0;//Input Data Valid
+                           in[3] = 1;//Recall signal
+                           net->load_sensors(in); //Give zeroes as input during recall phase
+                           success=net->activate();
+                           
+                           //std::cout<<std::endl<<" Actual Output: "<<std::endl;
+                           //std::cout<<(net->outputs[0])->activation <<std::endl;
+                           save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
+                           //***************START OLD DISCRETE INPUT****************
+                           ////First output is the actual stored value we are looking for 
+                           //if (((net->outputs[0])->activation >= 0.5 && input_data[seqnum][step]==-1.0) ||
+                           //    ((net->outputs[0])->activation < 0.5 && input_data[seqnum][step]==1.0)){
+                           //        output_error = output_error + 1;
+                           //}
+                           //count = count + 1;
+                           //***************END OLD DISCRETE INPUT****************
+
+                           //***************START NEW DISCRETE INPUT WITH SHAPING REWARDS****************
+                           //if ((net->outputs[0])->activation >= 0.5) {
+                           //        output_sequence.push_back(1.0);
+                           //}
+                           //else {
+                           //        output_sequence.push_back(-1.0);
+                           //}
+                           //***************END NEW DISCRETE INPUT WITH SHAPING REWARDS****************
+                           
+                           output_sequence.push_back((net->outputs[0])->activation);
+                                   
+                           //output_error = output_error + abs((net->outputs[0])->activation - input_data[seqnum][step]);
+                           //count = count + 1;
+
                    }
-                   net->flush(); //Flush after each sequence
-          }
-          if (org->error == 1){
-                   break;//Breaks outer for-loop
-          }
+                   //if ((output_sequence[0]==input_data[seqnum][0]) && (output_sequence[1]==input_data[seqnum][1]) && (output_sequence[2]==input_data[seqnum][2])){
+                   //        reward = reward + 1;
+                   //}
+                   //else if ((output_sequence[0]==input_data[seqnum][0]) && (output_sequence[1]==input_data[seqnum][1])){
+                   //        reward = reward + 0.5;
+                   //}
+                   //if ((output_sequence[0]==input_data[seqnum][0])) {
+                   //        reward = reward + 1;
+                   //}
+                   output_error_1_step = output_error_1_step + abs(output_sequence[0] - input_data[seqnum][0]);
+                   output_error_2_step = output_error_2_step + abs(output_sequence[1] - input_data[seqnum][1]);
+                   //if (abs(output_sequence[0] - input_data[seqnum][0]) < 0.05) {
+                   //        output_error = output_error + abs(output_sequence[1] - input_data[seqnum][1]);
+                   //}
+                   //else {
+                   //        output_error = output_error + abs(output_sequence[0] - input_data[seqnum][0]);
+                   //}
+                   count = count+1;
+                   output_sequence.clear();
+           }
+           net->flush(); //Flush after each sequence
   }
-  //std::cout<<std::endl<<"FLUSH"<<std::endl; 
-  //net->flush(); //Flush after all the trials are done
+  //if (org->error == 1){
+  //         break;//Breaks outer for-loop
+  //}
+  //}
   if (org->error == 1){
         ////The network is flawed (shouldnt happen)
         //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
@@ -790,8 +837,18 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
         //org->fitness2=0.0;
   }
   else {
-        average_output_error = output_error/count;//Ranges between 0-1
-        org->fitness1 = (1-average_output_error)*100; //Ranges between 0-100  
+        average_output_error_1_step = output_error_1_step/count;//Ranges between 0-1
+        average_output_error_2_step = output_error_2_step/count;//Ranges between 0-1
+        reward = 1.0-(average_output_error_1_step+average_output_error_2_step)/2; //1 Step recall reward 
+        //reward = 1-average_output_error_1_step; //2 Step recall reward 
+
+        //if (average_output_error_2_step < 0.05) {
+        //        reward = 1-average_output_error_1_step; //2 Step recall reward 
+        //}
+        //else {
+        //        reward = 0.5-average_output_error_2_step; //1 Step recall reward
+        //}
+        org->fitness1 = (reward)*100;//(1-average_output_error)*100; //Ranges between 0-100  
         //org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
   }
   //if (org->fitness1>=99.000) {
@@ -823,7 +880,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
 
 }
 
-int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, std::vector< vector <double> > &independent_archive) {
+int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, std::vector< vector <double> > &independent_archive, int max_rand_activate) {
   vector<Organism*>::iterator curorg;
   vector<Species*>::iterator curspecies;
   bool win=false;
@@ -863,7 +920,7 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
                   unevaluated_org.push_back(i); 
           }
   }
-  int num_trials = 20;
+  //int num_trials = 20;
   std::vector< std::vector <double> > output_activations(unevaluated_org.size()*num_active_outputs);//Vector of non-frozen output activations for each organism
   std::vector<int> org_win(unevaluated_org.size(), 0);//Win/Loss status for an organism
 
@@ -872,13 +929,13 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   output_end_index = num_output_nodes;
   #pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < unevaluated_org.size(); i++) {
-          memory_activate(pop->organisms[unevaluated_org[i]], i, num_active_outputs, output_start_index, output_end_index, input_data, output_activations, num_trials);
+          memory_activate(pop->organisms[unevaluated_org[i]], i, num_active_outputs, output_start_index, output_end_index, input_data, output_activations, max_rand_activate);
   }
   //Evaluate each organism for its independent output features (number of features = num_active_outputs)
   output_start_index = 1; //First output value is used only for comparison with input. Remaining outputs are checked for independence
   output_end_index = num_active_outputs;
   //start_seconds = time(NULL); //Current Time in seconds since January 1, 1970
-  #pragma omp parallel for //Parallelization of for loop 
+  //#pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < unevaluated_org.size(); i++) {
           org_win[i] = memory_evaluate(pop->organisms[unevaluated_org[i]], generation, i, num_active_outputs, output_start_index, output_end_index, independent_archive, output_activations);
   }
@@ -937,7 +994,7 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   }
   else {
 //  if(generation <= 999)
-        //pop->epoch(generation);
+        //pop->epoch(generation, filename);
         pop->epoch_multiobj(generation, filename); //Aditya (NSGA-2)
   //if  (win||
   //     ((generation%(NEAT::print_every))==0))
@@ -1205,7 +1262,7 @@ int xor_epoch(Population *pop,int generation,char *filename,int &winnernum,int &
     
   }
 
-  pop->epoch(generation);
+  pop->epoch(generation, filename);
 
   if (win) return 1;
   else return 0;
@@ -1352,7 +1409,7 @@ int pole1_epoch(Population *pop,int generation,char *filename) {
   }
 
   //Create the next generation
-  pop->epoch(generation);
+  pop->epoch(generation, filename);
 
   if (win) return ((generation-1)*NEAT::pop_size+winnernum);
   else return 0;
@@ -1977,7 +2034,7 @@ int pole2_epoch(Population *pop,int generation,char *filename,bool velocity,
   print_Genome_tofile(champ->gnome,"champ");
 
   //Create the next generation
-  pop->epoch(generation);
+  pop->epoch(generation, filename);
 
   return (int) champ_fitness;
 }

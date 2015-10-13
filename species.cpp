@@ -261,82 +261,82 @@ bool Species::print_to_file(std::ostream &outFile) {
 //return true;
 //}
 
-//void Species::adjust_fitness() {
-//	std::vector<Organism*>::iterator curorg;
-//
-//	int num_parents;
-//	int count;
-//
-//	int age_debt; 
-//
-//	//std::cout<<"Species "<<id<<" last improved "<<(age-age_of_last_improvement)<<" steps ago when it moved up to "<<max_fitness_ever<<std::endl;
-//
-//	age_debt=(age-age_of_last_improvement+1)-NEAT::dropoff_age;
-//
-//	if (age_debt==0) age_debt=1;
-//
-//	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
-//
-//		//Remember the original fitness before it gets modified
-//		(*curorg)->orig_fitness=(*curorg)->fitness;
-//
-//		//Make fitness decrease after a stagnation point dropoff_age
-//		//Added an if to keep species pristine until the dropoff point
-//		//obliterate is used in competitive coevolution to mark stagnation
-//		//by obliterating the worst species over a certain age
-//		if ((age_debt>=1)||obliterate) {
-//
-//			//Possible graded dropoff
-//			//((*curorg)->fitness)=((*curorg)->fitness)*(-atan(age_debt));
-//
-//			//Extreme penalty for a long period of stagnation (divide fitness by 100)
-//			((*curorg)->fitness)=((*curorg)->fitness)*0.01;
-//			//std::cout<<"OBLITERATE Species "<<id<<" of age "<<age<<std::endl;
-//			//std::cout<<"dropped fitness to "<<((*curorg)->fitness)<<std::endl;
-//		}
-//
-//		//Give a fitness boost up to some young age (niching)
-//		//The age_significance parameter is a system parameter
-//		//  if it is 1, then young species get no fitness boost
-//		if (age<=10) ((*curorg)->fitness)=((*curorg)->fitness)*NEAT::age_significance; 
-//
-//		//Do not allow negative fitness
-//		if (((*curorg)->fitness)<0.0) (*curorg)->fitness=0.0001; 
-//
-//		//Share fitness with the species
-//		(*curorg)->fitness=((*curorg)->fitness)/(organisms.size());
-//
-//	}
-//
-//	//Sort the population and mark for death those after survival_thresh*pop_size
-//	//organisms.qsort(order_orgs);
-//	std::sort(organisms.begin(), organisms.end(), order_orgs);
-//
-//	//Update age_of_last_improvement here
-//	if (((*(organisms.begin()))->orig_fitness)> 
-//	    max_fitness_ever) {
-//	  age_of_last_improvement=age;
-//	  max_fitness_ever=((*(organisms.begin()))->orig_fitness);
-//	}
-//
-//	//Decide how many get to reproduce based on survival_thresh*pop_size
-//	//Adding 1.0 ensures that at least one will survive
-//	num_parents=(int) floor((NEAT::survival_thresh*((double) organisms.size()))+1.0);
-//	
-//	//Mark for death those who are ranked too low to be parents
-//	curorg=organisms.begin();
-//	(*curorg)->champion=true;  //Mark the champ as such
-//	for(count=1;count<=num_parents;count++) {
-//	  if (curorg!=organisms.end())
-//	    ++curorg;
-//	}
-//	while(curorg!=organisms.end()) {
-//	  (*curorg)->eliminate=true;  //Mark for elimination
-//	  //std::std::cout<<"marked org # "<<(*curorg)->gnome->genome_id<<" fitness = "<<(*curorg)->fitness<<std::std::endl;
-//	  ++curorg;
-//	}             
-//
-//}
+void Species::adjust_fitness() {
+	std::vector<Organism*>::iterator curorg;
+
+	int num_parents;
+	int count;
+
+	int age_debt; 
+
+	//std::cout<<"Species "<<id<<" last improved "<<(age-age_of_last_improvement)<<" steps ago when it moved up to "<<max_fitness_ever<<std::endl;
+
+	age_debt=(age-age_of_last_improvement+1)-NEAT::dropoff_age;
+
+	if (age_debt==0) age_debt=1;
+
+	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
+
+		//Remember the original fitness before it gets modified
+		(*curorg)->orig_fitness=(*curorg)->fitness1;
+
+		//Make fitness decrease after a stagnation point dropoff_age
+		//Added an if to keep species pristine until the dropoff point
+		//obliterate is used in competitive coevolution to mark stagnation
+		//by obliterating the worst species over a certain age
+		if ((age_debt>=1)||obliterate) {
+
+			//Possible graded dropoff
+			//((*curorg)->fitness)=((*curorg)->fitness)*(-atan(age_debt));
+
+			//Extreme penalty for a long period of stagnation (divide fitness by 100)
+			((*curorg)->fitness1)=((*curorg)->fitness1)*0.01;
+			//std::cout<<"OBLITERATE Species "<<id<<" of age "<<age<<std::endl;
+			//std::cout<<"dropped fitness to "<<((*curorg)->fitness)<<std::endl;
+		}
+
+		//Give a fitness boost up to some young age (niching)
+		//The age_significance parameter is a system parameter
+		//  if it is 1, then young species get no fitness boost
+		if (age<=10) ((*curorg)->fitness1)=((*curorg)->fitness1)*NEAT::age_significance; 
+
+		//Do not allow negative fitness
+		if (((*curorg)->fitness1)<0.0) (*curorg)->fitness1=0.0001; 
+
+		//Share fitness with the species
+		(*curorg)->fitness1=((*curorg)->fitness1)/(organisms.size());
+
+	}
+
+	//Sort the population and mark for death those after survival_thresh*pop_size
+	//organisms.qsort(order_orgs);
+	std::sort(organisms.begin(), organisms.end(), order_orgs);
+
+	//Update age_of_last_improvement here
+	if (((*(organisms.begin()))->orig_fitness)> 
+	    max_fitness_ever) {
+	  age_of_last_improvement=age;
+	  max_fitness_ever=((*(organisms.begin()))->orig_fitness);
+	}
+
+	//Decide how many get to reproduce based on survival_thresh*pop_size
+	//Adding 1.0 ensures that at least one will survive
+	num_parents=(int) floor((NEAT::survival_thresh*((double) organisms.size()))+1.0);
+	
+	//Mark for death those who are ranked too low to be parents
+	curorg=organisms.begin();
+	(*curorg)->champion=true;  //Mark the champ as such
+	for(count=1;count<=num_parents;count++) {
+	  if (curorg!=organisms.end())
+	    ++curorg;
+	}
+	while(curorg!=organisms.end()) {
+	  (*curorg)->eliminate=true;  //Mark for elimination
+	  //std::std::cout<<"marked org # "<<(*curorg)->gnome->genome_id<<" fitness = "<<(*curorg)->fitness<<std::std::endl;
+	  ++curorg;
+	}             
+
+}
 
 double Species::compute_average_fitness() {
 	std::vector<Organism*>::iterator curorg;
@@ -828,7 +828,6 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
 	
 	//Check for a mistake
-        std::cout<<"Aditya: Total Expected offsprings "<<expected_offspring<<std::endl; //Aditya:for debug
 	if ((expected_offspring>0)&&
 		(organisms.size()==0)) {
 			//    std::cout<<"ERROR:  ATTEMPT TO REPRODUCE OUT OF EMPTY SPECIES"<<std::endl;
@@ -836,7 +835,6 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 		}
 
 		poolsize=organisms.size()-1;
-                std::cout<<"Aditya: Pool Size "<<poolsize<<std::endl; //Aditya:for debug
 
 		thechamp=(*(organisms.begin()));
 

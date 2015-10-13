@@ -88,7 +88,7 @@ namespace NEAT {
 
 		// Turnover the population to a new generation using fitness 
 		// The generation argument is the next generation
-		bool epoch(int generation);
+		bool epoch(int generation,char *filename);
 	
                 //**  Aditya (NSGA-2)Adding new functions **//        
                 bool epoch_multiobj(int generation,char *filename);

@@ -771,7 +771,7 @@ bool Population::epoch_multiobj(int generation, char *filename) {
 
 }
 
-bool Population::epoch(int generation) {
+bool Population::epoch(int generation, char *filename) {
 
 	std::vector<Species*>::iterator curspecies;
 	std::vector<Species*>::iterator deadspecies;  //For removing empty Species
@@ -821,16 +821,6 @@ bool Population::epoch(int generation) {
 	int num_species=species.size();
 	double compat_mod=0.3;  //Modify compat thresh to control speciation
 
-	std::vector< std::vector<Organism*> > nondominated_fronts;
-	std::vector<Organism*> cur_front;
-	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
-		cur_front.push_back(*curorg);
-	}
-        nondominated_fronts.push_back(cur_front);
-        nondominated_fronts.push_back(cur_front);
-        std::cout<<"Aditya: DONE"<<std::endl;
-        exit(0);
-        
 
 	//Keeping species diverse
 	//This commented out code forces the system to aim for 
@@ -900,56 +890,54 @@ bool Population::epoch(int generation) {
 		total+=(*curorg)->fitness2;
 	}
 	overall_average2=total/total_organisms;
-	std::cout<<"Generation "<<generation<<": "<<"overall_average 1 = "<<overall_average1<<"overall_average 2 = "<<overall_average2<<std::endl;
+	std::cout<<"Generation "<<generation<<": "<<"overall_average 1 = "<<overall_average1<<" overall_average 2 = "<<overall_average2<<std::endl;
 
-        //*******START COMMENT (Aditya - NSGA 2)************************* 
-	////Now compute expected number of offspring for each individual organism
-	//for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
-	//	(*curorg)->expected_offspring=(((*curorg)->fitness1)/overall_average);
-	//}
+	//Now compute expected number of offspring for each individual organism
+	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
+		(*curorg)->expected_offspring=(((*curorg)->fitness1)/overall_average1);
+	}
 
-	////Now add those offspring up within each Species to get the number of
-	////offspring per Species
-	//skim=0.0;
-	//total_expected=0;
-	//for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
-	//	skim=(*curspecies)->count_offspring(skim);
-	//	total_expected+=(*curspecies)->expected_offspring;
-	//}    
+	//Now add those offspring up within each Species to get the number of
+	//offspring per Species
+	skim=0.0;
+	total_expected=0;
+	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+		skim=(*curspecies)->count_offspring(skim);
+		total_expected+=(*curspecies)->expected_offspring;
+	}    
 
-	////Need to make up for lost foating point precision in offspring assignment
-	////If we lost precision, give an extra baby to the best Species
-	//if (total_expected<total_organisms) {
-	//	//Find the Species expecting the most
-	//	max_expected=0;
-	//	final_expected=0;
-	//	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
-	//		if ((*curspecies)->expected_offspring>=max_expected) {
-	//			max_expected=(*curspecies)->expected_offspring;
-	//			best_species=(*curspecies);
-	//		}
-	//		final_expected+=(*curspecies)->expected_offspring;
-	//	}
-	//	//Give the extra offspring to the best species
-	//	++(best_species->expected_offspring);
-	//	final_expected++;
+	//Need to make up for lost foating point precision in offspring assignment
+	//If we lost precision, give an extra baby to the best Species
+	if (total_expected<total_organisms) {
+		//Find the Species expecting the most
+		max_expected=0;
+		final_expected=0;
+		for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+			if ((*curspecies)->expected_offspring>=max_expected) {
+				max_expected=(*curspecies)->expected_offspring;
+				best_species=(*curspecies);
+			}
+			final_expected+=(*curspecies)->expected_offspring;
+		}
+		//Give the extra offspring to the best species
+		++(best_species->expected_offspring);
+		final_expected++;
 
-	//	//If we still arent at total, there is a problem
-	//	//Note that this can happen if a stagnant Species
-	//	//dominates the population and then gets killed off by its age
-	//	//Then the whole population plummets in fitness
-	//	//If the average fitness is allowed to hit 0, then we no longer have 
-	//	//an average we can use to assign offspring.
-	//	if (final_expected<total_organisms) {
-	//		//      cout<<"Population died!"<<endl;
-	//		//cin>>pause;
-	//		for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
-	//			(*curspecies)->expected_offspring=0;
-	//		}
-	//		best_species->expected_offspring=total_organisms;
-	//	}
-	//}
-        //*******END COMMENT (Aditya - NSGA 2)************************* 
+		//If we still arent at total, there is a problem
+		//Note that this can happen if a stagnant Species
+		//dominates the population and then gets killed off by its age
+		//Then the whole population plummets in fitness
+		//If the average fitness is allowed to hit 0, then we no longer have 
+		//an average we can use to assign offspring.
+		if (final_expected<total_organisms) {
+			//      cout<<"Population died!"<<endl;
+			//cin>>pause;
+			for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+				(*curspecies)->expected_offspring=0;
+			}
+			best_species->expected_offspring=total_organisms;
+		}
+	}
 
 	//Sort the Species by max fitness (Use an extra list to do this)
 	//These need to use ORIGINAL fitness
@@ -978,7 +966,11 @@ bool Population::epoch(int generation) {
 		std::cout<<highest_last_changed1<<" generations since last population fitness record: "<<highest_fitness1<<std::endl;
 	}
 
-
+        //Print to file the top pop_size/2 organisms
+        if  ((generation%(NEAT::print_every))==0){ //Print every generation happens inside epoch_multiobj
+                print_to_file_by_species(filename);
+        }
+        
 	//Check for stagnation- if there is stagnation, perform delta-coding
 	if (highest_last_changed1>=NEAT::dropoff_age+5) {
 
@@ -1168,12 +1160,9 @@ bool Population::epoch(int generation) {
 
 	//Kill off all Organisms marked for death.  The remainder
 	//will be allowed to reproduce.
-        int count_org = 0;
 	curorg=organisms.begin();
 	while(curorg!=organisms.end()) {
-                count_org = count_org + 1;
 		if (((*curorg)->eliminate)) {
-                        std::cout << "Aditya: Error cannot eliminate organisms"<<std::endl;
 
 
 			//Remove the organism from its Species
@@ -1197,7 +1186,6 @@ bool Population::epoch(int generation) {
 		}
 
 	}
-        std::cout << "Aditya: Number of organisms"<<count_org<<std::endl;
 
 	//cout<<"Reproducing"<<endl;
 

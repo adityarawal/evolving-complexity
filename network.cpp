@@ -182,10 +182,10 @@ void Network::lstm_activate(NNode* curnode){
                 //Making control signals binary 
                 if (rd_gate_activation>0.5) rd_gate_activation=1.0;
                 else rd_gate_activation=0.0;
-                if (wr_gate_activation>0.5) wr_gate_activation=1.0;
-                else wr_gate_activation=0.0;
-                if (fg_gate_activation>0.5) fg_gate_activation=1.0;
-                else fg_gate_activation=0.0;
+                //if (wr_gate_activation>0.5) wr_gate_activation=1.0;
+                //else wr_gate_activation=0.0;
+                //if (fg_gate_activation>0.5) fg_gate_activation=1.0;
+                //else fg_gate_activation=0.0;
                 //std::cout<<"rd: "<<curnode->activesum_rd<< " "<<rd_gate_activation<<std::endl;
                 //std::cout<<"wr: "<<curnode->activesum_wr<< " "<<wr_gate_activation<<std::endl;
                 //std::cout<<"fg: "<<curnode->activesum_fg<< " "<<fg_gate_activation<<std::endl;
@@ -221,41 +221,46 @@ void Network::setup_lstm_activate(NNode* curnode){
 	curnode->active_in_flag=false;  //This will tell us if it has any active inputs
 	std::vector<Link*>::iterator curlink;
         double add_amount = 0.0;
-        bool active_flag_rd, active_flag_wr, active_flag_fg, active_flag_inputdata=false;
+        bool active_flag_rd=false, active_flag_wr=false, active_flag_fg=false, active_flag_inputdata=false;
 	// For each incoming connection, add the activity from the connection to the activesum 
 	for(curlink=(curnode->incoming).begin();curlink!=(curnode->incoming).end();++curlink) {
                 add_amount = 0.0;
                 add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out());
 		//std::cout<<"LSTM Node "<<(curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<std::endl;
-                //std::cout<<"Link Type: "<<(*curlink)->link_gtype<<std::endl;
+                //std::cout<<"Link Type: "<<(*curlink)->link_gtype <<std::endl;
                 if((*curlink)->link_gtype==NONE) {
-			curnode->activesum+=add_amount;
-			if ((((*curlink)->in_node)->active_in_flag)||
-				(((*curlink)->in_node)->type==SENSOR)) active_flag_inputdata=true;
-		        //std::cout<<"LSTM Node Input Data activesum: "<<curnode->activesum<<" active_flag: "<<active_flag_inputdata <<std::endl;
+			if ((((*curlink)->in_node)->active_out_flag)) {
+			        curnode->activesum+=add_amount;
+                                active_flag_inputdata=true;
+		                //std::cout<<"LSTM Node Input Data activesum: "<<curnode->activesum<<" active_flag: "<<active_flag_inputdata <<std::endl;
+                        }
                 }
                 else if ((*curlink)->link_gtype==READ) {
-			curnode->activesum_rd+=add_amount;
-			if ((((*curlink)->in_node)->active_in_flag)||
-				(((*curlink)->in_node)->type==SENSOR)) active_flag_rd=true;
-		        //std::cout<<"LSTM Node READ activesum: "<<curnode->activesum_rd<<" active_flag: "<<active_flag_rd <<std::endl;
+			if ((((*curlink)->in_node)->active_out_flag)) {
+			        curnode->activesum_rd+=add_amount;
+                                active_flag_rd=true;
+		                //std::cout<<"LSTM Node READ activesum: "<<curnode->activesum_rd<<" active_flag: "<<active_flag_rd <<std::endl;
+                        }
                 }
                 else if ((*curlink)->link_gtype==WRITE) {
-			curnode->activesum_wr+=add_amount;
-			if ((((*curlink)->in_node)->active_in_flag)||
-				(((*curlink)->in_node)->type==SENSOR)) active_flag_wr=true;
-		        //std::cout<<"LSTM Node WRITE activesum: "<<curnode->activesum_wr<<" active_flag: "<<active_flag_rd <<std::endl;
+			if ((((*curlink)->in_node)->active_out_flag)) {
+			        curnode->activesum_wr+=add_amount;
+                                active_flag_wr=true;
+                                //std::cout<<"LSTM Node WRITE activesum: "<<curnode->activesum_wr<<" active_flag: "<<active_flag_wr <<std::endl;
+                        }
                 }
                 else if ((*curlink)->link_gtype==FORGET) {
-			curnode->activesum_fg+=add_amount;
-			if ((((*curlink)->in_node)->active_in_flag)||
-				(((*curlink)->in_node)->type==SENSOR)) active_flag_fg=true;
-		        //std::cout<<"LSTM Node FORGET activesum: "<<curnode->activesum_fg<<" active_flag: "<<active_flag_fg <<std::endl;
+			if ((((*curlink)->in_node)->active_out_flag)) {
+			        curnode->activesum_fg+=add_amount;
+                                active_flag_fg=true;
+		                //std::cout<<"LSTM Node FORGET activesum: "<<curnode->activesum_fg<<" active_flag: "<<active_flag_fg <<std::endl;
+                        }
                 }
         }
-        if (active_flag_wr) {//LSTM node is active only when write control is enabled 
+        if (active_flag_inputdata) {//LSTM node is active only when write control is enabled 
                 curnode->active_in_flag=true;
         }
+                //std::cout<<" LSTM active_in_flag: "<<curnode->active_in_flag <<std::endl;
 }
 // Activates the net such that all outputs are active
 // Returns true on success;
@@ -355,7 +360,7 @@ bool Network::activate() {
 				        	else {
 				        		//Now run the net activation through an activation function
 				        		if ((*curnode)->ftype==SIGMOID) {
-                                                                (*curnode)->activation=NEAT::fsigmoid((*curnode)->activesum,1.0,2.4621365);  //Sigmoidal activation- see comments under fsigmoid //Changed slope from 4.924273 to 1.0 to allow for 4 different output node categories
+                                                                (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Sigmoidal activation- see comments under fsigmoid //Changed slope from 4.924273 to 1.0 to allow for 4 different output node categories
                                                         }
                                                         else {
                                                                 (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Rectified Linear Units {max(0,x)}
