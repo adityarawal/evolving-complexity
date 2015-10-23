@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
       p=xor_test(100);
       break;
     case 5:
-      p = memory_test(5000);
+      p = memory_test(3000);
       break;
     default:
       cout<<"Not an available option."<<endl;

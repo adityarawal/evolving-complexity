@@ -21,6 +21,16 @@
 #include <iterator>     // std::ostream_iterator
 #include <algorithm>    // std::copy
 
+int toBin(double v, int num_bin) {
+	if(v>0.999) {
+                v=0.999;
+        }
+        else {
+                v =v+0.0001;//To avoid spurious error due to inaccuracy of double
+        }
+        return (int)((v)*(double)num_bin);//type casting to integer floors the number
+}
+
 void ConvertToBinary(int n, std::vector <int> &sequence)
 {
     if (n / 2 != 0) {
@@ -61,6 +71,20 @@ void generate_real_input_data(std::vector < vector < double > > &input_data, int
             for (int j=0; j<NEAT::input_sequence_len;j++) {
                     double rand_num = randfloat();
                     input_data[i].push_back(rand_num);
+            }
+    }
+}
+
+void generate_bin_input_data(std::vector < vector < double > > &input_data, int num_input_nodes, int num_sequences, int num_bin){
+
+    cout<<"Generating Binned Input Sequence Data (range (1.0/num_bin) - 1.0) with "<< num_bin <<" bins"<<endl;
+    input_data.resize(num_sequences, std::vector<double>());
+    for (int i=0; i <num_sequences; i++) {
+            for (int j=0; j<NEAT::input_sequence_len;j++) {
+                    double rand_num = randfloat();
+                    int bin_num = toBin(rand_num, num_bin)+1; //+1 makes sure that the value ranges from 1-num+bin
+                    double scaled_bin_num = bin_num/num_bin; //making range (1.0/num_bin) - 1.0
+                    input_data[i].push_back(scaled_bin_num);
             }
     }
 }
@@ -304,16 +328,6 @@ Population *memory_test(int gens) {
     return pop;
 
 }
-int toBin(double v, int num_bin) {
-	if(v>0.999) {
-                v=0.999;
-        }
-        else {
-                v =v+0.0001;//To avoid spurious error due to inaccuracy of double
-        }
-        return (int)((v)*(double)num_bin);//type casting to integer floors the number
-}
-
 double BintoValue(int v, int num_bin) {
         return (double)(((double)(v)/(double)num_bin)+0.0001);//type casting to integer floors the number
 }
@@ -716,7 +730,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   double output_error_2_step = 0.0;
   double average_output_error_1_step;
   double average_output_error_2_step;
-  double in[4]; //3-bit input - Bias, number, input data valid(1/0), Recall(1)/Instruct(0)
+  double in[3]; //3-bit input - Bias, number, input data valid(1/0), Recall(1)/Instruct(0)
   in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
   //int num_trials = 20;
@@ -724,6 +738,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   net=org->net;
   double reward = 0.0;
   std::vector <double> output_sequence;
+  std::vector <double> output_sequence2;
   //net_depth=net->max_depth();
   
   //Load and activate the network on each input
@@ -734,7 +749,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                     //Activate NN
                     in[1] = input_data[seqnum][step]; //Input Data
                     in[2] = 1; //Input Data Valid signal
-                    in[3] = 0; //Recall signal
+                    //in[3] = 0; //Recall signal
                     //std::cout<<" Input Sequence: ";
                     //std::cout<<in[1]<<" ";
                     net->load_sensors(in);
@@ -759,7 +774,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                            //Insert Zero (Don't-care) input activations at random time-steps
                            in[1] = 0;//Input data
                            in[2] = 0;//Input Data Valid
-                           in[3] = 0;//Recall signal
+                           //in[3] = 0;//Recall signal
                            int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
                            //Activate NN for random time-steps
                            //std::cout<<std::endl<<" Random Output: "<<std::endl;
@@ -773,7 +788,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                            //Activate NN once after random-time steps for recall
                            in[1] = 0;
                            in[2] = 0;//Input Data Valid
-                           in[3] = 1;//Recall signal
+                           //in[3] = 0;//Recall signal
                            net->load_sensors(in); //Give zeroes as input during recall phase
                            success=net->activate();
                            
@@ -799,6 +814,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                            //***************END NEW DISCRETE INPUT WITH SHAPING REWARDS****************
                            
                            output_sequence.push_back((net->outputs[0])->activation);
+                           //output_sequence2.push_back((net->outputs[1])->activation);
                                    
                            //output_error = output_error + abs((net->outputs[0])->activation - input_data[seqnum][step]);
                            //count = count + 1;
@@ -813,8 +829,8 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                    //if ((output_sequence[0]==input_data[seqnum][0])) {
                    //        reward = reward + 1;
                    //}
-                   output_error_1_step = output_error_1_step + abs(output_sequence[0] - input_data[seqnum][0]);
-                   output_error_2_step = output_error_2_step + abs(output_sequence[1] - input_data[seqnum][1]);
+                   output_error_1_step = output_error_1_step + abs(output_sequence[0] - input_data[seqnum][2]);
+                   //output_error_2_step = output_error_2_step + abs(output_sequence2[0] - input_data[seqnum][1]);
                    //if (abs(output_sequence[0] - input_data[seqnum][0]) < 0.05) {
                    //        output_error = output_error + abs(output_sequence[1] - input_data[seqnum][1]);
                    //}
@@ -823,6 +839,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                    //}
                    count = count+1;
                    output_sequence.clear();
+                   output_sequence2.clear();
            }
            net->flush(); //Flush after each sequence
   }
@@ -839,8 +856,8 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   else {
         average_output_error_1_step = output_error_1_step/count;//Ranges between 0-1
         average_output_error_2_step = output_error_2_step/count;//Ranges between 0-1
-        reward = 1.0-(average_output_error_1_step+average_output_error_2_step)/2; //1 Step recall reward 
-        //reward = 1-average_output_error_1_step; //2 Step recall reward 
+        //reward = 1.0-(average_output_error_1_step+average_output_error_2_step)/2; //1 Step recall reward 
+        reward = 1-average_output_error_1_step; //2 Step recall reward 
 
         //if (average_output_error_2_step < 0.05) {
         //        reward = 1-average_output_error_1_step; //2 Step recall reward 
@@ -994,8 +1011,8 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   }
   else {
 //  if(generation <= 999)
-        //pop->epoch(generation, filename);
-        pop->epoch_multiobj(generation, filename); //Aditya (NSGA-2)
+        pop->epoch(generation, filename);
+        //pop->epoch_multiobj(generation, filename); //Aditya (NSGA-2)
   //if  (win||
   //     ((generation%(NEAT::print_every))==0))
   //  pop->print_to_file_by_species(strcat(filename, "_del"));

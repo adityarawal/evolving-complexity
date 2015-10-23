@@ -167,7 +167,7 @@ void Network::print_links_tofile(char *filename) {
 } //print_links_tofile
 
 void Network::lstm_activate(NNode* curnode){
-	if (curnode->active_in_flag) {
+	//if (curnode->active_in_flag) {
                 //std::cout<<"Activating "<<curnode->node_id<<" with "<<curnode->activesum<<": ";
 
 		//Keep a memory of activations for potential time delayed connections
@@ -182,8 +182,8 @@ void Network::lstm_activate(NNode* curnode){
                 //Making control signals binary 
                 if (rd_gate_activation>0.5) rd_gate_activation=1.0;
                 else rd_gate_activation=0.0;
-                //if (wr_gate_activation>0.5) wr_gate_activation=1.0;
-                //else wr_gate_activation=0.0;
+                if (wr_gate_activation>0.5) wr_gate_activation=1.0;
+                else wr_gate_activation=0.0;
                 //if (fg_gate_activation>0.5) fg_gate_activation=1.0;
                 //else fg_gate_activation=0.0;
                 //std::cout<<"rd: "<<curnode->activesum_rd<< " "<<rd_gate_activation<<std::endl;
@@ -191,7 +191,11 @@ void Network::lstm_activate(NNode* curnode){
                 //std::cout<<"fg: "<<curnode->activesum_fg<< " "<<fg_gate_activation<<std::endl;
                 //std::cout<<"last_Cell_state: "<< curnode->lstm_cell_state<<std::endl;
                 //std::cout<<"activesum: "<< curnode->activesum<<std::endl;
-                curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
+                //curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
+                if (curnode->lstm_cell_state == 0) {//ALlow new writes only when the LSTM cell is empty (write occurs only once for now)
+                        curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation; //Input and history gating
+
+                } 
                 //if (wr_gate_activation==1.0) {
                 //        curnode->lstm_cell_state = (curnode->activesum);//If incoming write, overwrite the stored value
                 //}
@@ -209,8 +213,8 @@ void Network::lstm_activate(NNode* curnode){
 		//Increment the activation_count
 		//First activation cannot be from nothing!!
 		curnode->activation_count++;
-                curnode->active_out_flag = true;
-	}
+                //curnode->active_out_flag = true;
+	//}
 
 }
 void Network::setup_lstm_activate(NNode* curnode){
@@ -218,10 +222,10 @@ void Network::setup_lstm_activate(NNode* curnode){
 	curnode->activesum_rd=0;
 	curnode->activesum_wr=0;
 	curnode->activesum_fg=0;
-	curnode->active_in_flag=false;  //This will tell us if it has any active inputs
+	//curnode->active_in_flag=false;  //This will tell us if it has any active inputs
 	std::vector<Link*>::iterator curlink;
         double add_amount = 0.0;
-        bool active_flag_rd=false, active_flag_wr=false, active_flag_fg=false, active_flag_inputdata=false;
+        //bool active_flag_rd=false, active_flag_wr=false, active_flag_fg=false, active_flag_inputdata=false;
 	// For each incoming connection, add the activity from the connection to the activesum 
 	for(curlink=(curnode->incoming).begin();curlink!=(curnode->incoming).end();++curlink) {
                 add_amount = 0.0;
@@ -229,37 +233,37 @@ void Network::setup_lstm_activate(NNode* curnode){
 		//std::cout<<"LSTM Node "<<(curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<std::endl;
                 //std::cout<<"Link Type: "<<(*curlink)->link_gtype <<std::endl;
                 if((*curlink)->link_gtype==NONE) {
-			if ((((*curlink)->in_node)->active_out_flag)) {
+			//if ((((*curlink)->in_node)->active_out_flag)) {
 			        curnode->activesum+=add_amount;
-                                active_flag_inputdata=true;
+                                //active_flag_inputdata=true;
 		                //std::cout<<"LSTM Node Input Data activesum: "<<curnode->activesum<<" active_flag: "<<active_flag_inputdata <<std::endl;
-                        }
+                        //}
                 }
                 else if ((*curlink)->link_gtype==READ) {
-			if ((((*curlink)->in_node)->active_out_flag)) {
+			//if ((((*curlink)->in_node)->active_out_flag)) {
 			        curnode->activesum_rd+=add_amount;
-                                active_flag_rd=true;
+                                //active_flag_rd=true;
 		                //std::cout<<"LSTM Node READ activesum: "<<curnode->activesum_rd<<" active_flag: "<<active_flag_rd <<std::endl;
-                        }
+                        //}
                 }
                 else if ((*curlink)->link_gtype==WRITE) {
-			if ((((*curlink)->in_node)->active_out_flag)) {
+			//if ((((*curlink)->in_node)->active_out_flag)) {
 			        curnode->activesum_wr+=add_amount;
-                                active_flag_wr=true;
+                                //active_flag_wr=true;
                                 //std::cout<<"LSTM Node WRITE activesum: "<<curnode->activesum_wr<<" active_flag: "<<active_flag_wr <<std::endl;
-                        }
+                        //}
                 }
                 else if ((*curlink)->link_gtype==FORGET) {
-			if ((((*curlink)->in_node)->active_out_flag)) {
+			//if ((((*curlink)->in_node)->active_out_flag)) {
 			        curnode->activesum_fg+=add_amount;
-                                active_flag_fg=true;
+                                //active_flag_fg=true;
 		                //std::cout<<"LSTM Node FORGET activesum: "<<curnode->activesum_fg<<" active_flag: "<<active_flag_fg <<std::endl;
-                        }
+                        //}
                 }
         }
-        if (active_flag_inputdata) {//LSTM node is active only when write control is enabled 
-                curnode->active_in_flag=true;
-        }
+        //if (active_flag_inputdata) {//LSTM node is active only when write control is enabled 
+                //curnode->active_in_flag=true;
+        //}
                 //std::cout<<" LSTM active_in_flag: "<<curnode->active_in_flag <<std::endl;
 }
 // Activates the net such that all outputs are active
@@ -280,23 +284,23 @@ bool Network::activate() {
         switch_outputsoff(); // Aditya: Ensures that the output node is activated again with the incoming active values each time 
 	onetime=false;
 
-	while(outputsoff()||!onetime) {
+	while(!onetime) {
 
-		++abortcount;
+		//++abortcount;
 
-		if (abortcount==20) {
-			for(curnode=all_nodes.begin();curnode!=all_nodes.end();++curnode) {
-				//std::cout <<(*curnode)->node_id<< " :: "<<(*curnode)->active_flag ;  //This will tell us if it has any active inputs
-				if ((int)(*curnode)->incoming.size() == 0) {
-					//std::cout << " NO incoming connections";
+		//if (abortcount==20) {
+		//	for(curnode=all_nodes.begin();curnode!=all_nodes.end();++curnode) {
+		//		//std::cout <<(*curnode)->node_id<< " :: "<<(*curnode)->active_flag ;  //This will tell us if it has any active inputs
+		//		if ((int)(*curnode)->incoming.size() == 0) {
+		//			//std::cout << " NO incoming connections";
 
-				}
-				//std::cout << std::endl;
-			}
-			//std::cout << " Net not activating"<<std::endl;
-			return false;
-			//cout<<"Inputs disconnected from output!"<<endl;
-		}
+		//		}
+		//		//std::cout << std::endl;
+		//	}
+		//	//std::cout << " Net not activating"<<std::endl;
+		//	return false;
+		//	//cout<<"Inputs disconnected from output!"<<endl;
+		//}
 		//std::cout<<"Outputs are off"<<std::endl;
 
 		// For each node, compute the sum of its incoming activation 
@@ -308,18 +312,18 @@ bool Network::activate() {
 			if (((*curnode)->type)!=SENSOR) {
                                 if (((*curnode)->type)!=LSTM) {//For regular hidden neurons and output nodes
 				        (*curnode)->activesum=0;
-				        (*curnode)->active_in_flag=false;  //This will tell us if it has any active inputs
+				        //(*curnode)->active_in_flag=false;  //This will tell us if it has any active inputs
 
 				        // For each incoming connection, add the activity from the connection to the activesum 
 				        for(curlink=((*curnode)->incoming).begin();curlink!=((*curnode)->incoming).end();++curlink) {
 				        	//Handle possible time delays
 				        	if (!((*curlink)->time_delay)) {
 				        		add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out());
-				        		if ((((*curlink)->in_node)->active_out_flag)){//||(((*curlink)->in_node)->type==SENSOR)) 
-                                                                (*curnode)->active_in_flag=true;
+				        		//if ((((*curlink)->in_node)->active_out_flag)){//||(((*curlink)->in_node)->type==SENSOR)) 
+                                                                //(*curnode)->active_in_flag=true;
 				        		        (*curnode)->activesum+=add_amount;
 				        		        //std::cout<<"Node "<<(*curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<" active_in_flag: "<<(*curnode)->active_in_flag <<" "<<(*curnode)->activesum<<std::endl;
-                                                        }
+                                                        //}
 				        	}
 				        	else {
 				        		//Input over a time delayed connection
@@ -344,7 +348,7 @@ bool Network::activate() {
 			if (((*curnode)->type)!=SENSOR) {
                                 if (((*curnode)->type)!=LSTM) {//For regular hidden neurons and output nodes
 				        //Only activate if some active input came in
-				        if ((*curnode)->active_in_flag) {
+				        //if ((*curnode)->active_in_flag) {
                                                 //std::cout<<"Activating "<<(*curnode)->node_id<<" with "<<(*curnode)->activesum<<": ";
 
 				        	//Keep a memory of activations for potential time delayed connections
@@ -371,12 +375,12 @@ bool Network::activate() {
 				        	//Increment the activation_count
 				        	//First activation cannot be from nothing!!
 				        	(*curnode)->activation_count++;
-                                                (*curnode)->active_out_flag = true;
-				        }
-                                        else {
-                                                (*curnode)->active_out_flag = false;
+                                                //(*curnode)->active_out_flag = true;
+				        //}
+                                        //else {
+                                                //(*curnode)->active_out_flag = false;
 
-                                        }
+                                        //}
                                 }
                                 else { //For LSTM Nodes
                                         lstm_activate((*curnode));
@@ -385,10 +389,10 @@ bool Network::activate() {
                         //Aditya: For the first time activate is called after network flush, this
                         //prevents output getting activated twice with the same input value
                         //Sensor active flag is set every time sensors are loaded with new values
-                        else if (((*curnode)->type) == SENSOR && ((*curnode)->active_out_flag == true)) {
+                        //else if (((*curnode)->type) == SENSOR && ((*curnode)->active_out_flag == true)) {
                                 //std::cout<<" Disabling input node: "<<(*curnode)->node_id<<std::endl;
-                                (*curnode)->active_out_flag = false;
-                        }
+                                //(*curnode)->active_out_flag = false;
+                        //}
 		}
 
 		onetime=true;

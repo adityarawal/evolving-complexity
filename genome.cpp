@@ -1645,17 +1645,17 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 			if (thelink->is_recurrent) {
 				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,curinnov,NONE,NONE);//gate_type stored as mut_num
 				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,(*thegene)->gate_type,(*thegene)->gate_type);//gate_type stored as mut_num
-	                        newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+2,READ,READ);//gate_type stored as mut_num
+	                        //newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+2,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,10.0,nodep1,newnode,false,curinnov+3,WRITE,WRITE);//gate_type stored as mut_num
-	                        newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
+	                        //newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
 				curinnov+=5.0;
 			}
 			else {
 				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,curinnov,NONE,NONE);//gate_type stored as mut_num
 				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,(*thegene)->gate_type,(*thegene)->gate_type);//gate_type stored as mut_num
-	                        newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+2,READ,READ);//gate_type stored as mut_num
+	                        //newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+2,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,10.0,nodep1,newnode,false,curinnov+3,WRITE,WRITE);//gate_type stored as mut_num
-	                        newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
+	                        //newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
 				curinnov+=5.0;
 			}
 
@@ -1694,16 +1694,16 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 			if (thelink->is_recurrent) {
 				newgene1=new Gene(traitptr,1.0,in_node,newnode,true,(*theinnov)->innovation_num1,NONE,NONE);
 				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,(*thegene)->gate_type,(*thegene)->gate_type);
-	                        newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num3,READ,READ);//gate_type stored as mut_num
+	                        //newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num3,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,10.0,nodep1,newnode,false,(*theinnov)->innovation_num4,WRITE,WRITE);//gate_type stored as mut_num
-	                        newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
+	                        //newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
 			}
 			else {
 				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,(*theinnov)->innovation_num1,NONE,NONE);
 				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,(*thegene)->gate_type,(*thegene)->gate_type);
-	                        newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num3,READ,READ);//gate_type stored as mut_num
+	                        //newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num3,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,10.0,nodep1,newnode,false,(*theinnov)->innovation_num4,WRITE,WRITE);//gate_type stored as mut_num
-	                        newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
+	                        //newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
 			}
 
 			done=true;
@@ -2087,26 +2087,26 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                         //Randomly assign a type to the gene (LSTM Read/Write/Forget control or LSTM/Regular input/output data)
                         if (nodep2->type==LSTM) {//For incoming links to LSTM
                                 double rand_num = randfloat();
-                                if (rand_num < 0.25) {
+                                if (rand_num < 0.5) {
                                         //Input Data
                                         gtype = NONE;
                                         innov_type = NEWLINK;
                                 }
-                                else if (rand_num < 0.5) {
-                                        //Read Gate Input
-                                        gtype = READ;
-                                        innov_type = NEWLSTMLINK_RD;
-                                }
-                                else if (rand_num < 0.75) {
+                                //else if (rand_num < 0.5) {
+                                //        //Read Gate Input
+                                //        gtype = READ;
+                                //        innov_type = NEWLSTMLINK_RD;
+                                //}
+                                else if (rand_num < 1.0) {
                                        //Write Gate Input
                                         gtype = WRITE;
                                         innov_type = NEWLSTMLINK_WR;
                                 }
-                                else {
-                                       //Forget Gate Input
-                                        gtype = FORGET;
-                                        innov_type = NEWLSTMLINK_FG;
-                                } 
+                                //else {
+                                //       //Forget Gate Input
+                                //        gtype = FORGET;
+                                //        innov_type = NEWLSTMLINK_FG;
+                                //} 
                         }
                         else {//For Non-LSTM links or outgoing links from LSTM
                                 gtype = NONE;
@@ -2185,21 +2185,21 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                                         gtype = NONE;
                                         innov_type = NEWLINK;
                                 }
-                                else if (rand_num < 0.5) {
-                                        //Read Gate Input
-                                        gtype = READ;
-                                        innov_type = NEWLSTMLINK_RD;
-                                }
-                                else if (rand_num < 0.75) {
+                                //else if (rand_num < 0.5) {
+                                //        //Read Gate Input
+                                //        gtype = READ;
+                                //        innov_type = NEWLSTMLINK_RD;
+                                //}
+                                else if (rand_num < 1.0) {
                                        //Write Gate Input
                                         gtype = WRITE;
                                         innov_type = NEWLSTMLINK_WR;
                                 }
-                                else {
-                                       //Forget Gate Input
-                                        gtype = FORGET;
-                                        innov_type = NEWLSTMLINK_FG;
-                                } 
+                                //else {
+                                //       //Forget Gate Input
+                                //        gtype = FORGET;
+                                //        innov_type = NEWLSTMLINK_FG;
+                                //} 
                         }
                         else {//For Non-LSTM links or outgoing links from LSTM
                                 gtype = NONE;

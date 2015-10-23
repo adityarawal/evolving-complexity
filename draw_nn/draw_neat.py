@@ -91,7 +91,7 @@ if __name__ == '__main__':
                         if node_place == '0' and node_type == '0': #Regular Hidden Node
                                 hidden_nodes += [node_id]
                                 node_color_list += ['gray']
-                        if node_place == '0' and node_type == '7': #LSTM Hidden Node
+                        elif node_place == '0' and node_type == '7': #LSTM Hidden Node
                                 hidden_nodes += [node_id]
                                 node_color_list += ['yellow']
                         elif node_place == '1': #Input node

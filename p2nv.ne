@@ -7,7 +7,7 @@ recur_prob 0.00
 disjoint_coeff 1.0
 excess_coeff 1.0
 mutdiff_coeff 3.0
-compat_thresh 100000.0
+compat_thresh 10.0
 age_significance 1.0
 survival_thresh 0.4
 mutate_only_prob 0.25
@@ -17,8 +17,8 @@ mutate_node_trait_prob 0.0
 mutate_link_weights_prob 0.8
 mutate_toggle_enable_prob 0.4
 mutate_gene_reenable_prob 0.15
-mutate_add_node_prob 0.00
-mutate_add_link_prob 0.6
+mutate_add_node_prob 0.01
+mutate_add_link_prob 0.3
 interspecies_mate_rate 0.001
 mate_multipoint_prob 0.6
 mate_multipoint_avg_prob 0.4
@@ -30,9 +30,9 @@ dropoff_age 150
 newlink_tries 20
 print_every 1
 babies_stolen 0
-num_runs 5
+num_runs 1
 batch_size 1
 max_output_nodes 1
 frozen_startgenome 0
-input_sequence_len 2
-mutate_add_lstm_node_prob 0.1
+input_sequence_len 3
+mutate_add_lstm_node_prob 0.00
