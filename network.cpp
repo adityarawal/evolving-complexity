@@ -204,7 +204,7 @@ void Network::lstm_activate(NNode* curnode){
                 //}
                 //std::cout<<"new_Cell_state: "<< curnode->lstm_cell_state<<std::endl;
 
-                double lstm_out =  (curnode->lstm_cell_state) ;//Always Read (No output gating) * rd_gate_activation; //Output gating
+                double lstm_out =  (curnode->lstm_cell_state)*rd_gate_activation ;//Always Read (No output gating) * rd_gate_activation; //Output gating
                 //std::cout<<"lstm_out: "<< lstm_out<<std::endl;
 
                 curnode->activation=lstm_out;//NEAT::ftanh(lstm_out,1.0,2.4621365); //Evolino uses tanh. Can try sigmoid as well

@@ -82,7 +82,8 @@ namespace NEAT {
 		//Sensor* mySensor;
 
 	public:
-		bool frozen; // When frozen, cannot be mutated (meaning its trait pointer is fixed)
+		bool frozen; // When frozen, cannot be mutated. Used to freeze non-LSTM node inputs and LSTM node input data.   
+                bool frozen_ip, frozen_rd, frozen_wr, frozen_fg; //For LSTM, individual gates can be frozen separately 
 
 		functype ftype; // type is either SIGMOID ..or others that can be added
 		nodetype type; // type is either NEURON or SENSOR 
@@ -122,7 +123,7 @@ namespace NEAT {
 
 		NNode(nodetype ntype,int nodeid);
 
-		NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze);
+		NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze, bool freeze_ip, bool freeze_rd, bool freeze_wr, bool freeze_fg);
 		
 		// Construct a NNode off another NNode for genome purposes
 		NNode(NNode *n,Trait *t);

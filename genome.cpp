@@ -21,17 +21,51 @@
 using namespace NEAT;
 
 
+bool order_node_frozen(NNode *x, NNode *y) { 
+	int x_frozen = (int)(x->frozen);
+	int y_frozen = (int)(y->frozen);
+        return (x_frozen > y_frozen); //Sort in descending order of frozen status 
+}
+
 void Genome::freeze_genome() {//Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
 	std::vector<Gene*>::iterator curgene;
 	std::vector<NNode*>::iterator curnode;
         for(curgene=genes.begin();curgene!=genes.end();++curgene) {
-		((*curgene)->frozen) = true;
-        }
-        for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
-                if ((*curnode)->gen_node_label!=INPUT) {//Inputs cannot be frozen since new nodes need to form connections with them
-                        ((*curnode)->frozen) = true;
+
+                /*Freeze the outgoing nodes of the gene*/
+                if  (((((*curgene)->lnk)->out_node)->type) == LSTM) {//For LSTM node
+
+                        if ((*curgene)->gate_type == NONE) { //Freeze LSTM node input data only
+                                ((((*curgene)->lnk)->out_node)->frozen_ip)=true;
+                        } 
+                        else if ((*curgene)->gate_type == READ) {
+                                ((((*curgene)->lnk)->out_node)->frozen_rd)=true;
+                        }
+                        else if ((*curgene)->gate_type == WRITE) {
+                                ((((*curgene)->lnk)->out_node)->frozen_wr)=true;
+                        }
+                        else if ((*curgene)->gate_type == FORGET) {
+                                ((((*curgene)->lnk)->out_node)->frozen_fg)=true;
+                        }
+
+                        //LSTM node is frozen only when all its inputs are frozen
+                        if (((((*curgene)->lnk)->out_node)->frozen_ip)&&((((*curgene)->lnk)->out_node)->frozen_rd)&&
+                            ((((*curgene)->lnk)->out_node)->frozen_wr)&&((((*curgene)->lnk)->out_node)->frozen_fg)) {
+                                        ((((*curgene)->lnk)->out_node)->frozen) = true;
+                        }
                 }
+                else {//For Non-LSTM nodes
+                        ((((*curgene)->lnk)->out_node)->frozen) = true;
+                }
+	
+                //Freeze the gene        
+                ((*curgene)->frozen) = true;
         }
+        //for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
+        //        if ((*curnode)->gen_node_label!=INPUT) {//Inputs cannot be frozen since new nodes need to form connections with them
+        //                ((*curnode)->frozen) = true;
+        //        }
+        //}
 }
 
 
@@ -296,8 +330,8 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 	//Build the input nodes
 	for(ncount=1;ncount<=i;ncount++) {
 		if (ncount<i)
-			newnode=new NNode(SENSOR,ncount,INPUT, false);
-		else newnode=new NNode(SENSOR,ncount,BIAS, false);
+			newnode=new NNode(SENSOR,ncount,INPUT, false, false, false, false, false);
+		else newnode=new NNode(SENSOR,ncount,BIAS, false, false, false, false, false);
 
 		newnode->nodetrait=newtrait;
 
@@ -307,7 +341,7 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 
 	//Build the hidden nodes
 	for(ncount=i+1;ncount<=i+n;ncount++) {
-		newnode=new NNode(NEURON,ncount,HIDDEN, false);
+		newnode=new NNode(NEURON,ncount,HIDDEN, false, false, false, false, false);
 		newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -315,7 +349,7 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 
 	//Build the output nodes
 	for(ncount=first_output;ncount<=totalnodes;ncount++) {
-		newnode=new NNode(NEURON,ncount,OUTPUT, false);
+		newnode=new NNode(NEURON,ncount,OUTPUT, false, false, false, false, false);
 		newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -439,9 +473,9 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 	//Build the input nodes
 	for(ncount=1;ncount<=num_in;ncount++) {
 		if (ncount<num_in)
-			newnode=new NNode(SENSOR,ncount,INPUT, false);
+			newnode=new NNode(SENSOR,ncount,INPUT, false, false, false, false, false);
 		else { 
-			newnode=new NNode(SENSOR,ncount,BIAS, false);
+			newnode=new NNode(SENSOR,ncount,BIAS, false, false, false, false, false);
 			bias=newnode;
 		}
 
@@ -454,7 +488,7 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 
 	//Build the hidden nodes
 	for(ncount=num_in+1;ncount<=num_in+num_hidden;ncount++) {
-		newnode=new NNode(NEURON,ncount,HIDDEN, false);
+		newnode=new NNode(NEURON,ncount,HIDDEN, false, false, false, false, false);
 		//newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -463,7 +497,7 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 
 	//Build the output nodes
 	for(ncount=num_in+num_hidden+1;ncount<=num_in+num_hidden+num_out;ncount++) {
-		newnode=new NNode(NEURON,ncount,OUTPUT, false);
+		newnode=new NNode(NEURON,ncount,OUTPUT, false, false, false, false, false);
 		//newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -681,7 +715,7 @@ Network *Genome::genesis(int id) {
 
 	//Create the nodes
 	for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
-		newnode=new NNode((*curnode)->type,(*curnode)->node_id, (*curnode)->gen_node_label, (*curnode)->frozen);
+		newnode=new NNode((*curnode)->type,(*curnode)->node_id, (*curnode)->gen_node_label, (*curnode)->frozen, (*curnode)->frozen_ip, (*curnode)->frozen_rd, (*curnode)->frozen_wr, (*curnode)->frozen_fg);
 
 		//Derive the node parameters from the trait pointed to
 		curtrait=(*curnode)->nodetrait;
@@ -1414,9 +1448,19 @@ void Genome::mutate_toggle_enable(int times) {
         //Find the first non-frozen gene. Toggle only non-frozen genes.
 	int first_nonfrozen_gene=0;
 	thegene=genes.begin();
-	while(((*thegene)->frozen==true)) {
-		first_nonfrozen_gene++;
-		++thegene;
+	
+        while(true) {
+                if (thegene==genes.end()) {
+                        //std::cout<<"In mutate_toggle_enable: No Non-frozen gene found"<<std::endl;
+                        return;
+                }
+                else if (((*thegene)->frozen==true)) {//Keep looking for the first non-frozen gene
+		        first_nonfrozen_gene++;
+		        ++thegene;
+                }
+                else {//Found the first non-frozen gene
+                        break;
+                }
 	}
 
         while (count <= times) {
@@ -1559,9 +1603,18 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
                 //Find the first non-frozen gene. Add nodes to only non-frozen genes.
 	        first_nonfrozen_gene=0;
 	        thegene=genes.begin();
-	        while(((*thegene)->frozen==true)) {
-	        	first_nonfrozen_gene++;
-	        	++thegene;
+                while(true) {
+                        if (thegene==genes.end()) {
+                                //std::cout<<"In mutate_add_node: No Non-frozen gene found"<<std::endl;
+                                return false;
+                        }
+                        else if (((*thegene)->frozen==true)) {//Keep looking for the first non-frozen gene
+	        	        first_nonfrozen_gene++;
+	        	        ++thegene;
+                        }
+                        else {//Found the first non-frozen gene
+                                break;
+                        }
 	        }
 
 		while ((trycount<100)&&(!found)) {//Aditya parameter
@@ -1637,7 +1690,7 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 
 			//Create the new LSTM NNode
 			//By convention, it will point to the first trait
-			newnode=new NNode(LSTM,curnode_id++,HIDDEN, false);
+			newnode=new NNode(LSTM,curnode_id++,HIDDEN, false, false, false, false, false);
 			newnode->nodetrait=(*(traits.begin()));
 
         
@@ -1685,7 +1738,7 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 			traitptr=thelink->linktrait;
 
 			//Create the new NNode
-			newnode=new NNode(LSTM,(*theinnov)->newnode_id,HIDDEN, false);      
+			newnode=new NNode(LSTM,(*theinnov)->newnode_id,HIDDEN, false, false, false, false, false);      
 			//By convention, it will point to the first trait
 			//Note: In future may want to change this
 			newnode->nodetrait=(*(traits.begin()));
@@ -1791,9 +1844,18 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
                 //Find the first non-frozen gene. Add nodes to only non-frozen genes.
 	        first_nonfrozen_gene=0;
 	        thegene=genes.begin();
-	        while(((*thegene)->frozen==true)) {
-	        	first_nonfrozen_gene++;
-	        	++thegene;
+                while(true) {
+                        if (thegene==genes.end()) {
+                                //std::cout<<"In mutate_add_node: No Non-frozen gene found"<<std::endl;
+                                return false;
+                        }
+                        else if (((*thegene)->frozen==true)) {//Keep looking for the first non-frozen gene
+	        	        first_nonfrozen_gene++;
+	        	        ++thegene;
+                        }
+                        else {//Found the first non-frozen gene
+                                break;
+                        }
 	        }
 
 		while ((trycount<100)&&(!found)) {//Aditya parameter
@@ -1863,7 +1925,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 
 			//Create the new NNode
 			//By convention, it will point to the first trait
-			newnode=new NNode(NEURON,curnode_id++,HIDDEN, false);
+			newnode=new NNode(NEURON,curnode_id++,HIDDEN, false, false, false, false, false);
 			newnode->nodetrait=(*(traits.begin()));
 
 			//Create the new Genes
@@ -1904,7 +1966,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 			traitptr=thelink->linktrait;
 
 			//Create the new NNode
-			newnode=new NNode(NEURON,(*theinnov)->newnode_id,HIDDEN, false);      
+			newnode=new NNode(NEURON,(*theinnov)->newnode_id,HIDDEN, false, false, false, false, false);      
 			//By convention, it will point to the first trait
 			//Note: In future may want to change this
 			newnode->nodetrait=(*(traits.begin()));
@@ -1942,7 +2004,7 @@ void Genome::add_output_nodes(int block_size, double &curinnov){//block_size is 
 
         for (int size = 0; size < block_size; size++) {
                 int last_node_id = get_last_node_id();
-	        NNode *newnode=new NNode(NEURON,last_node_id,OUTPUT,false);
+	        NNode *newnode=new NNode(NEURON,last_node_id,OUTPUT,false, false, false, false, false);
                 node_insert(nodes,newnode);
 
                 //Connect the newly added node to the BIAS node (this prevents hanging outputs and thus allows network activations)
@@ -1998,6 +2060,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
 	int nodenum1,nodenum2;  //Random node numbers
 	std::vector<NNode*>::iterator thenode1,thenode2;  //Random node iterators
+	std::vector<NNode*>::iterator curnode;
 	int nodecount;  //Counter for finding nodes
 	int trycount; //Iterates over attempts to find an unconnected pair of nodes
 	NNode *nodep1; //Pointers to the nodes
@@ -2025,6 +2088,9 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 	//kind of error
 	int thresh=(nodes.size())*(nodes.size());
 	int count=0;
+	
+        //Copy of nodes sorted in order of their frozen status
+        std::vector<NNode*> sorted_nodes;  //Nodes sorted by their frozen status
 
         //For incoming links to LSTM, create the gene and label it randomly as one of the following types
         lstm_gate_type gtype;//Indicates whether the gene belongs to lstm gate control inputs and which type is it (READ/WRITE/FORGET) 
@@ -2039,10 +2105,19 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 		do_recur=true;
 	else do_recur=false;
 
-	//Find the first non-sensor and non-frozen node so that the to-node won't look at sensors or frozen node as
+	
+        //Stick the Node pointers into a new node list for sorting
+	for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
+		sorted_nodes.push_back(*curnode);
+	}
+
+        //Sort the Nodes by frozen status (Frozen first, followed by non-frozen) 
+        std::sort(sorted_nodes.begin(), sorted_nodes.end(), order_node_frozen);
+
+        //Find the first non-sensor and non-frozen node so that the to-node won't look at sensors or frozen node as
 	//possible destinations
 	first_nonsensor_nonfrozen=0;
-	thenode1=nodes.begin();
+	thenode1=sorted_nodes.begin();
 	while((((*thenode1)->get_type())==SENSOR)||((*thenode1)->frozen==true)) {
 		first_nonsensor_nonfrozen++;
 		++thenode1;
@@ -2072,12 +2147,12 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 			}
 
 			//Find the first node
-			thenode1=nodes.begin();
+			thenode1=sorted_nodes.begin();
 			for(nodecount=0;nodecount<nodenum1;nodecount++)
 				++thenode1;
 
 			//Find the second node
-			thenode2=nodes.begin();
+			thenode2=sorted_nodes.begin();
 			for(nodecount=0;nodecount<nodenum2;nodecount++)
 				++thenode2;
 		
@@ -2086,27 +2161,54 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
                         //Randomly assign a type to the gene (LSTM Read/Write/Forget control or LSTM/Regular input/output data)
                         if (nodep2->type==LSTM) {//For incoming links to LSTM
-                                double rand_num = randfloat();
-                                if (rand_num < 0.5) {
-                                        //Input Data
-                                        gtype = NONE;
-                                        innov_type = NEWLINK;
-                                }
-                                //else if (rand_num < 0.5) {
-                                //        //Read Gate Input
-                                //        gtype = READ;
-                                //        innov_type = NEWLSTMLINK_RD;
-                                //}
-                                else if (rand_num < 1.0) {
-                                       //Write Gate Input
-                                        gtype = WRITE;
-                                        innov_type = NEWLSTMLINK_WR;
-                                }
-                                //else {
-                                //       //Forget Gate Input
-                                //        gtype = FORGET;
-                                //        innov_type = NEWLSTMLINK_FG;
-                                //} 
+                                bool found_unfrozen = false;
+                                while (!found_unfrozen) {
+                                        double rand_num = randfloat();
+                                        if (rand_num < 0.333) {//Input Data
+                                                if (nodep2->frozen_ip) {
+                                                        continue;
+                                                }
+                                                else {
+                                                        //Input Data
+                                                        found_unfrozen = true;
+                                                        gtype = NONE;
+                                                        innov_type = NEWLINK;
+                                                }
+                                        }
+                                        else if (rand_num < 0.666) {//Read Gate Input
+                                                if (nodep2->frozen_rd) {
+                                                        continue;
+                                                }
+                                                else {
+                                                        //Read Gate Input
+                                                        found_unfrozen = true;
+                                                        gtype = READ;
+                                                        innov_type = NEWLSTMLINK_RD;
+                                                }
+                                        }
+                                        else if (rand_num < 1.0) {//Write Gate Input
+                                                if (nodep2->frozen_wr) {
+                                                        continue;
+                                                }
+                                                else {
+                                                        //Write Gate Input
+                                                        found_unfrozen = true;
+                                                        gtype = WRITE;
+                                                        innov_type = NEWLSTMLINK_WR;
+                                                }
+                                        }
+                                        //else {
+                                        //        if (nodep2->frozen_fg) {//Forget Gate Input
+                                        //                continue;
+                                        //        }
+                                        //        else {
+                                        //                //Forget Gate Input
+                                        //                found_unfrozen = true;
+                                        //                gtype = FORGET;
+                                        //                innov_type = NEWLSTMLINK_FG;
+                                        //        }
+                                        //}
+                                } 
                         }
                         else {//For Non-LSTM links or outgoing links from LSTM
                                 gtype = NONE;
@@ -2163,14 +2265,14 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 			nodenum2=randint(first_nonsensor_nonfrozen,nodes.size()-1);
 
 			//Find the first node
-			thenode1=nodes.begin();
+			thenode1=sorted_nodes.begin();
 			for(nodecount=0;nodecount<nodenum1;nodecount++)
 				++thenode1;
 
 			//cout<<"RETRIEVED NODE# "<<(*thenode1)->node_id<<std::endl;
 
 			//Find the second node
-			thenode2=nodes.begin();
+			thenode2=sorted_nodes.begin();
 			for(nodecount=0;nodecount<nodenum2;nodecount++)
 				++thenode2;
 
@@ -2179,27 +2281,54 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                 
                         //Randomly assign a type to the gene (LSTM Read/Write/Forget control or LSTM/Regular input/output data)
                         if (nodep2->type==LSTM) {//For incoming links to LSTM
-                                double rand_num = randfloat();
-                                if (rand_num < 0.25) {
-                                        //Input Data
-                                        gtype = NONE;
-                                        innov_type = NEWLINK;
-                                }
-                                //else if (rand_num < 0.5) {
-                                //        //Read Gate Input
-                                //        gtype = READ;
-                                //        innov_type = NEWLSTMLINK_RD;
-                                //}
-                                else if (rand_num < 1.0) {
-                                       //Write Gate Input
-                                        gtype = WRITE;
-                                        innov_type = NEWLSTMLINK_WR;
-                                }
-                                //else {
-                                //       //Forget Gate Input
-                                //        gtype = FORGET;
-                                //        innov_type = NEWLSTMLINK_FG;
-                                //} 
+                                bool found_unfrozen = false;
+                                while (!found_unfrozen) {
+                                        double rand_num = randfloat();
+                                        if (rand_num < 0.333) {//Input Data
+                                                if (nodep2->frozen_ip) {
+                                                        continue;
+                                                }
+                                                else {
+                                                        //Input Data
+                                                        found_unfrozen = true;
+                                                        gtype = NONE;
+                                                        innov_type = NEWLINK;
+                                                }
+                                        }
+                                        else if (rand_num < 0.666) {//Read Gate Input
+                                                if (nodep2->frozen_rd) {
+                                                        continue;
+                                                }
+                                                else {
+                                                        //Read Gate Input
+                                                        found_unfrozen = true;
+                                                        gtype = READ;
+                                                        innov_type = NEWLSTMLINK_RD;
+                                                }
+                                        }
+                                        else if (rand_num < 1.0) {//Write Gate Input
+                                                if (nodep2->frozen_wr) {
+                                                        continue;
+                                                }
+                                                else {
+                                                        //Write Gate Input
+                                                        found_unfrozen = true;
+                                                        gtype = WRITE;
+                                                        innov_type = NEWLSTMLINK_WR;
+                                                }
+                                        }
+                                        //else {
+                                        //        if (nodep2->frozen_fg) {//Forget Gate Input
+                                        //                continue;
+                                        //        }
+                                        //        else {
+                                        //                //Forget Gate Input
+                                        //                found_unfrozen = true;
+                                        //                gtype = FORGET;
+                                        //                innov_type = NEWLSTMLINK_FG;
+                                        //        }
+                                        //}
+                                } 
                         }
                         else {//For Non-LSTM links or outgoing links from LSTM
                                 gtype = NONE;

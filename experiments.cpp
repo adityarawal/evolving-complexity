@@ -205,7 +205,8 @@ Population *memory_test(int gens) {
 
           //Freeze the startgenome if required
           if (NEAT::frozen_startgenome==1) {
-               freeze_update_genome(start_genome);
+               //freeze_update_genome(start_genome);
+               start_genome->freeze_genome(); //Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
           }
           //Resetting the pointers so that each run/experiment has new winners
           new_winner_genome = NULL;
@@ -726,11 +727,13 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   Network *net;
   bool success;  //Check for successful activation
   int count=0;
+  double output_error = 0.0;
   double output_error_1_step = 0.0;
   double output_error_2_step = 0.0;
+  double average_output_error;
   double average_output_error_1_step;
   double average_output_error_2_step;
-  double in[3]; //3-bit input - Bias, number, input data valid(1/0), Recall(1)/Instruct(0)
+  double in[4]; //3-bit input - Bias, number, input data valid(1/0), Recall(1)/Instruct(0)
   in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
   //int num_trials = 20;
@@ -749,7 +752,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                     //Activate NN
                     in[1] = input_data[seqnum][step]; //Input Data
                     in[2] = 1; //Input Data Valid signal
-                    //in[3] = 0; //Recall signal
+                    in[3] = 0; //Recall signal
                     //std::cout<<" Input Sequence: ";
                     //std::cout<<in[1]<<" ";
                     net->load_sensors(in);
@@ -774,7 +777,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                            //Insert Zero (Don't-care) input activations at random time-steps
                            in[1] = 0;//Input data
                            in[2] = 0;//Input Data Valid
-                           //in[3] = 0;//Recall signal
+                           in[3] = step+1;//Recall signal
                            int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
                            //Activate NN for random time-steps
                            //std::cout<<std::endl<<" Random Output: "<<std::endl;
@@ -787,8 +790,8 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
 
                            //Activate NN once after random-time steps for recall
                            in[1] = 0;
-                           in[2] = 0;//Input Data Valid
-                           //in[3] = 0;//Recall signal
+                           in[2] = 0;//Negative value indicates RECALL
+                           in[3] = step+1;//Recall signal
                            net->load_sensors(in); //Give zeroes as input during recall phase
                            success=net->activate();
                            
@@ -816,8 +819,8 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                            output_sequence.push_back((net->outputs[0])->activation);
                            //output_sequence2.push_back((net->outputs[1])->activation);
                                    
-                           //output_error = output_error + abs((net->outputs[0])->activation - input_data[seqnum][step]);
-                           //count = count + 1;
+                           output_error = output_error + abs((net->outputs[0])->activation - input_data[seqnum][step]);
+                           count = count + 1;
 
                    }
                    //if ((output_sequence[0]==input_data[seqnum][0]) && (output_sequence[1]==input_data[seqnum][1]) && (output_sequence[2]==input_data[seqnum][2])){
@@ -829,7 +832,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                    //if ((output_sequence[0]==input_data[seqnum][0])) {
                    //        reward = reward + 1;
                    //}
-                   output_error_1_step = output_error_1_step + abs(output_sequence[0] - input_data[seqnum][2]);
+                   //output_error_1_step = output_error_1_step + abs(output_sequence[0] - input_data[seqnum][2]);
                    //output_error_2_step = output_error_2_step + abs(output_sequence2[0] - input_data[seqnum][1]);
                    //if (abs(output_sequence[0] - input_data[seqnum][0]) < 0.05) {
                    //        output_error = output_error + abs(output_sequence[1] - input_data[seqnum][1]);
@@ -837,7 +840,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
                    //else {
                    //        output_error = output_error + abs(output_sequence[0] - input_data[seqnum][0]);
                    //}
-                   count = count+1;
+                   //count = count+1;
                    output_sequence.clear();
                    output_sequence2.clear();
            }
@@ -854,10 +857,11 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
         //org->fitness2=0.0;
   }
   else {
-        average_output_error_1_step = output_error_1_step/count;//Ranges between 0-1
-        average_output_error_2_step = output_error_2_step/count;//Ranges between 0-1
+        average_output_error = output_error/count;//Ranges between 0-1
+        //average_output_error_1_step = output_error_1_step/count;//Ranges between 0-1
+        //average_output_error_2_step = output_error_2_step/count;//Ranges between 0-1
         //reward = 1.0-(average_output_error_1_step+average_output_error_2_step)/2; //1 Step recall reward 
-        reward = 1-average_output_error_1_step; //2 Step recall reward 
+        reward = 1-average_output_error; //2 Step recall reward 
 
         //if (average_output_error_2_step < 0.05) {
         //        reward = 1-average_output_error_1_step; //2 Step recall reward 

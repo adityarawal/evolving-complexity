@@ -40,13 +40,17 @@ NNode::NNode(nodetype ntype,int nodeid) {
 	dup=0;
 	analogue=0;
 	frozen=false;
+        frozen_ip=false;//LSTM Input data. For LSTM, individual gates can be frozen separately
+        frozen_rd=false;//LSTM Read gate. For LSTM, individual gates can be frozen separately
+        frozen_wr=false;//LSTM Write gate. For LSTM, individual gates can be frozen separately
+        frozen_fg=false;//LSTM Forget gate. For LSTM, individual gates can be frozen separately
 	trait_id=1;
 	override=false;
         std::cout<<"ERROR in nnode.cpp constructor. This should not have been called "<<std::endl;
         exit(0);
 }
 
-NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze) {
+NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze, bool freeze_ip, bool freeze_rd, bool freeze_wr, bool freeze_fg) {
 	active_in_flag=false;
 	active_out_flag=false;
 	visited=false;
@@ -73,6 +77,10 @@ NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze) {
         dup=0;
 	analogue=0;
 	frozen=freeze;
+        frozen_ip=freeze_ip;//LSTM Input data. For LSTM, individual gates can be frozen separately
+        frozen_rd=freeze_rd;//LSTM Read gate. For LSTM, individual gates can be frozen separately
+        frozen_wr=freeze_wr;//LSTM Write gate. For LSTM, individual gates can be frozen separately
+        frozen_fg=freeze_fg;//LSTM Forget gate. For LSTM, individual gates can be frozen separately
 	trait_id=1;
 	override=false;
 }
@@ -105,6 +113,10 @@ NNode::NNode(NNode *n,Trait *t) {
 	analogue=0;
 	nodetrait=t;
 	frozen=n->frozen;
+        frozen_ip=n->frozen_ip;//LSTM Input data. For LSTM, individual gates can be frozen separately
+        frozen_rd=n->frozen_rd;//LSTM Read gate. For LSTM, individual gates can be frozen separately
+        frozen_wr=n->frozen_wr;//LSTM Write gate. For LSTM, individual gates can be frozen separately
+        frozen_fg=n->frozen_fg;//LSTM Forget gate. For LSTM, individual gates can be frozen separately
 	if (t!=0)
 		trait_id=t->trait_id;
 	else trait_id=1;
@@ -158,6 +170,10 @@ NNode::NNode (const char *argline, std::vector<Trait*> &traits) {
 	// Get the Sensor Identifier and Parameter String
 	// mySensor = SensorRegistry::getSensor(id, param);
 	frozen=false;  //TODO: Maybe change
+        frozen_ip=false;//LSTM Input data. For LSTM, individual gates can be frozen separately
+        frozen_rd=false;//LSTM Read gate. For LSTM, individual gates can be frozen separately
+        frozen_wr=false;//LSTM Write gate. For LSTM, individual gates can be frozen separately
+        frozen_fg=false;//LSTM Forget gate. For LSTM, individual gates can be frozen separately
 
 	//Get a pointer to the trait this node points to
 	if (traitnum==0) nodetrait=0;
@@ -196,6 +212,10 @@ NNode::NNode (const NNode& nnode)
 	dup = nnode.dup;
 	analogue = nnode.dup;
 	frozen = nnode.frozen;
+        frozen_ip=nnode.frozen_ip;//LSTM Input data. For LSTM, individual gates can be frozen separately
+        frozen_rd=nnode.frozen_rd;//LSTM Read gate. For LSTM, individual gates can be frozen separately
+        frozen_wr=nnode.frozen_wr;//LSTM Write gate. For LSTM, individual gates can be frozen separately
+        frozen_fg=nnode.frozen_fg;//LSTM Forget gate. For LSTM, individual gates can be frozen separately
 	trait_id = nnode.trait_id;
 	override = nnode.override;
 }
