@@ -32,6 +32,7 @@
 #include "genome.h"
 #include "species.h"
 #include "kraskovmi.h"
+#include "fraserMI.h"
 
 using namespace std;
 
@@ -45,7 +46,7 @@ int xor_epoch(Population *pop,int generation,char *filename, int &winnernum, int
 //The memory evolution routines *************************
 Population *memory_test(int gens);
 bool memory_test(Organism *org);
-int memory_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, vector< vector <double> > &independent_archive, int max_rand_activate);
+int memory_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, vector< vector <double> > &independent_archive, int num_trials, int aisle_length);
 
 
 //Single pole balancing evolution routines ***************************

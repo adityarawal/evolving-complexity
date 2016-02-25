@@ -89,7 +89,7 @@ void generate_bin_input_data(std::vector < vector < double > > &input_data, int 
     }
 }
 
-void generate_discrete_input_data(std::vector < vector < double > > &input_data, int num_input_nodes){
+void generate_discrete_input_data(std::vector < vector < double > > &input_data){
     
     cout<<"Generating Discrete Input Sequence Data "<<endl;
     int num_sequences = pow(2, NEAT::input_sequence_len);
@@ -117,6 +117,47 @@ void generate_discrete_input_data(std::vector < vector < double > > &input_data,
     }
 } 
 
+void generate_Tmaze_input_data(int num_input_nodes, std::vector < vector < double > > &input_data, int num_trials, int aisle_length){
+    cout<<"Generating Tmaze Input Data "<<endl;
+    int trial_length = aisle_length*NEAT::input_sequence_len;
+    input_data.resize(num_trials*trial_length, std::vector<double>());
+    std::vector < vector < double > > input_sequences; //All the input sequences (does not include other inputs like wall distance, valid etc.
+
+    //Generate all possible binary (1/-1) sequences of a given length 
+    generate_discrete_input_data(input_sequences);
+    
+    for (int i = 0; i<num_trials; i++) {
+            
+            //At the start of the trial, input sequence is shown to the agent  
+            bool onetime = false;//Used to make sure that light sequence input is given only once at the start of the trial
+            for (int j=0; j<NEAT::input_sequence_len; j++) {
+                    int Tjunction_dist = aisle_length;
+                    for (int k=0; k<aisle_length; k++ ) {
+                            Tjunction_dist = Tjunction_dist - 1;
+                            input_data[i*trial_length+j*aisle_length+k].push_back(Tjunction_dist);
+                            if (!onetime) {//If the light have not been shown to the agent (Basically, start of the trial)
+                                    if (k<input_sequence_len) {
+                                            double rand_num = randfloat();
+                                            //if (i%2 == 0.0) {
+                                            input_data[i*trial_length+j*aisle_length+k].push_back(input_sequences[i][k]);
+                                            //}
+                                            //else {
+                                            //}
+                                    }
+                                    else {
+                                            input_data[i*trial_length+j*aisle_length+k].push_back(0);
+
+                                    }
+                            }
+                            else { //No more light sequence input on subsequent turns
+                                    input_data[i*trial_length+j*aisle_length+k].push_back(0);
+                                    
+                            }
+                    }
+                    onetime = true; //Set it so that the lights are not shown again (in subsequent T-junctions)
+            }
+    }
+}
 
 void freeze_update_genome(Genome *start_genome) {
          std::cout<<"Freezing start genome"<<std::endl;
@@ -205,8 +246,8 @@ Population *memory_test(int gens) {
 
           //Freeze the startgenome if required
           if (NEAT::frozen_startgenome==1) {
-               //freeze_update_genome(start_genome);
-               start_genome->freeze_genome(); //Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
+               freeze_update_genome(start_genome);
+               //start_genome->freeze_genome(); //Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
           }
           //Resetting the pointers so that each run/experiment has new winners
           new_winner_genome = NULL;
@@ -216,10 +257,10 @@ Population *memory_test(int gens) {
           independent_archive.clear();
 
           //Read the Image data and output labels (digits) from text file
-          int num_sequences = 1000;
-          int max_rand_activate = 20;
-          generate_real_input_data(input_data, NEAT::input_sequence_len, num_sequences);
-
+          int num_trials = pow(2, NEAT::input_sequence_len); //Number of Trials
+          int aisle_length = 10; //Aisle length (Fixed for now)
+          int max_rand_activate = 20; //Not used currently
+          generate_Tmaze_input_data(num_input_nodes, input_data, num_trials, aisle_length);
           //Spawn the Population
           cout<<"Spawning Population off Genome "<<start_genome->genome_id<<endl;;
 
@@ -238,7 +279,7 @@ Population *memory_test(int gens) {
                   sprintf (temp, "gen_%d_%d", gen,current_output_nodes);
 
                   bool success = false;
-                  success = memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, independent_archive, max_rand_activate);
+                  success = memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, independent_archive, num_trials, aisle_length);
                   //Check for success
                   if  (success && (current_output_nodes == NEAT::max_output_nodes)) {//If all independent output features have been discovered
                           //Collect Stats on end of experiment
@@ -438,6 +479,7 @@ class histogram
         static double entropy(std::vector<double> xvals, int x_num_bins) {
         	histogram hx;// = new histogram();
         	hx.initialize1d(xvals,x_num_bins);
+                //hx.print_bin_counts();
                 double granularity_x = (double) (1.0/(double) x_num_bins); 
                 double entropy=0.0;
         	for(double x=0.0000001;x<1.0;x=x+granularity_x) {//Starting with x=0.0000001 to avoid double inaccuracy
@@ -449,6 +491,7 @@ class histogram
         			entropy+=(-1.0)*px*(log_anybase(px, x_num_bins));
                         }
                 }
+                //std::cout<<"Entropy:"<<entropy<<std::endl;
                 if (entropy > 1.0) {
                         std::cout<<" Entropy IS MORE THAN : 1.0 "<<entropy<<std::endl;//Uniform distb shd have max = 1.0
                         exit(0);
@@ -496,7 +539,7 @@ class histogram
         }
 
 };
-	
+
 double compute_standev_scaled(int num_bin, int y_x_delay, int active_time_steps, std::vector <double> sequence_x) {
 
   //std::vector <double> X; //One list for each history step
@@ -567,30 +610,36 @@ void op_ip_mutual_info (std::vector< std::vector<double> > input_sequences, std:
           }
 }
 
-double normalized_mi(const vector <double> &X, const vector <double> &Y, double entropy_X, double entropy_Y, int K, int num_bin) {
+double normalized_mi(const vector <double> &X, const vector <double> &Y, const double entropy_X, const double entropy_Y, int K, int num_bin) {
         double large_number = 100.0;
         double mi, norm_mi;
+        double max_entropy = 1.0; //This the fraser entropy for a completely random variable (size = 80x1, generated by MATLAB)
         if (entropy_X == 0.0 || entropy_Y == 0.0) {//If one of the outputs is fixed
                 norm_mi = large_number; //Large number (Avoid division by zero)
         }
         else {
-                //mi = kraskov_mutual_information(K, X, Y);
                 mi = compute_mutual_information(num_bin, X, Y);
+                std::cout<<" Binned Entropy: "<<entropy_X<<" "<<entropy_Y<<std::endl;
+                //mi = slow_kraskov_mutual_information(K, X, Y);
+                //mi = fraser_mutual_information(X, Y);
+                std::cout<<"Binned MI: "<<mi<<std::endl;
                 if (entropy_X<entropy_Y) {
-                        if(entropy_X < 0.5) { //If entropy is very small, no point looking at the mutual information
-                                norm_mi = (1.0/entropy_X);
-                        }
-                        else {
-                                norm_mi = mi/entropy_X;  //ref: Pablo estez (2009) - Normalized mutual information
-                        } 
+                        //if(entropy_X < 0.5) { //If entropy is very small, no point looking at the mutual information
+                        //        norm_mi = (1.0/entropy_X);
+                        //}
+                        //else {
+                                //norm_mi = mi/(entropy_X/max_entropy);  //ref: Pablo estez (2009) - Normalized mutual information
+                                norm_mi = (mi + (max_entropy-entropy_X));  //ref: Pablo estez (2009) - Normalized mutual information
+                        //} 
                 }
                 else {
-                        if(entropy_Y < 0.5) {//If entropy is very small, no point looking at the mutual information
-                                norm_mi = (1.0/entropy_Y);
-                        }
-                        else {
-                                norm_mi = mi/entropy_Y;  //ref: Pablo estez (2009) - Normalized mutual information
-                        } 
+                        //if(entropy_Y < 0.5) {//If entropy is very small, no point looking at the mutual information
+                        //        norm_mi = (1.0/entropy_Y);
+                        //}
+                        //else {
+                                //norm_mi = mi/(entropy_Y/max_entropy);  //ref: Pablo estez (2009) - Normalized mutual information
+                                norm_mi = (mi + (max_entropy-entropy_Y));  //ref: Pablo estez (2009) - Normalized mutual information
+                        //} 
                 }
         }
         return norm_mi;
@@ -604,91 +653,96 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
   double large_number = 100.0;
   
   //Parameters for information objective (Used to specify history window)
-  int num_bin = 2; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
+  int num_bin = 10; //Real value from 0-1 is discretized into these bins (Set to 2 for binary inputs)
   int K = 3; //Nearest neighbor parameter for Kraskov mutual information computation 
   //Print to file for plotting these parameters
   if (generation == 1) {
           std::cout<<" num_bin: "<<num_bin<<" Kraskov k: "<<K<<" num_outputs: "<<num_output_nodes<<std::endl;  
   }
 
-  //std::vector <double> row;
-  //int j, k;
-  //for ( j = 0 ; j < active_output_sequences.size() ; j++ ) { 
-  //        char temp[50];
-  //        sprintf (temp, "output_features_%d", j+1+num_input_nodes);
-  //        ofstream output_file(temp);
-  //        ostream_iterator<double> output_iterator(output_file, " ");
-  //        row.clear();
-  //        for (k = 0; k < active_output_sequences[0].size(); k++) {
-  //                row.push_back(active_output_sequences[j][k]);
-  //                copy(row.begin(), row.end(), output_iterator);
-  //                output_file  << '\n';
-  //                row.clear(); 
-  //        }
-  //        output_file.close();
-  //}
-  //exit(0);
+  //Write the features in output files
+  std::vector <double> row;
+  int j, k;
+  for ( j = 0 ; j <num_output_nodes ; j++ ) { 
+          char temp[50];
+          sprintf (temp, "output_features_%d", j+1+num_input_nodes);
+          ofstream output_file(temp);
+          ostream_iterator<double> output_iterator(output_file, " ");
+          row.clear();
+          for (k = 0; k < output_activations[0].size(); k++) {
+                  row.push_back(output_activations[j][k]);
+                  copy(row.begin(), row.end(), output_iterator);
+                  output_file  << '\n';
+                  row.clear(); 
+          }
+          output_file.close();
+  }
 
   //Fitness
   if (org->error !=1) { //If all outputs were activated
 
-    //double mutual_information = 0.0; //Mutual information range: 0 to Large number
-    //vector <double> entropy(output_end_index-output_start_index, 0.0);
-    //vector <double> entropy_archive(independent_archive.size(), 0.0);
-    //int mi_count = 0;
-    ////Compute entropy of each output variable  
-    //for (int i=output_start_index; i<output_end_index; i++) {
-    //         entropy[i-output_start_index] = compute_entropy(num_bin, output_activations[org_index*num_active_outputs+i]); //Ranges between 0-1
-    //         //std::cout<<"Entropy of Output Node ID: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" : "<<entropy[i]<<std::endl;
-    //}      
-    ////Entropy of the Archived features (Future Work: No need to recompute this for the frozen network)
-    //for (int i=0; i<independent_archive.size(); i++) {
-    //         entropy_archive[i] = compute_entropy(num_bin, independent_archive[i]); //Ranges between 0-1
-    //         //std::cout<<"Entropy of Archived Feature "<<i<<" : "<<entropy_archive[i]<<std::endl;
-    //}       
+    double mutual_information = 0.0; //Mutual information range: 0 to Large number
+    vector <double> entropy(output_end_index-output_start_index, 0.0);
+    vector <double> entropy_archive(independent_archive.size(), 0.0);
+    int mi_count = 0;
+    int feature_count = 1;
+    //Compute entropy of each output variable  
+    for (int i=output_start_index; i<output_end_index; i++) {
+             //entropy[i-output_start_index] = fraser_entropy(output_activations[org_index*num_active_outputs+i], feature_count); //Ranges between 0-1
+             //feature_count++;
+             entropy[i-output_start_index] = compute_entropy(num_bin, output_activations[org_index*num_active_outputs+i]); //Ranges between 0-1
+             //std::cout<<"Entropy of Output Node ID: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" : "<<entropy[i]<<std::endl;
+    }     
+    //Entropy of the Archived features (Future Work: No need to recompute this for the frozen network)
+    for (int i=0; i<independent_archive.size(); i++) {
+             //entropy_archive[i] = fraser_entropy(independent_archive[i], feature_count); //Ranges between 0-max_entropy
+             //feature_count++;
+             entropy_archive[i] = compute_entropy(num_bin, independent_archive[i]); //Ranges between 0-1
+             //std::cout<<"Entropy of Archived Feature "<<i<<" : "<<entropy_archive[i]<<std::endl;
+    }       
 
-    ////Compute pairwise NORMALIZED mutual information between all the newly added output nodes and between new outputs and the archive
-    //for (int i=output_start_index; i<output_end_index; i++) {
-    //        double norm_mi;
-    //        for (int j=output_start_index; j<output_end_index; j++) {
-    //                if (i != j && j > i) {//Skip duplicate pairs 
-    //                         norm_mi = normalized_mi(output_activations[org_index*num_active_outputs+i], 
-    //                                                         output_activations[org_index*num_active_outputs+j], entropy[i-output_start_index], entropy[j-output_start_index], K, num_bin);
-    //                         if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
-    //                                         mutual_information = norm_mi;
-    //                         }
-    //                         //std::cout<<"Mutual Information between Outputs Node IDs: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" "<<org->net->outputs[independent_archive.size()+j]->node_id<<": "<<norm_mi<<std::endl;
-    //                }
-    //        }
-    //        for (int j=0; j<independent_archive.size(); j++) {
-    //                norm_mi = normalized_mi(output_activations[org_index*num_active_outputs+i], 
-    //                                                independent_archive[j], entropy[i-output_start_index], entropy_archive[j], K, num_bin);
-    //                if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
-    //                                mutual_information = norm_mi;
-    //                }
-    //                //std::cout<<"Mutual Information between Archived Feature and Output Node ID: "<<j<<" "<<org->net->outputs[independent_archive.size()+i]->node_id<<": "<<norm_mi<<std::endl;
+    //Compute pairwise NORMALIZED mutual information between all the newly added output nodes and between new outputs and the archive
+    for (int i=output_start_index; i<output_end_index; i++) {
+            double norm_mi;
+            for (int j=output_start_index; j<output_end_index; j++) {
+                    if (i != j && j > i) {//Skip duplicate pairs 
+                             norm_mi = normalized_mi(output_activations[org_index*num_active_outputs+i], 
+                                                             output_activations[org_index*num_active_outputs+j], entropy[i-output_start_index], entropy[j-output_start_index], K, 2);
+                             if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
+                                             mutual_information = norm_mi;
+                             }
+                             //std::cout<<"Mutual Information between Outputs Node IDs: "<<org->net->outputs[independent_archive.size()+i]->node_id<<" "<<org->net->outputs[independent_archive.size()+j]->node_id<<": "<<norm_mi<<std::endl;
+                    }
+            }
+            for (int j=0; j<independent_archive.size(); j++) {
+                    norm_mi = normalized_mi(output_activations[org_index*num_active_outputs+i], 
+                                                    independent_archive[j], entropy[i-output_start_index], entropy_archive[j], K, 2);
+                    if (norm_mi > mutual_information) { //Largest mutual information pair (No need to average)
+                                    mutual_information = norm_mi;
+                    }
+                    //std::cout<<"Mutual Information between Archived Feature and Output Node ID: "<<j<<" "<<org->net->outputs[independent_archive.size()+i]->node_id<<": "<<norm_mi<<std::endl;
 
-    //        }
-    //}
-    //org->fitness2 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
-    org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
+            }
+    }
+    org->fitness1 = (1-mutual_information)*100; //(((1-mutual_information) + entropy)/2)*100; //Minimize Mutual Info and Max variable entropy 
+    //org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
   }
   else {
     //The network is flawed (shouldnt happen)
     std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
     errorsum=999.0;
     org->fitness1=(1.0-large_number)*100;
-    org->fitness2=(1.0-large_number)*100;
+    //org->fitness2=(1.0-large_number)*100;
   }
 
-  if (org->fitness1>=95.000) {
+  if (org->fitness1>=90.000) {
         org->winner = true;
         std::cout<<"OBJECTIVE1 ACHIEVED:: WINNER FOUND"<<std::endl;
   }
   else{
         org->winner = false;
   }
-  if (org->fitness2>=95.0) {
+  if (org->fitness2>=90.0) {
         //org->winner = true;
         std::cout<<"OBJECTIVE2 ACHIEVED:: WINNER FOUND"<<std::endl;
   }
@@ -709,6 +763,50 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
   return org->winner;
 }
 
+//Print network input and outputs for each organism
+void  print_ip_op(const std::vector < vector < double > > &input_data, const std::vector < vector <double> > &output_activations, int org_count, int num_active_outputs, int output_start_index, int output_end_index) {
+        for (int org_index=0; org_index<org_count; org_index++) {
+                std::cout<<"ORG NUMBER:: "<<org_index<<std::endl;
+                for (int i=0; i<input_data.size(); i++) {
+                        int output_count = 0; //For indexing the correct network output
+                        //std::cout<<"Input: "<<input_data[i][0]<<" "<<input_data[i][1]<<" Output: ";  
+                        for (int j=output_start_index; j<output_end_index; j++) {//Storing output from each non-frozen output nodes 
+                                std::cout<<output_activations[org_index*num_active_outputs + output_count][i]<<"      ";
+                                output_count++;
+                        }
+                        //std::cout<<std::endl;
+                }
+        } 
+}
+
+//Scale each output node values such that its value lie in the range of (0-0.9999)
+void scale_output_activations(std::vector < vector <double> > &output_activations, int org_count, int num_active_outputs, int output_start_index, int output_end_index) {
+        for (int org_index=0; org_index<org_count; org_index++) {
+               int output_count = 0; //For indexing the correct network output  
+               for (int i=output_start_index; i<output_end_index; i++) {//Storing output from each non-frozen output node
+                      double max_value, min_value;
+                      vector<double> single_output_activations = output_activations[org_index*num_active_outputs+output_count];
+                      //min_value = *min_element(single_output_activations.begin(), single_output_activations.end()); 
+                      //max_value = *max_element(single_output_activations.begin(), single_output_activations.end()); 
+                      min_value = -1; //tanh activation for LSTM outputs
+                      max_value = 1; //tanh activation for LSTM outputs
+                      for (int j=0; j< single_output_activations.size(); j++) {
+                              if (max_value==min_value) {
+                                      single_output_activations[j] = 0.5; //Fix it to a constant
+                              }
+                              else {
+                                      single_output_activations[j] = (single_output_activations[j] - min_value)/(max_value-min_value);
+                              }
+                              if (single_output_activations[j] == 1.0) {//Kraskov mutual information implementation cannot handle values >= 1.0
+                                      single_output_activations[j] = single_output_activations[j]  - 0.0001;
+                              }
+                      }
+                      output_activations[org_index*num_active_outputs+output_count] = single_output_activations;
+                      output_count = output_count + 1;
+               }
+        }
+}
+
 void save_output_activations(int org_index, int num_active_outputs, std::vector < vector <double> > &output_activations, Network *net, int output_start_index, int output_end_index) {
         int output_count = 0; //For indexing the correct network output  
         for (int i=output_start_index; i<output_end_index; i++) {//Storing output from each non-frozen output node 
@@ -722,7 +820,7 @@ void save_output_activations(int org_index, int num_active_outputs, std::vector 
         //std::cout<<std::endl;
 }
 
-void memory_activate(Organism *org, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &input_data, std::vector < vector <double> > &output_activations, int max_rand_activate) {
+void memory_activate(Organism *org, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &input_data, std::vector < vector <double> > &output_activations, int num_trials, int aisle_length) {
   
   Network *net;
   bool success;  //Check for successful activation
@@ -733,7 +831,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   double average_output_error;
   double average_output_error_1_step;
   double average_output_error_2_step;
-  double in[4]; //3-bit input - Bias, number, input data valid(1/0), Recall(1)/Instruct(0)
+  double in[2]; //3-bit input - Bias, distance from T-junction, Binary light (older -> input data valid(1/0), Recall(1)/Instruct(0))
   in[0] = 1.0; //First input is Bias signal
   //int net_depth; //The max depth of the network to be activated
   //int num_trials = 20;
@@ -742,108 +840,112 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   double reward = 0.0;
   std::vector <double> output_sequence;
   std::vector <double> output_sequence2;
+  int trial_length = aisle_length*NEAT::input_sequence_len;//Total number of steps that an agent takes in a trial
   //net_depth=net->max_depth();
   
   //Load and activate the network on each input
   //for (int trial=0;trial< num_trials; trial++) {//Repeat several times for the same set of sequence
-  for(int seqnum=0; seqnum < input_data.size(); seqnum++) {//For each new input sequence
-           for (int step=0;step< input_data[seqnum].size(); step++) { //WRITE PHASE:: For each step in the input sequence
+  for(int trial=0; trial < num_trials; trial++) {//For each new input sequence
+           for (int step=0;step< trial_length; step++) { //WRITE PHASE:: For each step in the input sequence
   
                     //Activate NN
-                    in[1] = input_data[seqnum][step]; //Input Data
-                    in[2] = 1; //Input Data Valid signal
-                    in[3] = 0; //Recall signal
+                    //in[1] = input_data[trial*trial_length+step][0]; //Input T-junction Distance
+                    in[1] = input_data[trial*trial_length+step][1]; //Input Binary Light
+                    
+                    //in[3] = 0; //Recall signal
                     //std::cout<<" Input Sequence: ";
-                    //std::cout<<in[1]<<" ";
+                    //std::cout<<in[1]<<":::";
                     net->load_sensors(in);
                     success=net->activate(); 
                     //std::cout<<std::endl<<" Some Output: "<<std::endl;
-                    //std::cout<<(net->outputs[0])->activation <<std::endl;
+                    //std::cout<<" Some Output: "<<(net->outputs[0])->activation <<" "<<(net->outputs[1])->activation<<std::endl;
                     //save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
                     if (!success) {
                             org->error = 1;
-                            //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
+                            std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
                             break;//Breaks inner for-loop
+                            //sprintf (temp, "not_activating_%d", org_index);
                             //std::ofstream outFile("not_activating",std::ios::out);
                             //((org)->gnome)->print_to_file(outFile);
                     }
+                    save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
            }
-           if (org->error == 1){
-                    break;//Breaks outer for-loop
-           }
-           else { 
-                   for (int step=0;step< input_data[seqnum].size(); step++) {//RECALL PHASE:: For each step in the input sequence
+           //if (org->error == 1){
+           //         break;//Breaks outer for-loop
+           //}
+           //else { 
+           //        for (int step=0;step< input_data[seqnum].size(); step++) {//RECALL PHASE:: For each step in the input sequence
 
-                           //Insert Zero (Don't-care) input activations at random time-steps
-                           in[1] = 0;//Input data
-                           in[2] = 0;//Input Data Valid
-                           in[3] = step+1;//Recall signal
-                           int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
-                           //Activate NN for random time-steps
-                           //std::cout<<std::endl<<" Random Output: "<<std::endl;
-                           for (int i=0; i<rand_num; i++) {//Don't-care activate 
-                                   net->load_sensors(in); 
-                                   success=net->activate(); 
-                                   save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
-                                   //std::cout<<(net->outputs[0])->activation <<std::endl;
-                           }
+           //                //Insert Zero (Don't-care) input activations at random time-steps
+           //                in[1] = 0;//Input data
+           //                in[2] = 0;//Input Data Valid
+           //                in[3] = step+1;//Recall signal
+           //                int rand_num = round(max_rand_activate*randfloat())+max_rand_activate;//ranges between 10-110
+           //                //Activate NN for random time-steps
+           //                //std::cout<<std::endl<<" Random Output: "<<std::endl;
+           //                for (int i=0; i<rand_num; i++) {//Don't-care activate 
+           //                        net->load_sensors(in); 
+           //                        success=net->activate(); 
+           //                        save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
+           //                        //std::cout<<(net->outputs[0])->activation <<std::endl;
+           //                }
 
-                           //Activate NN once after random-time steps for recall
-                           in[1] = 0;
-                           in[2] = 0;//Negative value indicates RECALL
-                           in[3] = step+1;//Recall signal
-                           net->load_sensors(in); //Give zeroes as input during recall phase
-                           success=net->activate();
-                           
-                           //std::cout<<std::endl<<" Actual Output: "<<std::endl;
-                           //std::cout<<(net->outputs[0])->activation <<std::endl;
-                           save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
-                           //***************START OLD DISCRETE INPUT****************
-                           ////First output is the actual stored value we are looking for 
-                           //if (((net->outputs[0])->activation >= 0.5 && input_data[seqnum][step]==-1.0) ||
-                           //    ((net->outputs[0])->activation < 0.5 && input_data[seqnum][step]==1.0)){
-                           //        output_error = output_error + 1;
-                           //}
-                           //count = count + 1;
-                           //***************END OLD DISCRETE INPUT****************
+           //                //Activate NN once after random-time steps for recall
+           //                in[1] = 0;
+           //                in[2] = 0;//Negative value indicates RECALL
+           //                in[3] = step+1;//Recall signal
+           //                net->load_sensors(in); //Give zeroes as input during recall phase
+           //                success=net->activate();
+           //                
+           //                //std::cout<<std::endl<<" Actual Output: "<<std::endl;
+           //                //std::cout<<(net->outputs[0])->activation <<std::endl;
+           //                save_output_activations(org_index, num_active_outputs, output_activations, net, output_start_index, output_end_index);
+           //                //***************START OLD DISCRETE INPUT****************
+           //                ////First output is the actual stored value we are looking for 
+           //                //if (((net->outputs[0])->activation >= 0.5 && input_data[seqnum][step]==-1.0) ||
+           //                //    ((net->outputs[0])->activation < 0.5 && input_data[seqnum][step]==1.0)){
+           //                //        output_error = output_error + 1;
+           //                //}
+           //                //count = count + 1;
+           //                //***************END OLD DISCRETE INPUT****************
 
-                           //***************START NEW DISCRETE INPUT WITH SHAPING REWARDS****************
-                           //if ((net->outputs[0])->activation >= 0.5) {
-                           //        output_sequence.push_back(1.0);
-                           //}
-                           //else {
-                           //        output_sequence.push_back(-1.0);
-                           //}
-                           //***************END NEW DISCRETE INPUT WITH SHAPING REWARDS****************
-                           
-                           output_sequence.push_back((net->outputs[0])->activation);
-                           //output_sequence2.push_back((net->outputs[1])->activation);
-                                   
-                           output_error = output_error + abs((net->outputs[0])->activation - input_data[seqnum][step]);
-                           count = count + 1;
+           //                //***************START NEW DISCRETE INPUT WITH SHAPING REWARDS****************
+           //                //if ((net->outputs[0])->activation >= 0.5) {
+           //                //        output_sequence.push_back(1.0);
+           //                //}
+           //                //else {
+           //                //        output_sequence.push_back(-1.0);
+           //                //}
+           //                //***************END NEW DISCRETE INPUT WITH SHAPING REWARDS****************
+           //                
+           //                output_sequence.push_back((net->outputs[0])->activation);
+           //                //output_sequence2.push_back((net->outputs[1])->activation);
+           //                        
+           //                output_error = output_error + abs((net->outputs[0])->activation - input_data[seqnum][step]);
+           //                count = count + 1;
 
-                   }
-                   //if ((output_sequence[0]==input_data[seqnum][0]) && (output_sequence[1]==input_data[seqnum][1]) && (output_sequence[2]==input_data[seqnum][2])){
-                   //        reward = reward + 1;
-                   //}
-                   //else if ((output_sequence[0]==input_data[seqnum][0]) && (output_sequence[1]==input_data[seqnum][1])){
-                   //        reward = reward + 0.5;
-                   //}
-                   //if ((output_sequence[0]==input_data[seqnum][0])) {
-                   //        reward = reward + 1;
-                   //}
-                   //output_error_1_step = output_error_1_step + abs(output_sequence[0] - input_data[seqnum][2]);
-                   //output_error_2_step = output_error_2_step + abs(output_sequence2[0] - input_data[seqnum][1]);
-                   //if (abs(output_sequence[0] - input_data[seqnum][0]) < 0.05) {
-                   //        output_error = output_error + abs(output_sequence[1] - input_data[seqnum][1]);
-                   //}
-                   //else {
-                   //        output_error = output_error + abs(output_sequence[0] - input_data[seqnum][0]);
-                   //}
-                   //count = count+1;
-                   output_sequence.clear();
-                   output_sequence2.clear();
-           }
+           //        }
+           //        //if ((output_sequence[0]==input_data[seqnum][0]) && (output_sequence[1]==input_data[seqnum][1]) && (output_sequence[2]==input_data[seqnum][2])){
+           //        //        reward = reward + 1;
+           //        //}
+           //        //else if ((output_sequence[0]==input_data[seqnum][0]) && (output_sequence[1]==input_data[seqnum][1])){
+           //        //        reward = reward + 0.5;
+           //        //}
+           //        //if ((output_sequence[0]==input_data[seqnum][0])) {
+           //        //        reward = reward + 1;
+           //        //}
+           //        //output_error_1_step = output_error_1_step + abs(output_sequence[0] - input_data[seqnum][2]);
+           //        //output_error_2_step = output_error_2_step + abs(output_sequence2[0] - input_data[seqnum][1]);
+           //        //if (abs(output_sequence[0] - input_data[seqnum][0]) < 0.05) {
+           //        //        output_error = output_error + abs(output_sequence[1] - input_data[seqnum][1]);
+           //        //}
+           //        //else {
+           //        //        output_error = output_error + abs(output_sequence[0] - input_data[seqnum][0]);
+           //        //}
+           //        //count = count+1;
+           //        output_sequence.clear();
+           //        output_sequence2.clear();
+           //}
            net->flush(); //Flush after each sequence
   }
   //if (org->error == 1){
@@ -853,15 +955,15 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
   if (org->error == 1){
         ////The network is flawed (shouldnt happen)
         //std::cout << " Net not activating. No path to output in genome id: "<<org->gnome->genome_id<<std::endl;//memory_startgenes makes sure no floating outputs
-        //org->fitness1=0.0;
+        org->fitness1=0.0;
         //org->fitness2=0.0;
   }
   else {
-        average_output_error = output_error/count;//Ranges between 0-1
+        //average_output_error = output_error/count;//Ranges between 0-1
         //average_output_error_1_step = output_error_1_step/count;//Ranges between 0-1
         //average_output_error_2_step = output_error_2_step/count;//Ranges between 0-1
         //reward = 1.0-(average_output_error_1_step+average_output_error_2_step)/2; //1 Step recall reward 
-        reward = 1-average_output_error; //2 Step recall reward 
+        //reward = 1-average_output_error; //2 Step recall reward 
 
         //if (average_output_error_2_step < 0.05) {
         //        reward = 1-average_output_error_1_step; //2 Step recall reward 
@@ -869,7 +971,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
         //else {
         //        reward = 0.5-average_output_error_2_step; //1 Step recall reward
         //}
-        org->fitness1 = (reward)*100;//(1-average_output_error)*100; //Ranges between 0-100  
+        //org->fitness1 = (reward)*100;//(1-average_output_error)*100; //Ranges between 0-100  
         //org->fitness2 = org->fitness1; //std_dev*100; //To scale it to 0-100
   }
   //if (org->fitness1>=99.000) {
@@ -901,7 +1003,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
 
 }
 
-int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, std::vector< vector <double> > &independent_archive, int max_rand_activate) {
+int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, std::vector< vector <double> > &independent_archive, int num_trials, int aisle_length) {
   vector<Organism*>::iterator curorg;
   vector<Species*>::iterator curspecies;
   bool win=false;
@@ -913,20 +1015,22 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   std::vector<int> unevaluated_org; //Stores the organism number for the individuals which haven't been evaluated in the population 
   time_t start_seconds, end_seconds; 
 
-  ////If the startgenome was frozen, create the archive of the independent activations (of frozen outputs) at the start
-  //if (NEAT::frozen_startgenome == 1 && generation==1) {
-  //        num_active_outputs = num_output_nodes-NEAT::batch_size;
-  //        output_start_index = 0;
-  //        output_end_index = num_active_outputs;
-  //        independent_archive.resize(num_active_outputs, std::vector<double>(input_data.size()));
-  //        std::cout<<" num_active_outputs: "<< num_active_outputs<<std::endl;
-  //        for (int i=0; i < pop->organisms.size(); i++) {
-  //                memory_activate(pop->organisms[i], 0, num_active_outputs, output_start_index, output_end_index, input_data, independent_archive);
-  //                if (pop->organisms[i]->error !=1) { //If all outputs were activated
-  //                        break;
-  //                }
-  //        }
-  //}
+  //If the startgenome was frozen, create the archive of the independent activations (of frozen outputs) at the start
+  if (NEAT::frozen_startgenome == 1 && generation==1) {
+          num_active_outputs = num_output_nodes-NEAT::batch_size;
+          output_start_index = 0;
+          output_end_index = num_active_outputs;
+          independent_archive.resize(num_active_outputs, std::vector<double>(input_data.size()));
+          //std::cout<<" num_active_outputs: "<< num_active_outputs<<std::endl;
+          for (int i=0; i < pop->organisms.size(); i++) {
+                  memory_activate(pop->organisms[i], 0, num_active_outputs, output_start_index, output_end_index, input_data, independent_archive, num_trials, aisle_length);
+                  if (pop->organisms[i]->error !=1) { //If all outputs were activated
+                          break;
+                  }
+          }
+          //Scale output values to a range (0-0.999)
+          scale_output_activations(independent_archive, 1, num_active_outputs, output_start_index, output_end_index);
+  }
 
   if (independent_archive.size()==0) { //If we are starting from scratch, activate all the output neurons
           num_active_outputs = num_output_nodes;
@@ -948,12 +1052,20 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   //Activate networks of each non-evaluated organism with input data 
   output_start_index = num_output_nodes-num_active_outputs;
   output_end_index = num_output_nodes;
-  #pragma omp parallel for //Parallelization of for loop 
+  //#pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < unevaluated_org.size(); i++) {
-          memory_activate(pop->organisms[unevaluated_org[i]], i, num_active_outputs, output_start_index, output_end_index, input_data, output_activations, max_rand_activate);
+          memory_activate(pop->organisms[unevaluated_org[i]], i, num_active_outputs, output_start_index, output_end_index, input_data, output_activations, num_trials, aisle_length);
   }
+  
+  //print_ip_op(input_data, output_activations, unevaluated_org.size(), num_active_outputs, output_start_index, output_end_index);
+  //Scale output values to a range (0-0.999)
+  scale_output_activations(output_activations, unevaluated_org.size(), num_active_outputs, output_start_index, output_end_index);
+
+  //Print the network input and output for each organism
+  //print_ip_op(input_data, output_activations, unevaluated_org.size(), num_active_outputs, output_start_index, output_end_index);
+  
   //Evaluate each organism for its independent output features (number of features = num_active_outputs)
-  output_start_index = 1; //First output value is used only for comparison with input. Remaining outputs are checked for independence
+  output_start_index = 0; //Older version was --> First output value is used only for comparison with input. Remaining outputs are checked for independence
   output_end_index = num_active_outputs;
   //start_seconds = time(NULL); //Current Time in seconds since January 1, 1970
   //#pragma omp parallel for //Parallelization of for loop 

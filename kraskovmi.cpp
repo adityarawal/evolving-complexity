@@ -439,10 +439,50 @@ double digama ( double x)
 }
 
 double slow_kraskov_mutual_information(int k, const vector<double> &X, const vector<double> &Y) {
+
+        ////List of Unique points
+        //std::vector <double> X; 
+        //std::vector <double> Y; 
+        //
+        ////Initialize by assigning the first point
+        //X.push_back(W[0]);
+        //Y.push_back(Z[0]);
+
+        ////Code to generate a Unique list of 2D points from the input points (W, Z)
+        ////This is necessary because Kraskov MI increases if duplicate points are present
+        //for (int i=1; i <W.size(); i++) {//start comparison from the second point
+        //        bool not_found = true;
+        //        for (int j=0; j<X.size(); j++) {
+        //                if (W[i] != X[j] || Z[i] != Y[j]) {
+        //                        not_found = true;
+        //                }
+        //                else {
+        //                        not_found = false; 
+        //                        break;
+        //                }
+        //        }
+        //        //If the point is new, then update it in the unique list 
+        //        if (not_found == true) {
+        //                X.push_back(W[i]);
+        //                Y.push_back(Z[i]);
+        //        }
+        //}
+        ////if ((X.size() != W.size()) || (Y.size() != Z.size())){
+        ////    std::cout<<" Kraskov: Duplicate points in W, Z removed"<<std::endl;
+        ////    for (int i=0; i<W.size(); i++) {
+        ////            std::cout<<"W and Z: "<< W[i]<<" "<<Z[i]<<std::endl;
+        ////    }
+        ////    for (int i=0; i<X.size(); i++) {
+        ////            std::cout<<"X and Y: "<< X[i]<<" "<<Y[i]<<std::endl;
+        ////    }
+
+        ////    exit(0);
+        ////}
+        
+        //Old Code starts here 
         if (X.size() != Y.size()) {
             std::cout<<" Error('X and Y must contain the same number of samples')"<<std::endl;
         }
-        
         int nObs = X.size();
         vector < vector <double> > dx (nObs, vector <double> (nObs, -1.0));
         vector < vector <double> > dy (nObs, vector <double> (nObs, -1.0));

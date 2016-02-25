@@ -18,7 +18,7 @@ mutate_link_weights_prob 0.8
 mutate_toggle_enable_prob 0.4
 mutate_gene_reenable_prob 0.15
 mutate_add_node_prob 0.01
-mutate_add_link_prob 0.3
+mutate_add_link_prob 0.1
 interspecies_mate_rate 0.001
 mate_multipoint_prob 0.6
 mate_multipoint_avg_prob 0.4
@@ -32,7 +32,7 @@ print_every 1
 babies_stolen 0
 num_runs 1
 batch_size 1
-max_output_nodes 1
-frozen_startgenome 1
-input_sequence_len 3
+max_output_nodes 2
+frozen_startgenome 0
+input_sequence_len 2
 mutate_add_lstm_node_prob 0.00

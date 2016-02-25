@@ -178,7 +178,8 @@ void Network::lstm_activate(NNode* curnode){
                 double rd_gate_activation =  NEAT::fsigmoid(curnode->activesum_rd,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
                 double wr_gate_activation =  NEAT::fsigmoid(curnode->activesum_wr,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
                 double fg_gate_activation =  NEAT::fsigmoid(curnode->activesum_fg,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
-             
+                
+                //double fg_gate_activation = 0.55;
                 //Making control signals binary 
                 if (rd_gate_activation>0.5) rd_gate_activation=1.0;
                 else rd_gate_activation=0.0;
@@ -193,8 +194,11 @@ void Network::lstm_activate(NNode* curnode){
                 //std::cout<<"activesum: "<< curnode->activesum<<std::endl;
                 //curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
                 if (curnode->lstm_cell_state == 0) {//ALlow new writes only when the LSTM cell is empty (write occurs only once for now)
-                        curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation; //Input and history gating
+                        curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation;// + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
 
+                }
+                else {//Gradually decay the value
+                        curnode->lstm_cell_state = (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
                 } 
                 //if (wr_gate_activation==1.0) {
                 //        curnode->lstm_cell_state = (curnode->activesum);//If incoming write, overwrite the stored value
@@ -204,7 +208,7 @@ void Network::lstm_activate(NNode* curnode){
                 //}
                 //std::cout<<"new_Cell_state: "<< curnode->lstm_cell_state<<std::endl;
 
-                double lstm_out =  (curnode->lstm_cell_state)*rd_gate_activation ;//Always Read (No output gating) * rd_gate_activation; //Output gating
+                double lstm_out =  NEAT::ftanh((curnode->lstm_cell_state),1.0,2.4621365);//(curnode->lstm_cell_state);//Always Read (No output gating) * rd_gate_activation; //Output gating
                 //std::cout<<"lstm_out: "<< lstm_out<<std::endl;
 
                 curnode->activation=lstm_out;//NEAT::ftanh(lstm_out,1.0,2.4621365); //Evolino uses tanh. Can try sigmoid as well

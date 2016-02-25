@@ -35,8 +35,8 @@ list_len = 10000
 x = [] #List of random numbers
 y = [] #List of random numbers
 z = []
-x_num_bins =1000
-y_num_bins =1000 
+x_num_bins =10
+y_num_bins =10 
 granularity_x =  (1.0/ x_num_bins); 
 granularity_y =  (1.0/ y_num_bins); 
 
@@ -50,8 +50,8 @@ granularity_y =  (1.0/ y_num_bins);
 
 h1 = []
 h2 = []
-f1 = open("../del_X.txt")
-f2 = open("../del_Y.txt")
+f1 = open("/tmp/p1.txt")
+f2 = open("/tmp/p2.txt")
 h1 = f1.read().strip("\n").split("\n")
 h2 = f2.read().strip("\n").split("\n")
 h1 = [float(i) for i in h1]

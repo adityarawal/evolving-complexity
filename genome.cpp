@@ -1700,7 +1700,7 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,(*thegene)->gate_type,(*thegene)->gate_type);//gate_type stored as mut_num
 	                        //newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+2,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,10.0,nodep1,newnode,false,curinnov+3,WRITE,WRITE);//gate_type stored as mut_num
-	                        //newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
+	                        newgene5=new Gene(traitptr,10.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
 				curinnov+=5.0;
 			}
 			else {
@@ -1708,7 +1708,7 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,curinnov+1,(*thegene)->gate_type,(*thegene)->gate_type);//gate_type stored as mut_num
 	                        //newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,curinnov+2,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,10.0,nodep1,newnode,false,curinnov+3,WRITE,WRITE);//gate_type stored as mut_num
-	                        //newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
+	                        newgene5=new Gene(traitptr,10.0,nodep1,newnode,false,curinnov+4,FORGET,FORGET);//gate_type stored as mut_num
 				curinnov+=5.0;
 			}
 
@@ -1749,14 +1749,14 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,(*thegene)->gate_type,(*thegene)->gate_type);
 	                        //newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num3,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,10.0,nodep1,newnode,false,(*theinnov)->innovation_num4,WRITE,WRITE);//gate_type stored as mut_num
-	                        //newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
+	                        newgene5=new Gene(traitptr,10.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
 			}
 			else {
 				newgene1=new Gene(traitptr,1.0,in_node,newnode,false,(*theinnov)->innovation_num1,NONE,NONE);
 				newgene2=new Gene(traitptr,oldweight,newnode,out_node,false,(*theinnov)->innovation_num2,(*thegene)->gate_type,(*thegene)->gate_type);
 	                        //newgene3=new Gene(traitptr,1.0,nodep1,newnode,false,(*theinnov)->innovation_num3,READ,READ);//gate_type stored as mut_num
 	                        newgene4=new Gene(traitptr,10.0,nodep1,newnode,false,(*theinnov)->innovation_num4,WRITE,WRITE);//gate_type stored as mut_num
-	                        //newgene5=new Gene(traitptr,-10.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
+	                        newgene5=new Gene(traitptr,10.0,nodep1,newnode,false,(*theinnov)->innovation_num5,FORGET,FORGET);//gate_type stored as mut_num
 			}
 
 			done=true;
@@ -2004,7 +2004,13 @@ void Genome::add_output_nodes(int block_size, double &curinnov){//block_size is 
 
         for (int size = 0; size < block_size; size++) {
                 int last_node_id = get_last_node_id();
-	        NNode *newnode=new NNode(NEURON,last_node_id,OUTPUT,false, false, false, false, false);
+                NNode *newnode;
+                //if (NEAT::mutate_add_lstm_node_prob > 0.0) {//Output nodes are LSTM if LSTM nodes are possible
+                        newnode=new NNode(LSTM,last_node_id,OUTPUT,false, false, false, false, false);
+                //}
+                //else {//Otherwise output nodes are like regular hidden neurons
+                //        newnode=new NNode(NEURON,last_node_id,OUTPUT,false, false, false, false, false);
+                //}
                 node_insert(nodes,newnode);
 
                 //Connect the newly added node to the BIAS node (this prevents hanging outputs and thus allows network activations)
@@ -2164,7 +2170,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                                 bool found_unfrozen = false;
                                 while (!found_unfrozen) {
                                         double rand_num = randfloat();
-                                        if (rand_num < 0.333) {//Input Data
+                                        if (rand_num < 0.33) {//Input Data
                                                 if (nodep2->frozen_ip) {
                                                         continue;
                                                 }
@@ -2175,18 +2181,18 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                                                         innov_type = NEWLINK;
                                                 }
                                         }
-                                        else if (rand_num < 0.666) {//Read Gate Input
-                                                if (nodep2->frozen_rd) {
-                                                        continue;
-                                                }
-                                                else {
-                                                        //Read Gate Input
-                                                        found_unfrozen = true;
-                                                        gtype = READ;
-                                                        innov_type = NEWLSTMLINK_RD;
-                                                }
-                                        }
-                                        else if (rand_num < 1.0) {//Write Gate Input
+                                        //else if (rand_num < 0.666) {//Read Gate Input
+                                        //        if (nodep2->frozen_rd) {
+                                        //                continue;
+                                        //        }
+                                        //        else {
+                                        //                //Read Gate Input
+                                        //                found_unfrozen = true;
+                                        //                gtype = READ;
+                                        //                innov_type = NEWLSTMLINK_RD;
+                                        //        }
+                                        //}
+                                        else if (rand_num < 0.66) {//Write Gate Input
                                                 if (nodep2->frozen_wr) {
                                                         continue;
                                                 }
@@ -2197,17 +2203,17 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                                                         innov_type = NEWLSTMLINK_WR;
                                                 }
                                         }
-                                        //else {
-                                        //        if (nodep2->frozen_fg) {//Forget Gate Input
-                                        //                continue;
-                                        //        }
-                                        //        else {
-                                        //                //Forget Gate Input
-                                        //                found_unfrozen = true;
-                                        //                gtype = FORGET;
-                                        //                innov_type = NEWLSTMLINK_FG;
-                                        //        }
-                                        //}
+                                        else {
+                                                if (nodep2->frozen_fg) {//Forget Gate Input
+                                                        continue;
+                                                }
+                                                else {
+                                                        //Forget Gate Input
+                                                        found_unfrozen = true;
+                                                        gtype = FORGET;
+                                                        innov_type = NEWLSTMLINK_FG;
+                                                }
+                                        }
                                 } 
                         }
                         else {//For Non-LSTM links or outgoing links from LSTM
@@ -2233,8 +2239,8 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 					recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
 
 					//ADDED: CONSIDER connections out of outputs recurrent
-					if (((nodep1->type)==OUTPUT)||
-						((nodep2->type)==OUTPUT))//Aditya: Useless. Node type is either SENSOR(1) or NEURON(0).
+					if (((nodep1->gen_node_label)==OUTPUT)&&
+						((nodep2->gen_node_label)==OUTPUT))//Aditya:Output to Output connections are considered recurrent 
 						recurflag=true;
 
 					//Exit if the network is faulty (contains an infinite loop)
@@ -2284,7 +2290,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                                 bool found_unfrozen = false;
                                 while (!found_unfrozen) {
                                         double rand_num = randfloat();
-                                        if (rand_num < 0.333) {//Input Data
+                                        if (rand_num < 0.33) {//Input Data
                                                 if (nodep2->frozen_ip) {
                                                         continue;
                                                 }
@@ -2295,18 +2301,18 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                                                         innov_type = NEWLINK;
                                                 }
                                         }
-                                        else if (rand_num < 0.666) {//Read Gate Input
-                                                if (nodep2->frozen_rd) {
-                                                        continue;
-                                                }
-                                                else {
-                                                        //Read Gate Input
-                                                        found_unfrozen = true;
-                                                        gtype = READ;
-                                                        innov_type = NEWLSTMLINK_RD;
-                                                }
-                                        }
-                                        else if (rand_num < 1.0) {//Write Gate Input
+                                        //else if (rand_num < 0.666) {//Read Gate Input
+                                        //        if (nodep2->frozen_rd) {
+                                        //                continue;
+                                        //        }
+                                        //        else {
+                                        //                //Read Gate Input
+                                        //                found_unfrozen = true;
+                                        //                gtype = READ;
+                                        //                innov_type = NEWLSTMLINK_RD;
+                                        //        }
+                                        //}
+                                        else if (rand_num < 0.66) {//Write Gate Input
                                                 if (nodep2->frozen_wr) {
                                                         continue;
                                                 }
@@ -2317,17 +2323,17 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
                                                         innov_type = NEWLSTMLINK_WR;
                                                 }
                                         }
-                                        //else {
-                                        //        if (nodep2->frozen_fg) {//Forget Gate Input
-                                        //                continue;
-                                        //        }
-                                        //        else {
-                                        //                //Forget Gate Input
-                                        //                found_unfrozen = true;
-                                        //                gtype = FORGET;
-                                        //                innov_type = NEWLSTMLINK_FG;
-                                        //        }
-                                        //}
+                                        else {
+                                                if (nodep2->frozen_fg) {//Forget Gate Input
+                                                        continue;
+                                                }
+                                                else {
+                                                        //Forget Gate Input
+                                                        found_unfrozen = true;
+                                                        gtype = FORGET;
+                                                        innov_type = NEWLSTMLINK_FG;
+                                                }
+                                        }
                                 } 
                         }
                         else {//For Non-LSTM links or outgoing links from LSTM
@@ -2353,8 +2359,8 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 					count=0;
 					recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
 					//ADDED: CONSIDER connections out of outputs recurrent
-                                        if (((nodep1->type)==OUTPUT)||
-						((nodep2->type)==OUTPUT))  //Aditya: Useless. Node type is either SENSOR(1) or NEURON(0).  
+                                        if (((nodep1->gen_node_label)==OUTPUT)&&
+						((nodep2->gen_node_label)==OUTPUT))  //Aditya: Output to output connections are recurrent  
 						recurflag=true;
 
 					//Exit if the network is faulty (contains an infinite loop)

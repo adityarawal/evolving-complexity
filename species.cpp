@@ -1112,21 +1112,21 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
 				//Perform mating based on probabilities of differrent mating types
 				if (randfloat()<NEAT::mate_multipoint_prob) { 
-			                Genome *last_genome=(new_genome)->duplicate(1);
+			                Genome *last_genome=(mom->gnome)->duplicate(1);
 					new_genome=(mom->gnome)->mate_multipoint(dad->gnome,count,mom->orig_fitness,dad->orig_fitness,outside);
                                         char *s = "mate_multipoint";
                                         check_lstm_genes(last_genome, new_genome, s);
                                         delete last_genome;
 				}
 				else if (randfloat()<(NEAT::mate_multipoint_avg_prob/(NEAT::mate_multipoint_avg_prob+NEAT::mate_singlepoint_prob))) {
-			                Genome *last_genome=(new_genome)->duplicate(1);
+			                Genome *last_genome=(mom->gnome)->duplicate(1);
 					new_genome=(mom->gnome)->mate_multipoint_avg(dad->gnome,count,mom->orig_fitness,dad->orig_fitness,outside);
                                         char *s = "mate_multipoint_avg";
                                         check_lstm_genes(last_genome, new_genome, s);
                                         delete last_genome;
 				}
 				else {
-			                Genome *last_genome=(new_genome)->duplicate(1);
+			                Genome *last_genome=(mom->gnome)->duplicate(1);
 					new_genome=(mom->gnome)->mate_singlepoint(dad->gnome,count);
                                         char *s = "mate_singlepoint";
                                         check_lstm_genes(last_genome, new_genome, s);
