@@ -18,6 +18,7 @@
 #include <fstream>
 #include <cmath>
 #include <cstring>
+#include <limits>
 
 double NEAT::trait_param_mut_prob = 0;
 double NEAT::trait_mutation_power = 0; // Power of mutation on a signle trait param 
@@ -508,10 +509,16 @@ double NEAT::fReLu(double activesum,double slope,double constant) {
 }
 
 double NEAT::ftanh(double activesum,double slope,double constant) {
-
         double exp_2x =  exp(2*(slope*activesum));
-	//Tanh
-	return (exp_2x -1 )/(exp_2x+1); //Compressed
+        double max_double = std::numeric_limits<double>::max();
+        double min_double = std::numeric_limits<double>::min();
+        if (exp_2x > max_double || exp_2x < min_double) {
+                return 0;
+        }
+        else {
+                //Tanh
+	        return (exp_2x -1 )/(exp_2x+1); //Compressed
+        }
 }
 
 double NEAT::oldhebbian(double weight, double maxweight, double active_in, double active_out, double hebb_rate, double pre_rate, double post_rate) {
