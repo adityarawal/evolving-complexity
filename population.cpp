@@ -409,18 +409,6 @@ bool Population::print_to_file_by_species(std::ostream& outFile) {
 
 }
 
-bool NEAT::order_org_fitness1(Organism *x, Organism *y) { 
-	return (x->fitness1 > y->fitness1); //Sort in descending order of fitness 1
-}
-
-bool NEAT::order_org_fitness2(Organism *x, Organism *y) { 
-	return (x->fitness2 > y->fitness2); //Sort in descending order of fitness 2
-}
-
-bool NEAT::order_org_crowd_dist(Organism *x, Organism *y) { 
-	return (x->crowd_dist > y->crowd_dist); //Sort in descending order of crowding distance
-}
-
 bool Population::p_dominates_q (Organism* p, Organism* q) {
         if ((p->fitness1 < q->fitness1) || (p->fitness2 < q->fitness2)) {
                 return false;
@@ -786,6 +774,7 @@ bool Population::epoch(int generation, char *filename) {
 
 	double overall_average1;  //The average modified fitness among ALL organisms
 	double overall_average2;  //The average modified fitness among ALL organisms
+	double overall_average_reversed_front_num;  //The average reversed modifiedfront_num among ALL organisms
 
 	int orgcount;
 
@@ -820,8 +809,10 @@ bool Population::epoch(int generation, char *filename) {
 	int num_species_target=4;
 	int num_species=species.size();
 	double compat_mod=0.3;  //Modify compat thresh to control speciation
-
-
+	std::vector< std::vector<Organism*> > nondominated_fronts;
+        int num_obj = 2; //Number of objectives in NSGA-2
+        int total_parents = 0; //Total number of parents in the population
+        int extra_parents; 
 	//Keeping species diverse
 	//This commented out code forces the system to aim for 
 	// num_species species at all times, enforcing diversity
@@ -840,6 +831,8 @@ bool Population::epoch(int generation, char *filename) {
 	*/
 
 
+        /*************************Aditya - Commenting the following code because it doesn't work 
+         ************************ due to the fact that organisms withing species are not yet sorted
 	//Stick the Species pointers into a new Species list for sorting
 	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
 		sorted_species.push_back(*curspecies);
@@ -862,11 +855,26 @@ bool Population::epoch(int generation, char *filename) {
         {     
                 (*curspecies)->obliterate=true;
         }
+        ****************************Aditya - End Code Commenting */
 
-
+        /*******************Speciation+NSGA-2**************************  
+        // Goal: Need to maintain total parent population = N = (NEAT::pop_size)/2
+        // Set survival_thresh = 0.5
+        // Check for num_parents overflow/underflow for each species. 
+        // Give extra parents to best species.
+        // Use non-dominated fronts within a species to select species->num_parents
+        // if (species->num_parents < non_dominated_front) {
+        //         Use crowding distance to select a subset
+        // }
+        */
 	std::cout<<"Number of Species: "<<num_species<<std::endl;
 	std::cout<<"compat_thresh: "<<compat_threshold<<std::endl;
 
+        if (total_organisms < (NEAT::pop_size)/2 || //N <= total_organisms <= 2N
+            total_organisms > (NEAT::pop_size)) {     
+                std::cout<<"ERROR:: in pop->epoch: N<=total_organisms<=2N: "<<total_organisms<<std::endl;
+                exit(0);
+        }
 	//Use Species' ages to modify the objective fitness of organisms
 	// in other words, make it more fair for younger species
 	// so they have a chance to take hold
@@ -876,12 +884,124 @@ bool Population::epoch(int generation, char *filename) {
 	//Then, within each Species, mark for death 
 	//those below survival_thresh*average
 	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
-		(*curspecies)->adjust_fitness(); //Aditya: Do not require with NSGA-2
+		(*curspecies)->adjust_fitness(); 
 	}
+
+        //Count the num_parents in each species (survival_thresh*species_size) and sum it up 
+        //A minimum of one parent is assigned to each species.
+        //This ensure that a high fitness species with one organism does not get killed early
+	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+		(*curspecies)->num_parents = 1;
+	}
+        
+        //Calculate the remaining parents after assignment of one parent to each species
+        //The goal is to select
+        extra_parents =  ((NEAT::pop_size)/2) - species.size(); 
+        
+        //The rest of parents are assigned to the species based on their relative size
+	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+		(*curspecies)->count_parents(total_organisms, extra_parents);
+                std::cout<<"Species Size and num_parents: "<<((*curspecies)->organisms).size()<<" "<<(*curspecies)->num_parents<<std::endl; 
+                total_parents += (*curspecies)->num_parents; //Need to make sure that the total parents = N = NEAT::pop_size/2 
+	}
+                std::cout<<"total_parents: "<< total_parents<<std::endl;
+
+        //Assigning domination fronts and crowding distance to each organism (USES adjusted_fitness)
+        nondominated_fronts = assign_domination_fronts();
+        for (int i = 0; i < nondominated_fronts.size(); i++) {
+                assign_crowding_distance(nondominated_fronts[i], num_obj); //Assign crowding distance within front
+        }
+        
+        //Speciation+NSGA2 --> size of parent population = N (where pop_size = 2N) 
+        if (total_parents > (NEAT::pop_size)/2) {
+                std::cout<<"ERROR in pop->epoch: total_parents > (NEAT::pop_size)/2 "<<std::endl;
+                exit(0);
+        }
+
+        //If the total_parents < N, find the best species and 
+        //add the remaining parents (N-total_parents) to it
+        else if (total_parents < (NEAT::pop_size)/2) {//Assuming survival_thresh = 0.5
+                
+                extra_parents =  ((NEAT::pop_size)/2) - total_parents;
+		//Compute average front number for each species. Used to order the species
+                for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+		                (*curspecies)->count_avg_front_num(); //Smaller is higher
+                }
+                //Find the best species based on the average front number (smaller is better)
+                //Assign extra parents to the best species that can still assign more parents 
+                while (extra_parents > 0) {
+                        std::cout<<"Adding extra parents in pop->epoch:"<<extra_parents <<std::endl;
+                        max_expected=1000; //Smaller front numbers are higher ranked
+		        for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+                                if (((*curspecies)-> avg_front_num <= max_expected) &&  
+                                     (*curspecies)-> num_parents < ((*curspecies)->organisms).size()) { //Add more parents, if they are possible
+		        		max_expected=(*curspecies)->avg_front_num;
+		        		best_species=(*curspecies);
+		        	}
+		        }
+                        int species_non_parents = ((best_species->organisms).size()-best_species->num_parents);
+                        if (species_non_parents >= extra_parents) {
+		                best_species->num_parents += extra_parents;//add all extra parents (N-total_parents) to it
+                                extra_parents = 0;
+                        }
+                        else { //Add only a subset of extra parents to the species
+		                best_species->num_parents += species_non_parents;
+                                extra_parents = extra_parents - species_non_parents;
+                        } 
+                        std::cout<<"After adding extra_parents in best_species->num_parents: "<< best_species->num_parents<<std::endl;
+                }
+        }
+
+        //Sort organisms within each species by its frontnum/crowddist  
+	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+		(*curspecies)->rank_front_num_crowd_dist();
+	}
+        
+        //Select the top #num_parents in each species as the parents.
+        //Mark the remaining organisms within each species for elimination
+        for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+                (*curspecies)->select_parents();
+        }
+
+        //Kill off all Organisms (non-parents) marked for death.  The remainder
+	//will be allowed to reproduce.
+	kill_orgs_marked_eliminate(); 
+
+        //Assigning domination fronts and crowding distance to the remaining parent organisms (USES adjusted_fitness)
+        nondominated_fronts.clear();
+        nondominated_fronts = assign_domination_fronts();
+        for (int i = 0; i < nondominated_fronts.size(); i++) {
+                assign_crowding_distance(nondominated_fronts[i], num_obj); //Assign crowding distance within front
+        }
+        
+	//Go through the organisms and add up their fitnesses to compute the
+	//overall average reversed front num
+        total = 0.0;
+	total_organisms=organisms.size();
+        int max_front_num = nondominated_fronts.size(); //Maximum front value ( start from 1)
+	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
+		int reversed_front_num = abs(max_front_num -  (*curorg)->front_num); //Reversed (higher is better)Range:: (1 - max_front_num)  
+                std::cout<<"Reversed Front Number: "<<reversed_front_num<<std::endl;
+                if (reversed_front_num > max_front_num) { //DEBUG
+                        std::cout<<"ERROR1:: (reversed_front_num > max_front_num)"<<std::endl;
+                        exit(0);
+                }
+                total+= reversed_front_num; 
+	}
+	overall_average_reversed_front_num=total/total_organisms;
+        std::cout<<" overall_average_reversed_front_num: "<< overall_average_reversed_front_num <<std::endl;
+
+        //After non-parents have been deleted, new parent population size = N (=pop_size/2)
+        total_organisms = organisms.size();
+        if (total_organisms != (NEAT::pop_size)/2) {
+                std::cout<<"ERROR in pop->epoch: total_organisms != (NEAT::pop_size)/2 "<<total_organisms<<std::endl;
+                exit(0);
+        }
 
 	//Go through the organisms and add up their fitnesses to compute the
 	//overall average
-	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
+	total = 0.0;
+        for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
 		total+=(*curorg)->fitness1;
 	}
 	overall_average1=total/total_organisms;
@@ -890,11 +1010,23 @@ bool Population::epoch(int generation, char *filename) {
 		total+=(*curorg)->fitness2;
 	}
 	overall_average2=total/total_organisms;
-	std::cout<<"Generation "<<generation<<": "<<"overall_average 1 = "<<overall_average1<<" overall_average 2 = "<<overall_average2<<std::endl;
+	std::cout<<"Generation "<<generation<<": "<<"Speciated overall_average 1 = "<<overall_average1<<" overall_average 2 = "<<overall_average2<<std::endl;
 
-	//Now compute expected number of offspring for each individual organism
+        /*******************Speciation+NSGA-2**************************  
+        // Goal: Need to maintain total offspring population = N
+        // Calculate front scores for each org and use it to calculate expected_offsprings
+        // Should this be done before/after deleting unfit parents or perhaps it doesn't matter?? 
+        */
+
+        //Now compute expected number of offspring for each individual organism
 	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
-		(*curorg)->expected_offspring=(((*curorg)->fitness1)/overall_average1);
+		//(*curorg)->expected_offspring=(((*curorg)->fitness1)/overall_average1);
+		int reversed_front_num = abs(max_front_num -  (*curorg)->front_num); //Reversed (higher is better) Range:: (0 - max_front_num) 
+                if (reversed_front_num > max_front_num) {
+                        std::cout<<"ERROR2:: (reversed_front_num > max_front_num)"<<std::endl;
+                        exit(0);
+                }
+		(*curorg)->expected_offspring=reversed_front_num/overall_average_reversed_front_num;
 	}
 
 	//Now add those offspring up within each Species to get the number of
@@ -903,12 +1035,49 @@ bool Population::epoch(int generation, char *filename) {
 	total_expected=0;
 	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
 		skim=(*curspecies)->count_offspring(skim);
-		total_expected+=(*curspecies)->expected_offspring;
-	}    
+                int species_size = ((*curspecies)->organisms).size();
+                
+                //if the num_parents <= 1 and expected_offspring < 1
+                //mark this species to be killed
+                //This can mean that the size of parent population is < N (Is that ok?)
+                if ((*curspecies)->num_parents <= 1 && 
+                    (*curspecies)->expected_offspring < 1 && 
+                      species_size > 0) {
+                        curorg = (*curspecies)->organisms.begin();
+	                (*curorg)->eliminate=true;  //Mark for elimination
+                        std::cout<<" Killing Species "<<(*curspecies)->id <<" because of lack of parents/offsprings"<<std::endl;
+                }
+                else {
+		        total_expected+=(*curspecies)->expected_offspring;
+	
+                }
+        }    
 
+        //Kill parents that are not fit to continue
+        //This marks the end of the species 
+        kill_orgs_marked_eliminate();
+	
+        //Delete empty species
+        curspecies=species.begin();
+	while(curspecies!=species.end()) {
+		if (((*curspecies)->organisms.size())==0) {
+			delete (*curspecies);
+
+			deadspecies=curspecies;
+			++curspecies;
+
+			curspecies=species.erase(deadspecies);
+		}
+                else {
+                        ++curspecies;
+                }
+        }
+
+        total_organisms = organisms.size();
 	//Need to make up for lost foating point precision in offspring assignment
 	//If we lost precision, give an extra baby to the best Species
-	if (total_expected<total_organisms) {
+        std::cout<<" BEFORE Total organisms, total_expected: "<<total_organisms<<" "<<total_expected <<std::endl;
+        if (total_expected<total_organisms) {
 		//Find the Species expecting the most
 		max_expected=0;
 		final_expected=0;
@@ -930,7 +1099,8 @@ bool Population::epoch(int generation, char *filename) {
 		//If the average fitness is allowed to hit 0, then we no longer have 
 		//an average we can use to assign offspring.
 		if (final_expected<total_organisms) {
-			//      cout<<"Population died!"<<endl;
+                        std::cout<<"Population died!"<<std::endl;
+                        exit(0);
 			//cin>>pause;
 			for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
 				(*curspecies)->expected_offspring=0;
@@ -939,31 +1109,55 @@ bool Population::epoch(int generation, char *filename) {
 		}
 	}
 
-	//Sort the Species by max fitness (Use an extra list to do this)
-	//These need to use ORIGINAL fitness
-	//sorted_species.qsort(order_species);
-    std::sort(sorted_species.begin(), sorted_species.end(), order_species);
+	//Sort the Species by max front number and crowding distance (Use an extra list to do this)
+	//Stick the Species pointers into a new Species list for sorting
+	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+                std::cout<<" AFTER expected_offspring: "<<(*curspecies)->expected_offspring <<std::endl;
+		sorted_species.push_back(*curspecies);
+	}
+        std::sort(sorted_species.begin(), sorted_species.end(), order_species_by_front_num_crowd_dist);
 
 	best_species_num=(*(sorted_species.begin()))->id;
 
 	for(curspecies=sorted_species.begin();curspecies!=sorted_species.end();++curspecies) {
+		
+                //Rank within species by original fitness 1
+                (*curspecies)->rank_orig_fitness1();
+                int max_orig_fitness1 = (*((*curspecies)->organisms).begin())->orig_fitness1;
+
+                //Rank within species by original fitness 2
+                (*curspecies)->rank_orig_fitness2();
+                int max_orig_fitness2 = (*((*curspecies)->organisms).begin())->orig_fitness2;
 
 		//Print out for Debugging/viewing what's going on 
-		std::cout<<"orig fitness of Species"<<(*curspecies)->id<<"(Size "<<(*curspecies)->organisms.size()<<"): "<<(*((*curspecies)->organisms).begin())->orig_fitness<<" last improved "<<((*curspecies)->age-(*curspecies)->age_of_last_improvement)<<std::endl;
+		std::cout<<"Max orig fitness 1, 2 of Species"<<(*curspecies)->id<<"(Size "<<(*curspecies)->organisms.size()<<"): "<<max_orig_fitness1<<", "<<max_orig_fitness2 <<" last improved "<<((*curspecies)->age-(*curspecies)->age_of_last_improvement)<<std::endl;
 	}
 
-	//Check for Population-level stagnation
-	curspecies=sorted_species.begin();
-	(*(((*curspecies)->organisms).begin()))->pop_champ=true; //DEBUG marker of the best of pop
-	if (((*(((*curspecies)->organisms).begin()))->orig_fitness)>
-		highest_fitness1) {
-			highest_fitness1=((*(((*curspecies)->organisms).begin()))->orig_fitness);
+        //Check for Population-level stagnation for Fitness 1
+        std::sort(organisms.begin(), organisms.end(), order_orgs_by_orig_fitness1);
+	curorg = organisms.begin();
+	(*curorg)->pop_champ=true; //DEBUG marker of the best of pop
+	if (((*curorg)->orig_fitness1)>highest_fitness1) {
+			highest_fitness1=((*curorg)->orig_fitness1);
 			highest_last_changed1=0;
-			std::cout<<"NEW POPULATION RECORD FITNESS: "<<highest_fitness1<<std::endl;
+			std::cout<<"NEW POPULATION RECORD FITNESS 1: "<<highest_fitness1<<std::endl;
 		}
 	else {
 		++highest_last_changed1;
-		std::cout<<highest_last_changed1<<" generations since last population fitness record: "<<highest_fitness1<<std::endl;
+		std::cout<<highest_last_changed1<<" generations since last population fitness 1 record: "<<highest_fitness1<<std::endl;
+	}
+
+        //Check for Population-level stagnation for Fitness 2
+        std::sort(organisms.begin(), organisms.end(), order_orgs_by_orig_fitness2);
+	curorg = organisms.begin();
+	if (((*curorg)->orig_fitness2) > highest_fitness2) {
+			highest_fitness2=((*curorg)->orig_fitness2);
+			highest_last_changed2=0;
+			std::cout<<"NEW POPULATION RECORD FITNESS 2: "<<highest_fitness2<<std::endl;
+		}
+	else {
+		++highest_last_changed2;
+		std::cout<<highest_last_changed2<<" generations since last population fitness 2 record: "<<highest_fitness2<<std::endl;
 	}
 
         //Print to file the top pop_size/2 organisms
@@ -977,6 +1171,7 @@ bool Population::epoch(int generation, char *filename) {
 		//    cout<<"PERFORMING DELTA CODING"<<endl;
 
                 std::cout<<"Aditya: Delta coding in population.cpp->epoch"<<std::endl; //Aditya:for debug
+                exit(0);
 		highest_last_changed1=0;
 
 		half_pop=NEAT::pop_size/2;
@@ -1016,6 +1211,9 @@ bool Population::epoch(int generation, char *filename) {
 	//  worse species and give them to superior species depending on
 	//  the system parameter babies_stolen (when babies_stolen > 0)
 	else if (NEAT::babies_stolen>0) {
+
+                std::cout<<"ERROR: Babies stolen not currently supported"<<std::endl;
+                exit(0);
 		//Take away a constant number of expected offspring from the worst few species
 
 		stolen_babies=0;
@@ -1158,35 +1356,6 @@ bool Population::epoch(int generation, char *filename) {
 	}
 
 
-	//Kill off all Organisms marked for death.  The remainder
-	//will be allowed to reproduce.
-	curorg=organisms.begin();
-	while(curorg!=organisms.end()) {
-		if (((*curorg)->eliminate)) {
-
-
-			//Remove the organism from its Species
-			((*curorg)->species)->remove_org(*curorg);
-
-			//Delete the organism from memory
-			delete (*curorg);
-
-			//Remember where we are
-			deadorg=curorg;
-			++curorg;
-
-			//iter2 =  v.erase(iter); 
-
-			//Remove the organism from the master list
-			curorg=organisms.erase(deadorg);
-
-		}
-		else {
-			++curorg;
-		}
-
-	}
-
 	//cout<<"Reproducing"<<endl;
 
 	//Perform reproduction.  Reproduction is done on a per-Species
@@ -1203,6 +1372,22 @@ bool Population::epoch(int generation, char *filename) {
 
 	//}    
 
+        //Size of parent population in each species. 
+        //This variable is set before reproduce is called.
+        //This ensures that the newly created babies are not used 
+        //during reproduction (because they havent been evaluated yet)
+	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
+                (*curspecies)->poolsize = ((*curspecies)->organisms).size();
+        }
+
+        //Re-assign the original fitnesss of the parent organism back to itself so that a new population 
+        //(including the offspring) can be created (size = 2N = pop_size)
+	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
+                (*curorg)->fitness1 = (*curorg)->orig_fitness1;
+                (*curorg)->fitness2 = (*curorg)->orig_fitness2;
+                (*curorg)->champion = false;
+                std::cout<<" FRont num: "<<(*curorg)->front_num<<std::endl;
+        }
 
 	curspecies=species.begin();
 	int last_id=(*curspecies)->id;
@@ -1229,31 +1414,11 @@ bool Population::epoch(int generation, char *filename) {
 
 	//cout<<"Reproduction Complete"<<endl;
 
+        //Clearing organism master list so that a new list can be created
+        //of size 2N (=pop_size) with the correct genome_id
+        //Organisms are still in the species
+        organisms.clear(); 
 
-	//Destroy and remove the old generation from the organisms and species  
-	curorg=organisms.begin();
-	while(curorg!=organisms.end()) {
-
-	  //Remove the organism from its Species
-	  ((*curorg)->species)->remove_org(*curorg);
-
-	  //std::cout<<"deleting org # "<<(*curorg)->gnome->genome_id<<std::endl;
-
-	  //Delete the organism from memory
-	  delete (*curorg);
-	  
-	  //Remember where we are
-	  deadorg=curorg;
-	  ++curorg;
-	  
-	  //std::cout<<"next org #  "<<(*curorg)->gnome->genome_id<<std::endl;
-
-	  //Remove the organism from the master list
-	  curorg=organisms.erase(deadorg);
-
-	  //std::cout<<"nnext org # "<<(*curorg)->gnome->genome_id<<std::endl;
-
-	}
 
 	//Remove all empty Species and age ones that survive
 	//As this happens, create master organism list for the new generation
@@ -1280,13 +1445,16 @@ bool Population::epoch(int generation, char *filename) {
 			//Go through the organisms of the curspecies and add them to 
 			//the master list
 			for(curorg=((*curspecies)->organisms).begin();curorg!=((*curspecies)->organisms).end();++curorg) {
-				((*curorg)->gnome)->genome_id=orgcount++;
+                                std::cout<<" Species ID: "<<(*curspecies)->id<<" Front num: "<<(*curorg)->front_num<<std::endl;
+                                ((*curorg)->gnome)->genome_id=orgcount++;
 				organisms.push_back(*curorg);
 			}
 			++curspecies;
 
 		}
 	}      
+        std::cout<<" Number of organisms: "<<organisms.size()<<std::endl;
+        std::cout<<" Number of species: "<<species.size()<<std::endl;
 
 	//Remove the innovations of the current generation
 	curinnov=innovations.begin();
@@ -1308,7 +1476,7 @@ bool Population::epoch(int generation, char *filename) {
 		++curspecies;
 	}
 	if (!best_ok) {
-		//cout<<"ERROR: THE BEST SPECIES DIED!"<<endl;
+                std::cout<<"ERROR: THE BEST SPECIES DIED!"<<std::endl;
 	}
 	else {
 		//cout<<"The best survived: "<<best_species_num<<endl;
@@ -1330,13 +1498,35 @@ bool Population::epoch(int generation, char *filename) {
 
 }
 
-bool Population::rank_within_species() {
-	std::vector<Species*>::iterator curspecies;
+void Population::kill_orgs_marked_eliminate(){ 
+	
+        std::vector<Organism*>::iterator curorg;
+	std::vector<Organism*>::iterator deadorg;
+        
+        curorg=organisms.begin();
+	while(curorg!=organisms.end()) {
+		if (((*curorg)->eliminate)) {
 
-	//Add each Species in this generation to the snapshot
-	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
-		(*curspecies)->rank();
+
+			//Remove the organism from its Species
+			((*curorg)->species)->remove_org(*curorg);
+
+			//Delete the organism from memory
+			delete (*curorg);
+
+			//Remember where we are
+			deadorg=curorg;
+			++curorg;
+
+			//iter2 =  v.erase(iter); 
+
+			//Remove the organism from the master list
+			curorg=organisms.erase(deadorg);
+
+		}
+		else {
+			++curorg;
+		}
+
 	}
-
-	return true;
 }

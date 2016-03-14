@@ -40,7 +40,10 @@ namespace NEAT {
 		int age; //The age of the Species 
 		double ave_fitness; //The average fitness of the Species
 		double max_fitness; //Max fitness of the Species
-		double max_fitness_ever; //The max it ever had
+		double max_fitness1_ever; //The max it ever had
+		double max_fitness2_ever; //The max it ever had
+	        int avg_front_num; //Average of the organisms' front number
+	        int num_parents;
 		int expected_offspring;
 		bool novel;
 		bool checked;
@@ -50,6 +53,11 @@ namespace NEAT {
 		int age_of_last_improvement;  //If this is too long ago, the Species will goes extinct
 		double average_est; //When playing real-time allows estimating average fitness
 
+                //Size of parent population in each species. 
+                //This variable is set before reproduce is called.
+                //This ensures that the newly created babies are not used 
+                //during reproduction (because they havent been evaluated yet)
+                int poolsize;  
 		bool add_Organism(Organism *o);
 
 		Organism *first();
@@ -60,6 +68,15 @@ namespace NEAT {
 		//Change the fitness of all the organisms in the species to possibly depend slightly on the age of the species
 		//and then divide it by the size of the species so that the organisms in the species "share" the fitness
 		void adjust_fitness();
+		
+                //Calculate the number of parents based on the relative species size 
+                void count_parents(int total_organisms, int extra_parents);
+                
+                //Mark the remaining (non-parents) for elimination
+                void select_parents();
+
+                //Count the average of the organisms' front number
+                void count_avg_front_num();
 
 		double compute_average_fitness(); 
 
@@ -97,8 +114,14 @@ namespace NEAT {
                 
                 // *** Real-time methods *** 
 
-		//Place organisms in this species in order by their fitness
-		bool rank();
+		//Place organisms in this species in order by their orig fitness 1
+		bool rank_orig_fitness1();
+		
+                //Place organisms in this species in order by their orig fitness 2
+		bool rank_orig_fitness2();
+
+                //Place organisms in this species in order by their front number and crowding distance 
+		bool rank_front_num_crowd_dist();
 
 		Species(int i);
 
@@ -112,6 +135,9 @@ namespace NEAT {
 
 	// This is used for list sorting of Species by fitness of best organism highest fitness first 
 	bool order_species(Species *x, Species *y);
+	
+	// This is used for list sorting of Species by front_num of best organism.. smallest front_num first 
+        bool order_species_by_front_num_crowd_dist(Species *x, Species *y);
 
 	bool order_new_species(Species *x, Species *y);
 

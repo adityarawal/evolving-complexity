@@ -35,7 +35,8 @@ namespace NEAT {
 	public:
 		double fitness1;  //A measure of fitness for the Organism (Aditya: for NSGA-2)
 		double fitness2;  //A measure of fitness for the Organism (Aditya: for NSGA-2)
-		double orig_fitness;  //A fitness measure that won't change during adjustments
+		double orig_fitness1;  //A fitness 1 measure that won't change during adjustments
+		double orig_fitness2;  //A fitness 2 measure that won't change during adjustments
 		int front_num;  // front number to which organism belongs (Aditya: for NSGA-2)
 		double crowd_dist;  //Crowding distance of the organism within the front (Aditya: for NSGA-2)
 		bool evaluated; //Aditya: for speed-up by preventing re-evaluation of the elites
@@ -78,9 +79,23 @@ namespace NEAT {
 	};
 
 	// This is used for list sorting of Organisms by fitness..highest fitness first
-	bool order_orgs(Organism *x, Organism *y);
+        //Sort organisms by their fitness objective 1
+	bool order_org_fitness1(Organism *x, Organism *y); //Aditya (NSGA-2)
 
-	bool order_orgs_by_adjusted_fit(Organism *x, Organism *y);
+        //Sort organisms by their fitness objective 2
+	bool order_org_fitness2(Organism *x, Organism *y); //Aditya (NSGA-2)
+
+        //Sort organisms by their crowding distance  
+	bool order_org_crowd_dist(Organism *x, Organism *y); //Aditya (NSGA-2)
+
+        //Sort organisms by their original fitness objective 1
+        bool order_orgs_by_orig_fitness1(Organism *x, Organism *y);
+        
+        //Sort organisms by their original fitness objective 2
+        bool order_orgs_by_orig_fitness2(Organism *x, Organism *y);
+	
+        //Sort organisms by their front num and crowding distance
+        bool order_orgs_by_front_num_crowd_dist(Organism *x, Organism *y);
 
 } // namespace NEAT
 

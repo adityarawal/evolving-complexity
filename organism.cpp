@@ -20,7 +20,8 @@ using namespace NEAT;
 Organism::Organism(double fit1, double fit2, Genome *g,int gen, const char* md) {
 	fitness1=fit1;//(Aditya: for NSGA-2)
 	fitness2=fit2;//(Aditya: for NSGA-2)
-	orig_fitness=fitness1;//(Aditya: for NSGA-2)
+	orig_fitness1=fitness1;//(Aditya: for NSGA-2)
+	orig_fitness2=fitness2;//(Aditya: for NSGA-2)
         front_num = -1;//(Aditya: for NSGA-2)
         crowd_dist = 0.0;//(Aditya: for NSGA-2)
 	evaluated = false; //Aditya: for speed-up by preventing re-evaluation of the elites
@@ -58,7 +59,8 @@ Organism::Organism(const Organism& org)
 {
 	fitness1 = org.fitness1; //(Aditya: for NSGA-2)
 	fitness2 = org.fitness2;//(Aditya: for NSGA-2)
-	orig_fitness = org.orig_fitness;//(Aditya: for NSGA-2)
+	orig_fitness1 = org.orig_fitness1;//(Aditya: for NSGA-2)
+	orig_fitness2 = org.orig_fitness2;//(Aditya: for NSGA-2)
         front_num = org.front_num; //(Aditya: for NSGA-2)
         crowd_dist = org.crowd_dist; //(Aditya: for NSGA-2)
 	evaluated = false; //Aditya: for speed-up by preventing re-evaluation of the elites
@@ -145,10 +147,28 @@ bool Organism::write_to_file(std::ostream &outFile) {
 //return 1;
 //}
 
-bool NEAT::order_orgs(Organism *x, Organism *y) {//(Aditya: for NSGA-2)
-	return (x)->fitness1 > (y)->fitness1;
+bool NEAT::order_org_fitness1(Organism *x, Organism *y) { 
+	return (x->fitness1 > y->fitness1); //Sort in descending order of fitness 1
 }
 
-bool NEAT::order_orgs_by_adjusted_fit(Organism *x, Organism *y) {//(Aditya: for NSGA-2)
-	return (x)->fitness1 / (x->species)->organisms.size()  > (y)->fitness1 / (y->species)->organisms.size();
+bool NEAT::order_org_fitness2(Organism *x, Organism *y) { 
+	return (x->fitness2 > y->fitness2); //Sort in descending order of fitness 2
 }
+
+bool NEAT::order_org_crowd_dist(Organism *x, Organism *y) { 
+	return (x->crowd_dist > y->crowd_dist); //Sort in descending order of crowding distance
+}
+
+bool NEAT::order_orgs_by_orig_fitness1(Organism *x, Organism *y) {//(Aditya: for NSGA-2)
+	return (x)->orig_fitness1 > (y)->orig_fitness1;
+}
+
+bool NEAT::order_orgs_by_orig_fitness2(Organism *x, Organism *y) {//(Aditya: for NSGA-2)
+	return (x)->orig_fitness2 > (y)->orig_fitness2;
+}
+
+bool NEAT::order_orgs_by_front_num_crowd_dist(Organism *x, Organism *y) {//Front ordering (high to low) : 0, 1, 2.. (Aditya: for NSGA-2)
+	return (((x)->front_num <  (y)->front_num) || 
+               (((x)->front_num == (y)->front_num) && ((x)->crowd_dist > (y)->crowd_dist)));
+}
+

@@ -95,12 +95,9 @@ namespace NEAT {
                 bool p_dominates_q (Organism* p, Organism* q);
                 void assign_crowding_distance (std::vector<Organism*>, int num_obj);
                 std::vector< std::vector<Organism*> > assign_domination_fronts();
-                std::vector <double> compute_fitness_range();
-		
+                std::vector <double> compute_fitness_range(); 
+	        void kill_orgs_marked_eliminate(); //Kill off all Organisms  marked for death
                 // *** Real-time methods *** 
-
-		// Places the organisms in species in order from best to worst fitness 
-		bool rank_within_species();
 
 		// Construct off of a single spawning Genome 
 		Population(Genome *g,int size);
@@ -131,14 +128,6 @@ namespace NEAT {
 		
 
 	};
-        //Sort organisms by their fitness objective 1
-	bool order_org_fitness1(Organism *x, Organism *y); //Aditya (NSGA-2)
-
-        //Sort organisms by their fitness objective 2
-	bool order_org_fitness2(Organism *x, Organism *y); //Aditya (NSGA-2)
-
-        //Sort organisms by their crowding distance  
-	bool order_org_crowd_dist(Organism *x, Organism *y); //Aditya (NSGA-2)
 
 } // namespace NEAT
 

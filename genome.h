@@ -164,12 +164,12 @@ namespace NEAT {
 		//   the other, the baby will inherit the innovation 
 		//   Interspecies mating leads to all genes being inherited.
 		//   Otherwise, excess genes come from most fit parent.
-		Genome *mate_multipoint(Genome *g,int genomeid,double fitness1, double fitness2, bool interspec_flag);
+		Genome *mate_multipoint(Genome *g,int genomeid,int front_num1, int front_num2, double crowd_dist1, double crowd_dist2, bool interspec_flag);
 
 		//This method mates like multipoint but instead of selecting one
 		//   or the other when the innovation numbers match, it averages their
 		//   weights 
-		Genome *mate_multipoint_avg(Genome *g,int genomeid,double fitness1,double fitness2, bool interspec_flag);
+		Genome *mate_multipoint_avg(Genome *g,int genomeid,int front_num1, int front_num2, double crowd_dist1, double crowd_dist2, bool interspec_flag);
 
 		// This method is similar to a standard single point CROSSOVER
 		//   operator.  Traits are averaged as in the previous 2 mating

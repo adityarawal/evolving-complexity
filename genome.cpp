@@ -2656,7 +2656,7 @@ void Genome::node_insert(std::vector<NNode*> &nlist,NNode *n) {
 
 }
 
-Genome *Genome::mate_multipoint(Genome *g,int genomeid,double fitness1,double fitness2, bool interspec_flag) {
+Genome *Genome::mate_multipoint(Genome *g,int genomeid,int front_num1,int front_num2, double crowd_dist1,double crowd_dist2,bool interspec_flag) {
 	//The baby Genome will contain these new Traits, NNodes, and Genes
 	std::vector<Trait*> newtraits; 
 	std::vector<NNode*> newnodes;   
@@ -2706,15 +2706,17 @@ Genome *Genome::mate_multipoint(Genome *g,int genomeid,double fitness1,double fi
 	//Figure out which genome is better
 	//The worse genome should not be allowed to add extra structural baggage
 	//If they are the same, use the smaller one's disjoint and excess genes only
-	if (fitness1>fitness2) 
+	if (front_num1<front_num2) 
 		p1better=true;
-	else if (fitness1==fitness2) {
-		if (genes.size()<(g->genes.size()))
-			p1better=true;
-		else p1better=false;
-	}
-	else 
+        else if (front_num1>front_num2)
 		p1better=false;
+	else if ((front_num1==front_num2)&& (crowd_dist1>crowd_dist2))
+		p1better=true;
+        else if ((front_num1==front_num2)&& (crowd_dist1<crowd_dist2))
+		p1better=false;
+        else if ((front_num1==front_num2)&& (crowd_dist1==crowd_dist2) && (genes.size()<(g->genes.size())))
+	         p1better=true;
+        else p1better=false;
 
 	//NEW 3/17/03 Make sure all sensors and outputs are included
 	for(curnode=(g->nodes).begin();curnode!=(g->nodes).end();++curnode) {
@@ -2961,7 +2963,7 @@ Genome *Genome::mate_multipoint(Genome *g,int genomeid,double fitness1,double fi
 
 }
 
-Genome *Genome::mate_multipoint_avg(Genome *g,int genomeid,double fitness1,double fitness2,bool interspec_flag) {
+Genome *Genome::mate_multipoint_avg(Genome *g,int genomeid,int front_num1,int front_num2, double crowd_dist1, double crowd_dist2, bool interspec_flag) {
 	//The baby Genome will contain these new Traits, NNodes, and Genes
 	std::vector<Trait*> newtraits;
 	std::vector<NNode*> newnodes;
@@ -3044,15 +3046,17 @@ Genome *Genome::mate_multipoint_avg(Genome *g,int genomeid,double fitness1,doubl
 	//Figure out which genome is better
 	//The worse genome should not be allowed to add extra structural baggage
 	//If they are the same, use the smaller one's disjoint and excess genes only
-	if (fitness1>fitness2) 
+	if (front_num1<front_num2) 
 		p1better=true;
-	else if (fitness1==fitness2) {
-		if (genes.size()<(g->genes.size()))
-			p1better=true;
-		else p1better=false;
-	}
-	else 
+        else if (front_num1>front_num2)
 		p1better=false;
+	else if ((front_num1==front_num2)&& (crowd_dist1>crowd_dist2))
+		p1better=true;
+        else if ((front_num1==front_num2)&& (crowd_dist1<crowd_dist2))
+		p1better=false;
+        else if ((front_num1==front_num2)&& (crowd_dist1==crowd_dist2) && (genes.size()<(g->genes.size())))
+	         p1better=true;
+        else p1better=false;
 
 
 	//Now move through the Genes of each parent until both genomes end
