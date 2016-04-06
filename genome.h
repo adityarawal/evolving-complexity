@@ -44,6 +44,9 @@ namespace NEAT {
 	class Genome {
 
 	public:
+                //Calculates the total number of enabled genes in the genome
+                int compute_genome_size();
+
 		//Add output nodes and connect them to BIAS(for incrementally finding independent output node)
                 void add_output_nodes(int block_size, double &curinnov);//block_size is the number of the new output nodes to be added
                 

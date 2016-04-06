@@ -890,7 +890,7 @@ bool Population::epoch(int generation, char *filename) {
 		total+=(*curorg)->fitness2;
 	}
 	overall_average2=total/total_organisms;
-	std::cout<<"Generation "<<generation<<": "<<"overall_average 1 = "<<overall_average1<<" overall_average 2 = "<<overall_average2<<std::endl;
+	std::cout<<"Generation "<<generation<<": "<<"Speciated overall_average 1 = "<<overall_average1<<" overall_average 2 = "<<overall_average2<<std::endl;
 
 	//Now compute expected number of offspring for each individual organism
 	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {

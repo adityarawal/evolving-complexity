@@ -277,6 +277,12 @@ void Species::adjust_fitness() {
 
 	for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
 
+                //Fitness Penalty for Large networks
+                double nw_size_cost = NEAT::nw_size_cost_factor*(((*curorg)->gnome)->compute_genome_size());
+                //std::cout<<"Pre Fitness: "<<((*curorg)->fitness1)<<std::endl;
+                (*curorg)->fitness1 = ((*curorg)->fitness1) - nw_size_cost; //( fitness - cost_factor*nw_size)
+                //std::cout<<"Post Fitness: "<<((*curorg)->fitness1)<<std::endl;
+
 		//Remember the original fitness before it gets modified
 		(*curorg)->orig_fitness=(*curorg)->fitness1;
 
@@ -304,7 +310,7 @@ void Species::adjust_fitness() {
 		if (((*curorg)->fitness1)<0.0) (*curorg)->fitness1=0.0001; 
 
 		//Share fitness with the species
-		(*curorg)->fitness1=((*curorg)->fitness1)/(organisms.size());
+		(*curorg)->fitness1=((*curorg)->fitness1)/(organisms.size());//+nw_size_cost);
 
 	}
 
@@ -849,7 +855,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 
 			//Debug Trap
 			if (expected_offspring>NEAT::pop_size) {
-				//      std::cout<<"ALERT: EXPECTED OFFSPRING = "<<expected_offspring<<std::endl;
+				      std::cout<<"ALERT: EXPECTED OFFSPRING = "<<expected_offspring<<std::endl;
 				//      cin>>pause;
 			}
 
@@ -959,7 +965,6 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
                                                 delete last_genome;
                                          }
 					else if (randfloat()<NEAT::mutate_add_link_prob) {
-						//std::cout<<"mutate add link"<<std::endl;
 			                        Genome *last_genome=(new_genome)->duplicate(1);
 						net_analogue=new_genome->genesis(generation);
 						new_genome->mutate_add_link(pop->innovations,pop->cur_innov_num,NEAT::newlink_tries);

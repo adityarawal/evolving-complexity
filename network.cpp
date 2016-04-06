@@ -684,6 +684,56 @@ void Network::give_name(char *newname) {
 	}
 }
 
+//Make a list of active nodes and links
+void Network::find_active_paths() {
+	int counter=0;
+	std::vector<NNode*>::iterator curnode;
+	
+        //Reset variables
+        for(curnode=all_nodes.begin();curnode!=all_nodes.end();++curnode) {
+                (*curnode)->visited = false;
+                (*curnode)->on_active_path = false;
+        }
+
+        //Recurse from output to input
+	for(curnode=outputs.begin();curnode!=outputs.end();++curnode) {
+	        find_active_paths_helper((*curnode));
+	}
+}
+
+bool Network::find_active_paths_helper(NNode *curnode) {
+	std::vector<Link*> innodes=curnode->incoming;
+	std::vector<Link*>::iterator curlink;
+	std::vector<NNode*>::iterator location;
+        bool temp = false;
+
+        //If the node is sensor or already has been found to be on active path, 
+        //then propagate this information up to the outputs
+        if (((curnode->type)==SENSOR) || (curnode->visited == true && curnode->on_active_path==true)) { 
+                curnode->on_active_path = true; //For sensor
+                return true;
+        }
+
+        //Recurse deeper towards the input
+        //If any branch is active, then this node/link are active as well
+        else if (curnode->visited == false) {
+                for(curlink=(curnode->incoming).begin();curlink!=(curnode->incoming).end();++curlink) {
+                        temp = find_active_paths_helper((*curlink)->in_node);
+                        if (temp == true) {//If any branch is active, then this node/link are active as well
+                               curnode->on_active_path = true;
+                               (*curlink)->on_active_path = true;
+                        }
+                }
+                curnode->visited = true;
+                if (curnode->on_active_path == true){
+                        return true;
+                }
+                else {
+                        return false;
+                }
+        }
+}
+
 // The following two methods recurse through a network from outputs
 // down in order to count the number of nodes and links in the network.
 // This can be useful for debugging genotype->phenotype spawning 

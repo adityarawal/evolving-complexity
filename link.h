@@ -43,6 +43,7 @@ namespace NEAT {
 		NNode *out_node; // NNode that the link affects
 		bool is_recurrent;
 		bool time_delay;
+		bool on_active_path;//True if the link lies on an input-output path
 
 		Trait *linktrait; // Points to a trait of parameters for genetic creation
 

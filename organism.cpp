@@ -14,6 +14,7 @@
    limitations under the License.
 */
 #include "organism.h"
+#include <iostream>
 
 using namespace NEAT;
 
@@ -90,6 +91,78 @@ Organism::Organism(const Organism& org)
 Organism::~Organism() {
 	delete net;
 	delete gnome;
+}
+
+void Organism::remove_inactive_genome() {
+        std::vector<Gene*>::iterator curgene;
+        std::vector<NNode*>::iterator curnode;
+        std::vector<Link*>::iterator curlink;
+        std::vector<int> active_node_ids;
+	std::vector<int>::iterator location;
+	std::vector<NNode*>::iterator deadnode;
+	std::vector<Gene*>::iterator deadgene;
+
+        //Recursively find all the valid paths between input and output
+        net->find_active_paths();
+
+        //Create a list of all active node_ids
+        //This is required because genome->nodes are 
+        //not the same as net->all_nodes
+        //Also, find and mark the active links in the genome
+	for(curnode=net->all_nodes.begin();curnode!=net->all_nodes.end();++curnode) {
+                if ((*curnode)->on_active_path) {
+                        active_node_ids.push_back((*curnode)->node_id);
+                }
+                for(curlink=((*curnode)->incoming).begin();curlink!=((*curnode)->incoming).end();++curlink) {
+                        if ((*curlink)->on_active_path) {
+                                //Find the corresponding link in the genome
+                                //link and mark its on_active_path
+                                for(curgene=gnome->genes.begin();curgene!=gnome->genes.end();++curgene) {
+                                        if (((*curgene)->lnk->in_node->node_id == (*curlink)->in_node->node_id) &&
+                                            ((*curgene)->lnk->out_node->node_id == (*curlink)->out_node->node_id) &&
+                                            ((*curgene)->lnk->is_recurrent == (*curlink)->is_recurrent) &&
+                                            ((*curgene)->lnk->link_gtype == (*curlink)->link_gtype)) {
+                                                  (*curgene)->lnk->on_active_path = true;
+                                                  break;
+                                        }
+                                }
+
+                        }
+                }
+        }
+        //Delete inactive nodes
+     	curnode=gnome->nodes.begin();
+	while(curnode!=gnome->nodes.end()) {
+                location = std::find(active_node_ids.begin(),active_node_ids.end(),(*curnode)->node_id);
+                if (location==active_node_ids.end()){
+                        delete (*curnode);
+	                //Remember where we are
+	                deadnode=curnode;
+	                ++curnode;
+			curnode=gnome->nodes.erase(deadnode);
+                }
+		else {
+			++curnode;
+		}
+
+	}    
+
+        //Delete inactive genes
+     	curgene=gnome->genes.begin();
+	while(curgene!=gnome->genes.end()) {
+                if (!((*curgene)->lnk->on_active_path)){
+                        delete (*curgene);
+	                //Remember where we are
+	                deadgene=curgene;
+	                ++curgene;
+			curgene=gnome->genes.erase(deadgene);
+                }
+		else {
+			++curgene;
+		}
+
+	}    
+	
 }
 
 void Organism::update_phenotype() {

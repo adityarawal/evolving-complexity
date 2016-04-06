@@ -64,7 +64,10 @@ namespace NEAT {
 		char metadata[128];
 		bool modified;
 
-		// Regenerate the network based on a change in the genotype 
+                //Remove the part of network (nodes/genes) that are hanging or disabled
+                void remove_inactive_genome();
+
+                // Regenerate the network based on a change in the genotype 
 		void update_phenotype();
 
 		// Print the Organism's genome to a file preceded by a comment detailing the organism's species, number, and fitness 

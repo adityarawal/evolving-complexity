@@ -48,6 +48,9 @@ namespace NEAT {
 
 		void nodecounthelper(NNode *curnode,int &counter,std::vector<NNode*> &seenlist);
 		void linkcounthelper(NNode *curnode,int &counter,std::vector<NNode*> &seenlist);
+		
+                void find_active_paths();
+                bool find_active_paths_helper(NNode *curnode);
 
 	public:
 

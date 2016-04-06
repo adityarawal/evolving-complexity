@@ -97,6 +97,10 @@ namespace NEAT {
 
                 //Set visited when entering a hidden or output node recursion for the first time and reset when exiting the recursion
                 bool visited; //Check for loop during static network activation (if a node is re-visited, ignore its activity)
+                
+                //Indicates whether the node lies in an active path between input to output
+                //Used to recursively detect inactive nodes so that they can be deleted
+                bool on_active_path; 
 		
                 // NOT USED IN NEAT - covered by "activation" above
 		double output;  // Output of the NNode- the value in the NNode 

@@ -75,6 +75,7 @@ namespace NEAT {
         extern int frozen_startgenome;//Indicates whether the startgenome from memory_startgenes is frozen or not 
         extern int input_sequence_len;//Indicates the number of time steps for which the input sequence has valid inputs 
         extern double mutate_add_lstm_node_prob;//Probability of adding a new LSTM memory cell 
+        extern double nw_size_cost_factor;//Factor to scale the network size (varies between 0-1) 
 	//extern MRandomR250 NEATRandGen; // Random number generator; can pass seed value as argument
 
 	//const char *getUnit(const char *string, int index, const char *set);

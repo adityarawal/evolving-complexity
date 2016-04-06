@@ -26,6 +26,18 @@ bool order_node_frozen(NNode *x, NNode *y) {
 	int y_frozen = (int)(y->frozen);
         return (x_frozen > y_frozen); //Sort in descending order of frozen status 
 }
+                
+//Calculate the number of enabled genes in the genome
+int Genome::compute_genome_size() {
+        std::vector<Gene*>::iterator curgene;
+        int genome_size = 0; 
+        for(curgene=genes.begin();curgene!=genes.end();++curgene) {
+                if ((*curgene)->enable) {
+                        genome_size+= 1;
+                }
+        }
+        return genome_size;
+}
 
 void Genome::freeze_genome() {//Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
 	std::vector<Gene*>::iterator curgene;
@@ -49,7 +61,7 @@ void Genome::freeze_genome() {//Freeze current genome to prevent any new incomin
                         }
 
                         //LSTM node is frozen only when all its inputs are frozen
-                        if (((((*curgene)->lnk)->out_node)->frozen_ip)&&((((*curgene)->lnk)->out_node)->frozen_rd)&&
+                        if (((((*curgene)->lnk)->out_node)->frozen_ip)&&//Enable this during task((((*curgene)->lnk)->out_node)->frozen_rd)&&
                             ((((*curgene)->lnk)->out_node)->frozen_wr)&&((((*curgene)->lnk)->out_node)->frozen_fg)) {
                                         ((((*curgene)->lnk)->out_node)->frozen) = true;
                         }
