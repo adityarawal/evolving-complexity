@@ -280,7 +280,7 @@ void Species::adjust_fitness() {
                 //Fitness Penalty for Large networks
                 double nw_size_cost = NEAT::nw_size_cost_factor*(((*curorg)->gnome)->compute_genome_size());
                 //std::cout<<"Pre Fitness: "<<((*curorg)->fitness1)<<std::endl;
-                (*curorg)->fitness1 = ((*curorg)->fitness1) - nw_size_cost; //( fitness - cost_factor*nw_size)
+                (*curorg)->fitness1 = ((*curorg)->fitness1)*(1.0-nw_size_cost_factor) - nw_size_cost; //( fitness - cost_factor*nw_size)
                 //std::cout<<"Post Fitness: "<<((*curorg)->fitness1)<<std::endl;
 
 		//Remember the original fitness before it gets modified

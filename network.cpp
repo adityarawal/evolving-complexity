@@ -16,6 +16,7 @@
 #include "network.h"
 #include <iostream>
 #include <sstream>
+#include <math.h>
 
 using namespace NEAT;
 
@@ -176,8 +177,9 @@ void Network::lstm_activate(NNode* curnode){
 
                 //Activate gate controls
                 double rd_gate_activation =  NEAT::fsigmoid(curnode->activesum_rd,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
+                //Adding bias of -0.5 so that the sigmoid curve is shifted  
                 double wr_gate_activation =  NEAT::fsigmoid(curnode->activesum_wr,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
-                double fg_gate_activation =  NEAT::fsigmoid(curnode->activesum_fg,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
+                double fg_gate_activation =  NEAT::fsigmoid(curnode->activesum_fg-1.0,1.0,2.4621365);//Gate control values range 0-1(Can do binary)
                 
                 //double fg_gate_activation = 0.55;
                 //Making control signals binary 
@@ -192,14 +194,14 @@ void Network::lstm_activate(NNode* curnode){
                 //std::cout<<"fg: "<<curnode->activesum_fg<< " "<<fg_gate_activation<<std::endl;
                 //std::cout<<"last_Cell_state: "<< curnode->lstm_cell_state<<std::endl;
                 //std::cout<<"activesum: "<< curnode->activesum<<std::endl;
-                //curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
-                if (curnode->lstm_cell_state == 0) {//ALlow new writes only when the LSTM cell is empty (write occurs only once for now)
-                        curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation;// + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
+                curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
+                //if (curnode->lstm_cell_state == 0) {//ALlow new writes only when the LSTM cell is empty (write occurs only once for now)
+                //        curnode->lstm_cell_state = (curnode->activesum)*wr_gate_activation;// + (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
 
-                }
-                else {//Gradually decay the value
-                        curnode->lstm_cell_state = (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
-                } 
+                //}
+                //else {//Gradually decay the value
+                //        curnode->lstm_cell_state = (curnode->lstm_cell_state)*fg_gate_activation; //Input and history gating
+                //} 
                 //if (wr_gate_activation==1.0) {
                 //        curnode->lstm_cell_state = (curnode->activesum);//If incoming write, overwrite the stored value
                 //}
@@ -233,8 +235,20 @@ void Network::setup_lstm_activate(NNode* curnode){
 	// For each incoming connection, add the activity from the connection to the activesum 
 	for(curlink=(curnode->incoming).begin();curlink!=(curnode->incoming).end();++curlink) {
                 add_amount = 0.0;
-                add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out());
-		//std::cout<<"LSTM Node "<<(curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<std::endl;
+                //If this is a peephole connection (only possible in LSTM)
+                if ( (((*curlink)->in_node) == ((*curlink)->out_node)) && ((*curlink)->out_node)->type == LSTM ){  
+                        //if ((((*curlink)->in_node)->get_active_out()) == 0.0) { //If LSTM has non-zero value, then ignore this link
+                        //        add_amount=0.0;
+                        //}
+                        //else {//If LSTM is empty, then use this information as binary (1) and multiply with weight 
+                        //        add_amount=((*curlink)->weight)*1.0;
+                        //}
+                        add_amount=((*curlink)->weight)*(fabs(((*curlink)->in_node)->lstm_cell_state));//Connect to LSTM output before tanh
+                }
+                else {
+                        add_amount=((*curlink)->weight)*(((*curlink)->in_node)->get_active_out());
+                }
+                //std::cout<<"LSTM Node "<<(curnode)->node_id<<" adding "<<add_amount<<" from node "<<((*curlink)->in_node)->node_id<<std::endl;
                 //std::cout<<"Link Type: "<<(*curlink)->link_gtype <<std::endl;
                 if((*curlink)->link_gtype==NONE) {
 			//if ((((*curlink)->in_node)->active_out_flag)) {
@@ -285,7 +299,7 @@ bool Network::activate() {
 	//(This only happens on the first activation, because after that they
 	// are always active)
 
-        switch_outputsoff(); // Aditya: Ensures that the output node is activated again with the incoming active values each time 
+        //switch_outputsoff(); // Aditya: Ensures that the output node is activated again with the incoming active values each time 
 	onetime=false;
 
 	while(!onetime) {
@@ -718,6 +732,11 @@ bool Network::find_active_paths_helper(NNode *curnode) {
         //If any branch is active, then this node/link are active as well
         else if (curnode->visited == false) {
                 for(curlink=(curnode->incoming).begin();curlink!=(curnode->incoming).end();++curlink) {
+                        //If this is a self-loop (likely a LSTM peephole), then include it in the genome
+                        if (curnode->node_id == ((*curlink)->in_node)->node_id) {
+                               (*curlink)->on_active_path = true;
+                                continue;
+                        }
                         temp = find_active_paths_helper((*curlink)->in_node);
                         if (temp == true) {//If any branch is active, then this node/link are active as well
                                curnode->on_active_path = true;

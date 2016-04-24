@@ -21,18 +21,21 @@
 using namespace NEAT;
 
 
-bool order_node_frozen(NNode *x, NNode *y) { 
+bool order_node_frozen_sensor(NNode *x, NNode *y) { 
 	int x_frozen = (int)(x->frozen);
 	int y_frozen = (int)(y->frozen);
-        return (x_frozen > y_frozen); //Sort in descending order of frozen status 
+        int x_sensor = (int)((x->get_type())==SENSOR);
+        int y_sensor = (int)((y->get_type())==SENSOR);
+        return ( (x_frozen > y_frozen) ||                            //Sort in descending order of frozen status and sensor status 
+                ((x_frozen == y_frozen) && (x_sensor > y_sensor)) ); //Assumption is that sensor cannot be frozen
 }
                 
-//Calculate the number of enabled genes in the genome
+//Calculate the number of enabled and non-frozen genes in the genome
 int Genome::compute_genome_size() {
         std::vector<Gene*>::iterator curgene;
         int genome_size = 0; 
         for(curgene=genes.begin();curgene!=genes.end();++curgene) {
-                if ((*curgene)->enable) {
+                if ((*curgene)->enable && !(*curgene)->frozen) {
                         genome_size+= 1;
                 }
         }
@@ -1493,7 +1496,16 @@ void Genome::mutate_toggle_enable(int times) {
                         count = count + 1;
 		        //Toggle the enable on this gene
 		        if (((*thegene)->enable)==true) {
-		        	//We need to make sure that another gene connects out of the in-node
+                        
+                                //If this gene is a LSTM peephole connection, then do not toggle
+                                 //Peepholes are considered internal to LSTM and cannot be disabled
+                                 //However, peephole weights can be modified
+                                 if ( ((((*thegene)->lnk)->in_node) == (((*thegene)->lnk)->out_node)) &&
+                                       (((*thegene)->lnk)->out_node->type == LSTM) ) {
+                                         continue;
+                                 }
+		               
+                                //We need to make sure that another gene connects out of the in-node
 		        	//Because if not a section of network will break off and become isolated
 		        	checkgene=genes.begin();
 		        	while((checkgene!=genes.end())&&
@@ -1653,10 +1665,12 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
                                 exit(0);
                         }
 
-			//If either the gene is disabled, or it has a bias input, or is frozen, try again
-			if (!(((*thegene)->enable==false)||
-				(((((*thegene)->lnk)->in_node)->gen_node_label)==BIAS)))
+			//If either the gene is disabled, or it has a bias input, or is frozen, or is a LSTM peephole try again
+			if (!(((*thegene)->enable==false) || 
+                           (((((*thegene)->lnk)->in_node) == (((*thegene)->lnk)->out_node)) && (((*thegene)->lnk)->out_node->type == LSTM)))){
+				//(((((*thegene)->lnk)->in_node)->gen_node_label)==BIAS)))
 				found=true;
+                        }
 
 			++trycount;
 
@@ -1894,10 +1908,12 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
                                 exit(0);
                         }
 
-			//If either the gene is disabled, or it has a bias input, or is frozen, try again
-			if (!(((*thegene)->enable==false)||
-				(((((*thegene)->lnk)->in_node)->gen_node_label)==BIAS)))
+			//If either the gene is disabled, or it has a bias input, or is frozen, or is a LSTM peephole try again
+			if (!(((*thegene)->enable==false) || 
+                           (((((*thegene)->lnk)->in_node) == (((*thegene)->lnk)->out_node)) && (((*thegene)->lnk)->out_node->type == LSTM)))){
+				//(((((*thegene)->lnk)->in_node)->gen_node_label)==BIAS)))
 				found=true;
+                        }
 
 			++trycount;
 
@@ -2029,12 +2045,20 @@ void Genome::add_output_nodes(int block_size, double &curinnov){//block_size is 
                 int nodenum1 = 0; //Bias is always the first node
                 int nodenum2 = nodes.size()-1;//Last node is the newly added output node  
                 double weight = 0.0; //Bias to new output connection has a weight of zero
-                add_link(nodenum1, nodenum2, weight, curinnov);
+                bool recurflag = false;
+                add_link(nodenum1, nodenum2, weight, curinnov, recurflag, WRITE);
+                
+                //Add a peephole connection from the newly added LSTM output node to its own write gate 
+                nodenum1 = nodes.size()-1;//Last node is the newly added output node  
+                nodenum2 = nodes.size()-1;//Last node is the newly added output node
+                weight = 0.0; //Bias to new output connection has a weight of zero
+                recurflag = true;  
+                add_link(nodenum1, nodenum2, weight, curinnov, recurflag, WRITE);
         }
 }
 
 // Add a new link between 2 specific NNodes 
-void Genome::add_link(int nodenum1, int nodenum2, double weight, double &curinnov){
+void Genome::add_link(int nodenum1, int nodenum2, double weight, double &curinnov, bool recurflag, lstm_gate_type gtype){
 
 	NNode *nodep1; //Pointers to the nodes
 	NNode *nodep2; //Pointers to the nodes
@@ -2042,7 +2066,6 @@ void Genome::add_link(int nodenum1, int nodenum2, double weight, double &curinno
 	std::vector<NNode*>::iterator thenode1,thenode2;  //node iterators
 	int traitnum;  //Random trait finder
 	std::vector<Trait*>::iterator thetrait;
-        bool recurflag = false;
 	Gene *newgene;  //The new Gene
 
         thenode1=nodes.begin();
@@ -2066,7 +2089,7 @@ void Genome::add_link(int nodenum1, int nodenum2, double weight, double &curinno
 	thetrait=traits.begin();
 
 	//Create the new gene
-	newgene=new Gene(((thetrait[traitnum])),weight,nodep1,nodep2,recurflag,curinnov,NONE,NONE);
+	newgene=new Gene(((thetrait[traitnum])),weight,nodep1,nodep2,recurflag,curinnov,gtype,gtype);
 	
         add_gene(genes,newgene);  //Add genes in correct order
 	
@@ -2098,6 +2121,7 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 	bool do_recur;
 	bool loop_recur;
 	int first_nonsensor_nonfrozen;
+	int first_nonfrozen;
 
 	//These are used to avoid getting stuck in an infinite loop checking
 	//for recursion
@@ -2129,8 +2153,8 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 		sorted_nodes.push_back(*curnode);
 	}
 
-        //Sort the Nodes by frozen status (Frozen first, followed by non-frozen) 
-        std::sort(sorted_nodes.begin(), sorted_nodes.end(), order_node_frozen);
+        //Sort the Nodes by frozen status (Frozen first, followed by sensor, followed by non-frozen and non-sensor) 
+        std::sort(sorted_nodes.begin(), sorted_nodes.end(), order_node_frozen_sensor);
 
         //Find the first non-sensor and non-frozen node so that the to-node won't look at sensors or frozen node as
 	//possible destinations
@@ -2154,8 +2178,8 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 			
                         if (loop_recur) {
 				//nodenum1=randint(first_nonsensor,nodes.size()-1);
-				nodenum1=randint(first_nonsensor_nonfrozen,nodes.size()-1);
-				nodenum2=nodenum1;
+				nodenum1=randint(first_nonsensor_nonfrozen,nodes.size()-1);//Both to and from node and same. 
+				nodenum2=nodenum1;                                         //Therefore, non-frozen and non-sensor nodes only
 			}
 			else {
 				//Choose random nodenums
@@ -2251,8 +2275,9 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 					recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
 
 					//ADDED: CONSIDER connections out of outputs recurrent
-					if (((nodep1->gen_node_label)==OUTPUT)&&
-						((nodep2->gen_node_label)==OUTPUT))//Aditya:Output to Output connections are considered recurrent 
+                                        //Aditya: Output to output connections are recurrent
+                                        if ( (((nodep1->gen_node_label)==OUTPUT)&&((nodep2->gen_node_label)==OUTPUT)) ||  
+                                             ((nodep1->gen_node_label)==OUTPUT) )
 						recurflag=true;
 
 					//Exit if the network is faulty (contains an infinite loop)
@@ -2274,13 +2299,22 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 
 		}
 	}
-	else {
+	else {  //Non-recurrent link
+                
+                //Find the first non-frozen node so that the from node (in a non-recurrent link) will not be a frozen node as
+	        //possible destination
+	        first_nonfrozen=0;
+	        thenode1=sorted_nodes.begin();
+	        while((*thenode1)->frozen==true) {
+	        	first_nonfrozen++;
+	        	++thenode1;
+	        }
 		//Loop to find a nonrecurrent link
 		while(trycount<tries) {
 
 			//Choose random nodenums
-			nodenum1=randint(0,nodes.size()-1);
-			nodenum2=randint(first_nonsensor_nonfrozen,nodes.size()-1);
+			nodenum1=randint(0,nodes.size()-1);  //New links from frozen nodes are allowed during unsupervised phase
+			nodenum2=randint(first_nonsensor_nonfrozen,nodes.size()-1); //New links to frozen nodes are not allowed
 
 			//Find the first node
 			thenode1=sorted_nodes.begin();
@@ -2371,8 +2405,9 @@ bool Genome::mutate_add_link(std::vector<Innovation*> &innovs,double &curinnov,i
 					count=0;
 					recurflag=phenotype->is_recur(nodep1->analogue,nodep2->analogue,count,thresh);
 					//ADDED: CONSIDER connections out of outputs recurrent
-                                        if (((nodep1->gen_node_label)==OUTPUT)&&
-						((nodep2->gen_node_label)==OUTPUT))  //Aditya: Output to output connections are recurrent  
+                                        //Aditya: Output to output connections are recurrent
+                                        if ( (((nodep1->gen_node_label)==OUTPUT)&&((nodep2->gen_node_label)==OUTPUT)) ||  
+                                             ((nodep1->gen_node_label)==OUTPUT) )
 						recurflag=true;
 
 					//Exit if the network is faulty (contains an infinite loop)

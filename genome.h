@@ -44,14 +44,14 @@ namespace NEAT {
 	class Genome {
 
 	public:
-                //Calculates the total number of enabled genes in the genome
+                //Calculates the total number of enabled and non-frozen genes in the genome
                 int compute_genome_size();
 
 		//Add output nodes and connect them to BIAS(for incrementally finding independent output node)
                 void add_output_nodes(int block_size, double &curinnov);//block_size is the number of the new output nodes to be added
                 
                 // Add a new link between 2 specific NNodes 
-		void add_link(int nodenum1, int nodenum2, double weight, double &curinnov); 
+		void add_link(int nodenum1, int nodenum2, double weight, double &curinnov, bool recurflag, lstm_gate_type gtype); 
 
                 void freeze_genome();//No new incoming or outgoing connections from all the nodes (except inputs) and no more weight changes on this part of the network
                 bool compare_frozen_genome(Genome *new_genome);//Check to see whether frozen components of the genome is unchanged. For verification purposes only

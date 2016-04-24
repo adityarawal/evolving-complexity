@@ -106,11 +106,15 @@ void Organism::remove_inactive_genome() {
         net->find_active_paths();
 
         //Create a list of all active node_ids
+        ////Make sure all inputs, outputs and bias nodes are included
         //This is required because genome->nodes are 
         //not the same as net->all_nodes
         //Also, find and mark the active links in the genome
 	for(curnode=net->all_nodes.begin();curnode!=net->all_nodes.end();++curnode) {
-                if ((*curnode)->on_active_path) {
+                if ((*curnode)->on_active_path || 
+                     ((((*curnode)->gen_node_label)==INPUT)|| 
+			(((*curnode)->gen_node_label)==BIAS)||
+			(((*curnode)->gen_node_label)==OUTPUT))) {
                         active_node_ids.push_back((*curnode)->node_id);
                 }
                 for(curlink=((*curnode)->incoming).begin();curlink!=((*curnode)->incoming).end();++curlink) {
