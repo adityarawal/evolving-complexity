@@ -381,11 +381,11 @@ bool Network::activate() {
 				        	}
 				        	else {
 				        		//Now run the net activation through an activation function
-				        		if ((*curnode)->ftype==SIGMOID) {
-                                                                (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Sigmoidal activation- see comments under fsigmoid //Changed slope from 4.924273 to 1.0 to allow for 4 different output node categories
+				        		if ((*curnode)->ftype==TANH) {
+                                                                (*curnode)->activation=NEAT::ftanh((*curnode)->activesum,1.0,2.4621365); //tanh
                                                         }
                                                         else {
-                                                                (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365);  //Rectified Linear Units {max(0,x)}
+                                                                (*curnode)->activation=NEAT::fReLu((*curnode)->activesum,1.0,2.4621365); //Rectified Linear Units {max(0,x)}
                                                         }
                                                 }
                                                 //std::cout<<(*curnode)->activation<<std::endl;

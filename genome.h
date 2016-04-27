@@ -19,6 +19,7 @@
 #include <vector>
 #include "gene.h"
 #include "innovation.h"
+#include "nnode.h"
 
 namespace NEAT {
 
@@ -48,10 +49,16 @@ namespace NEAT {
                 int compute_genome_size();
 
 		//Add output nodes and connect them to BIAS(for incrementally finding independent output node)
-                void add_output_nodes(int block_size, double &curinnov);//block_size is the number of the new output nodes to be added
+                void add_output_nodes(int block_size, double &curinnov, int ftype);//block_size is the number of the new output nodes to be added
                 
                 // Add a new link between 2 specific NNodes 
 		void add_link(int nodenum1, int nodenum2, double weight, double &curinnov, bool recurflag, lstm_gate_type gtype); 
+
+                //Unfreeze output nodes and the LSTM read gate
+                //Convert the output node to hidden node 
+                void unfreeze_convert_outputs_to_hidden();
+                
+                void freeze_genome_lstm_rd();//Freeze the read gate of the LSTM outputs during the info-max phase to prevent links to read gate
 
                 void freeze_genome();//No new incoming or outgoing connections from all the nodes (except inputs) and no more weight changes on this part of the network
                 bool compare_frozen_genome(Genome *new_genome);//Check to see whether frozen components of the genome is unchanged. For verification purposes only
@@ -137,7 +144,7 @@ namespace NEAT {
 		void mutate_link_weights(double power,double rate,mutator mut_type);
 
 		// toggle genes on or off 
-		void mutate_toggle_enable(int times);
+		void mutate_toggle_enable(int tries);
 
 		// Find first disabled gene and enable it 
 		void mutate_gene_reenable();

@@ -59,6 +59,7 @@ int NEAT::frozen_startgenome = 0;
 int NEAT::input_sequence_len = 2;
 double NEAT::mutate_add_lstm_node_prob = 0;
 double NEAT::nw_size_cost_factor = 0;//(varies between 0-1)
+int NEAT::task_mode = 0; //(0/1) 0 - Info-max phase is ON, 1 - Task phase is ON
 //MRandomR250 NEAT::NEATRandGen = MRandomR250(Platform::getRealMilliseconds()); // Random number generator; can pass seed value as argument here
 //MRandomR250 NEAT::NEATRandGen = MRandomR250();
 
@@ -441,6 +442,7 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
 	    printf("input_sequence_len=%d\n",input_sequence_len);
 	    printf("mutate_add_lstm_node_prob=%f\n",mutate_add_lstm_node_prob);
 	    printf("nw_size_cost_factor=%f\n",nw_size_cost_factor);
+	    printf("task_mode=%d\n",task_mode);
     }
 
 	paramFile.close();

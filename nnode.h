@@ -40,7 +40,9 @@ namespace NEAT {
 
 	enum functype {
 		SIGMOID = 0,
-		RELU = 1
+		RELU = 1,
+		TANH = 2,
+                LINEAR = 3 //For LSTM activation
 	};
 
 	class Link;

@@ -68,8 +68,8 @@ NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze, bool f
 	node_id=nodeid;
 	nodetrait=0;
 	gen_node_label=placement;
-	if (gen_node_label == OUTPUT) {
-                ftype=SIGMOID; //Output nodes have sigmoid non-linearity
+	if (gen_node_label == OUTPUT) {//ftype is ignored if the node is LSTM
+                ftype=TANH; //Output nodes have tanh non-linearity
         }
         else {
                 ftype=RELU; //Hidden nodes have relu non-linearity
@@ -103,8 +103,8 @@ NNode::NNode(NNode *n,Trait *t) {
 	node_id=n->node_id;
 	nodetrait=0;
 	gen_node_label=n->gen_node_label;
-	if (gen_node_label == OUTPUT) {
-                ftype=SIGMOID; //Output nodes have sigmoid non-linearity
+	if (gen_node_label == OUTPUT) {//ftype is ignored if the node is LSTM
+                ftype=TANH; //Output nodes have tanh non-linearity
         }
         else {
                 ftype=RELU; //Hidden nodes have relu non-linearity
@@ -160,8 +160,8 @@ NNode::NNode (const char *argline, std::vector<Trait*> &traits) {
 
         //The following lines to assign ftype have been missing from the code previously. 
         //Could be a major bug during testing winners
-	if (gen_node_label == OUTPUT) {
-                ftype=SIGMOID; //Output nodes have sigmoid non-linearity
+	if (gen_node_label == OUTPUT) {//ftype is ignored if the node is LSTM
+                ftype=TANH; //Output nodes have tanh non-linearity
         }
         else {
                 ftype=RELU; //Hidden nodes have relu non-linearity

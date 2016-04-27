@@ -279,9 +279,11 @@ void Species::adjust_fitness() {
 
                 //Fitness Penalty for Large networks
                 double nw_size_cost = NEAT::nw_size_cost_factor*(((*curorg)->gnome)->compute_genome_size());
-                //std::cout<<"Pre Fitness: "<<((*curorg)->fitness1)<<std::endl;
-                (*curorg)->fitness1 = ((*curorg)->fitness1)*(1.0-nw_size_cost_factor) - nw_size_cost; //( fitness - cost_factor*nw_size)
-                //std::cout<<"Post Fitness: "<<((*curorg)->fitness1)<<std::endl;
+                
+                //Fitness Penalty for Large networks (only used during info-max mode)
+                if (NEAT::task_mode==0) {
+                         (*curorg)->fitness1 = ((*curorg)->fitness1)*(1.0-nw_size_cost_factor) - nw_size_cost; //( fitness - cost_factor*nw_size)
+                }
 
 		//Remember the original fitness before it gets modified
 		(*curorg)->orig_fitness=(*curorg)->fitness1;
@@ -625,7 +627,7 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 				if (randfloat()<NEAT::mutate_toggle_enable_prob) {
 					//std::cout<<"mutate toggle enable"<<std::endl;
 			                Genome *last_genome=(new_genome)->duplicate(1);
-					new_genome->mutate_toggle_enable(1);
+					new_genome->mutate_toggle_enable(100);
                                         char *s = "mutate_add_toggle_enable";
                                         check_lstm_genes(last_genome, new_genome, s);
                                 delete last_genome;
@@ -735,7 +737,7 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 					}
 					if (randfloat()<NEAT::mutate_toggle_enable_prob) {
 			                        Genome *last_genome=(new_genome)->duplicate(1);
-						new_genome->mutate_toggle_enable(1);
+						new_genome->mutate_toggle_enable(100);
 						//std::cout<<"mutate_toggle_enable: "<<new_genome<<std::endl;
                                                 char *s = "mutate_toggle_enable";
                                                 check_lstm_genes(last_genome, new_genome, s);
@@ -1002,7 +1004,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 						if (randfloat()<NEAT::mutate_toggle_enable_prob) {
 			                                Genome *last_genome=(new_genome)->duplicate(1);
 							//std::cout<<"mutate toggle enable"<<std::endl;
-							new_genome->mutate_toggle_enable(1);
+							new_genome->mutate_toggle_enable(100);
                                                         char *s = "mutate_toggle_enable";
                                                         check_lstm_genes(last_genome, new_genome, s);
                                                         delete last_genome;
@@ -1202,7 +1204,7 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 						}
 						if (randfloat()<NEAT::mutate_toggle_enable_prob) {
 			                                Genome *last_genome=(new_genome)->duplicate(1);
-							new_genome->mutate_toggle_enable(1);
+							new_genome->mutate_toggle_enable(100);
 							//std::cout<<"mutate_toggle_enable: "<<new_genome<<std::endl;
                                                         char *s = "mutate_toggle_enable";
                                                         check_lstm_genes(last_genome, new_genome, s);
