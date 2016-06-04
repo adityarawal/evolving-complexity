@@ -27,6 +27,7 @@ Population::Population(Genome *g,int size) {
 	highest_fitness2=0.0;
 	highest_last_changed2=0;
 	spawn(g,size);
+        overall_champ = NULL;
 }
 
 Population::Population(Genome *g,int size, float power) {
@@ -36,6 +37,7 @@ Population::Population(Genome *g,int size, float power) {
 	highest_fitness2=0.0;
 	highest_last_changed2=0;
 	clone(g, size, power);
+        overall_champ = NULL;
 }
 
 //Population::Population(int size,int i,int o, int nmax, bool r, double linkprob) {    
@@ -72,6 +74,7 @@ Population::Population(std::vector<Genome*> genomeList, float power) {
 	highest_last_changed1=0;
 	highest_fitness2=0.0;
 	highest_last_changed2=0;
+        overall_champ = NULL;
 		
 	int count;
 	Genome *new_genome;
@@ -113,6 +116,7 @@ Population::Population(const char *filename) {
 	highest_last_changed1=0;
 	highest_fitness2=0.0;
 	highest_last_changed2=0;
+        overall_champ = NULL;
 
 	cur_node_id=0;
 	cur_innov_num=0.0;
@@ -209,6 +213,8 @@ Population::~Population() {
 	std::vector<Species*>::iterator curspec;
 	std::vector<Organism*>::iterator curorg;
 	//std::vector<Generation_viz*>::iterator cursnap;
+        
+        delete overall_champ;
 
 	if (species.begin()!=species.end()) {
 		for(curspec=species.begin();curspec!=species.end();++curspec) {
@@ -771,7 +777,7 @@ bool Population::epoch_multiobj(int generation, char *filename) {
 
 }
 
-bool Population::epoch(int generation, char *filename) {
+bool Population::epoch(int generation, char *filename, int max_feature_nw_size) {
 
 	std::vector<Species*>::iterator curspecies;
 	std::vector<Species*>::iterator deadspecies;  //For removing empty Species
@@ -820,6 +826,8 @@ bool Population::epoch(int generation, char *filename) {
 	int num_species_target=4;
 	int num_species=species.size();
 	double compat_mod=0.3;  //Modify compat thresh to control speciation
+	
+        std::vector<Organism*>::iterator best_org; //Iterator to the best organism  
 
 
 	//Keeping species diverse
@@ -839,6 +847,46 @@ bool Population::epoch(int generation, char *filename) {
 	}
 	*/
 
+        //Update the overall champ.
+        //Individual that has size less than equal to the max. allowed size and has
+        //actual fitness (without cost and specie size adjustments) greater than the overall_champ is the new overall_champ 
+	curorg = organisms.begin();
+	int best_org_index=0;
+        int temp_index = 0;
+        double best_fitness1 = 0.0;
+        Genome *best_genome = NULL; 
+        while (curorg!=organisms.end()) {
+                if (((*curorg)->gnome->compute_genome_size() <= max_feature_nw_size) && 
+                    ((*curorg)->fitness1 >= best_fitness1)) {
+                        best_fitness1 = (*curorg)->fitness1;
+                        best_org_index = temp_index;
+                }
+                temp_index++;
+                ++curorg;
+        }
+
+        if (overall_champ != NULL) {
+                if (best_fitness1 >= overall_champ->fitness1) {
+                        delete overall_champ; //Delete the old value stored
+
+                        //find the best organism 
+         	        curorg=organisms.begin();
+         	        for(int i=0;i<best_org_index;i++)
+         		     ++curorg;
+                        best_genome = (*curorg)->gnome->duplicate(1);
+                        overall_champ = new Organism ((*curorg)->fitness1, (*curorg)->fitness2, best_genome, generation);
+                        std::cout<<"Overall_champ updated: Genome Id: "<<overall_champ->gnome->genome_id <<" nw_size: "<<overall_champ->gnome->compute_genome_size()<<" fitness: "<<overall_champ->fitness1 << " "<<best_fitness1<<std::endl;
+                }
+        }
+        else {
+         	curorg=organisms.begin();
+         	for(int i=0;i<best_org_index;i++)
+         	     ++curorg;
+                best_genome = (*curorg)->gnome->duplicate(1);
+                overall_champ = new Organism ((*curorg)->fitness1, (*curorg)->fitness2, best_genome, generation);
+                std::cout<<"Overall_champ updated: Genome Id: "<<overall_champ->gnome->genome_id <<" nw_size: "<<overall_champ->gnome->compute_genome_size()<<" fitness: "<<overall_champ->fitness1 << " "<<best_fitness1<<std::endl;
+        }
+        //print_Genome_tofile(overall_champ->gnome,"overall_champ.txt");
 
 	//Stick the Species pointers into a new Species list for sorting
 	for(curspecies=species.begin();curspecies!=species.end();++curspecies) {
@@ -970,7 +1018,6 @@ bool Population::epoch(int generation, char *filename) {
         if  ((generation%(NEAT::print_every))==0){ //Print every generation happens inside epoch_multiobj
                 print_to_file_by_species(filename);
         }
-        
 	//Check for stagnation- if there is stagnation, perform delta-coding
 	if (highest_last_changed1>=NEAT::dropoff_age+5) {
 
@@ -1187,7 +1234,7 @@ bool Population::epoch(int generation, char *filename) {
 
 	}
 
-	//cout<<"Reproducing"<<endl;
+        //std::cout<<"Reproducing"<<std::endl;
 
 	//Perform reproduction.  Reproduction is done on a per-Species
 	//basis.  (So this could be paralellized potentially.)

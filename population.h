@@ -48,6 +48,7 @@ namespace NEAT {
 
         std::vector<Species*> species;  // Species in the Population. Note that the species should comprise all the genomes 
 
+        Organism* overall_champ; //The best individual across all the generations
 		// ******* Member variables used during reproduction *******
         std::vector<Innovation*> innovations;  // For holding the genetic innovations of the newest generation
 		int cur_node_id;  //Current label number available
@@ -88,7 +89,7 @@ namespace NEAT {
 
 		// Turnover the population to a new generation using fitness 
 		// The generation argument is the next generation
-		bool epoch(int generation,char *filename);
+		bool epoch(int generation,char *filename, int max_feature_nw_size);
 	
                 //**  Aditya (NSGA-2)Adding new functions **//        
                 bool epoch_multiobj(int generation,char *filename);

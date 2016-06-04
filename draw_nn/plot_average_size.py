@@ -69,11 +69,11 @@ def shorten_float(float_num):
 if __name__ == "__main__":
 
         dirname = str(sys.argv[1])
-        min_val = 0.1
-        max_val = 0.60
+        min_val = 0.35
+        max_val = 0.75
         step_sz = 0.05
         num_runs = 30
-        search_str = "outputs 3 Size IS"
+        search_str = "TASK WINNER"
         avg_nw_size = [None]*len(np.arange(min_val,max_val,step_sz))
         avg_win_gen = [None]*len(np.arange(min_val,max_val,step_sz))
         num_success = [None]*len(np.arange(min_val,max_val,step_sz))

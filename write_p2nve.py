@@ -1,8 +1,8 @@
 import numpy as np
 import sys
 import os 
-min_value = 0.1
-max_value = 0.60
+min_value = 0.35
+max_value = 0.75
 step_size = 0.05
 p2nv_path = '/scratch/cluster/aditya/memory_expt_files/p2nv_files/'
 log_path  = '/scratch/cluster/aditya/memory_expt_files/log_files/'
@@ -58,9 +58,9 @@ if dump_p2nv:
                                             lines.append('babies_stolen 0\n')
                                             lines.append('num_runs 1\n')
                                             lines.append('batch_size 1\n')
-                                            lines.append('max_output_nodes 3\n')
+                                            lines.append('max_output_nodes 5\n')
                                             lines.append('frozen_startgenome 0\n')
-                                            lines.append('input_sequence_len 3\n')
+                                            lines.append('input_sequence_len 4\n')
                                             lines.append('mutate_add_lstm_node_prob 0.00\n')#+ str(param9)+'\n')
                                             lines.append('nw_size_cost_factor '+str(param10)+'\n')
                                             

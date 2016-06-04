@@ -198,11 +198,13 @@ int freeze_winner_genome(Population *pop, Genome *&last_winner_genome, Genome *&
         for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
           if ((*curorg)->winner) {
             before_nw_size = (((*curorg)->gnome)->compute_genome_size());
+            Genome *before_remove_genome; 
+            before_remove_genome = ((*curorg)->gnome)->duplicate(1);
             (*curorg)->remove_inactive_genome(); //Delete inactive parts (nodes/genes) of the genome
             after_nw_size = (((*curorg)->gnome)->compute_genome_size());
             if (before_nw_size!=after_nw_size) {
-                    std::cout<<"ERROR: in remove_inactive_genome()"<<std::endl;
-                    exit(0);
+                    std::cout<<"ERROR: in remove_inactive_genome().. This can happens sometimes (though need to find out how does it occur even though there are safety checks in mutate_toggle_enable()"<<std::endl;
+                    //exit(0);
             }
             winner_genomeid = ((*curorg)->gnome)->genome_id;
             new_winner_genome=((*curorg)->gnome)->duplicate(1);
@@ -297,7 +299,7 @@ Population *memory_test(int gens) {
                freeze_update_genome(start_genome);
                //start_genome->freeze_genome(); //Freeze current genome to prevent any new incoming connections to the existing nodes and any weight changes on this part of the network
           }
-          
+         
           //Freeze the read gate of the LSTM outputs during the info-max phase 
           //to prevent links to read gate during unsupervised training
           if (NEAT::task_mode == 0) {
@@ -316,10 +318,14 @@ Population *memory_test(int gens) {
           int aisle_length = 10; //Aisle length (Fixed for now)
           int max_rand_activate = 20; //Not used currently
           generate_Tmaze_input_data(num_input_nodes, input_data, num_trials, aisle_length);
-          int max_nw_size[5] = {4, 5, 5, 4};//The length of this array is equal to the length of the maximum output nodes (usually input_sequence_len + 1)
-          double max_fitness[5] = {99.0, 97.0, 95.0, 80.0};//The length of this array is equal to the length of the maximum output nodes (usually input_sequence_len + 1)
-          int cur_nw_size; //Target network size (includes only non-frozen components) with each additional output 
-          double cur_fitness; //Target fitness with each additional output 
+         
+          int max_feature_nw_size[5] = {4, 5, 5, 5, 5};//length of array =  maximum output nodes (usually input_sequence_len + 1)
+          double max_feature_fitness[5] = {99.0, 95.0, 95.0, 95.0, 90};//length of array =  maximum output nodes (usually input_sequence_len + 1)
+          int max_feature_gen[5] = {1000, 4000, 7000, 10000, 13000};//length of array =  maximum output nodes (usually input_sequence_len + 1)
+         
+          int cur_feature_max_nw_size; //Target network size (includes only non-frozen components) with each additional output feature
+          double cur_feature_max_fitness; //Target fitness with each additional output feature
+          int cur_feature_max_gen; //Target network size (includes only non-frozen components) with each additional output feature
 
           //Spawn the Population
           cout<<"Spawning Population off Genome "<<start_genome->genome_id<<endl;;
@@ -338,14 +344,16 @@ Population *memory_test(int gens) {
                   //With each newly added LSTM output,
                   //the maximum network size needs to be updated 
                   //This is the size of only the non-frozen network
-                  cur_nw_size = max_nw_size[current_output_nodes-1]; //With each new output, the new target max_nw_size changes
-                  cur_fitness = max_fitness[current_output_nodes-1]; //With each new output, the new target fitness changes 
+                  cur_feature_max_nw_size = max_feature_nw_size[current_output_nodes-1]; //With each new output, the new target size change
+                  cur_feature_max_fitness = max_feature_fitness[current_output_nodes-1]; //With each new output, the new target fitness change
+                  cur_feature_max_gen = max_feature_gen[current_output_nodes-1];
 
                   char temp[50];
                   sprintf (temp, "gen_%d_%d", gen,current_output_nodes);
 
                   bool success = false;
-                  success = memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, independent_archive, num_trials, aisle_length, cur_nw_size, cur_fitness);
+                  success = memory_epoch(pop,gen,temp,winnernum,winnergenes,winnernodes, input_data, independent_archive, num_trials, aisle_length, cur_feature_max_nw_size, cur_feature_max_fitness, cur_feature_max_gen);
+                  
                   //RL Phase
                   if (NEAT::task_mode==1) {
 
@@ -396,13 +404,13 @@ Population *memory_test(int gens) {
                                   pop=new Population(new_winner_genome,NEAT::pop_size);
                                   cout<<"Verifying Spawned Pop"<<endl;
                                   pop->verify();
-                                  //DELETE BELOW 
-                                  evals[expcount]=NEAT::pop_size*(gen-1)+winnernum;
-                                  genes[expcount]=winnergenes;
-                                  nodes[expcount]=winnernodes;
-                                  gen=gens;
-                                  delete last_winner_genome;
-                                  delete new_winner_genome;
+                                  ////DELETE BELOW 
+                                  //evals[expcount]=NEAT::pop_size*(gen-1)+winnernum;
+                                  //genes[expcount]=winnergenes;
+                                  //nodes[expcount]=winnernodes;
+                                  //gen=gens;
+                                  //delete last_winner_genome;
+                                  //delete new_winner_genome;
                           }
                           
                           //If some independent output features have been discovered (<max outputs)
@@ -739,7 +747,7 @@ double normalized_mi(const vector <double> &X, const vector <double> &Y, const d
 }
 
 
-bool memory_evaluate(Organism *org, int generation, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &independent_archive, const std::vector < vector <double> > &output_activations, int max_nw_size, double max_fitness) {
+bool memory_evaluate(Organism *org, int generation, int org_index, int num_active_outputs, int output_start_index, int output_end_index, const std::vector < vector < double > > &independent_archive, const std::vector < vector <double> > &output_activations, int max_feature_nw_size, double max_feature_fitness) {
 
   int nw_size;
   nw_size = ((org->gnome)->compute_genome_size());
@@ -843,7 +851,7 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
             //org->fitness2=0.0;//Cost for the size of the network
           }
 
-          if (org->fitness1>=max_fitness && nw_size<=max_nw_size) {
+          if (org->fitness1>=max_feature_fitness && nw_size<=max_feature_nw_size) {
                 org->winner = true;
                 std::cout<<"OBJECTIVE1 ACHIEVED:: WINNER FOUND"<<std::endl;
           }
@@ -1023,7 +1031,7 @@ void memory_activate(Organism *org, int org_index, int num_active_outputs, int o
 
 }
 
-int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, std::vector< vector <double> > &independent_archive, int num_trials, int aisle_length, int max_nw_size, double max_fitness) {
+int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, std::vector< vector <double> > &independent_archive, int num_trials, int aisle_length, int max_feature_nw_size, double max_feature_fitness, int max_gen) {
   vector<Organism*>::iterator curorg;
   vector<Species*>::iterator curspecies;
   bool win=false;
@@ -1035,7 +1043,10 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   std::vector<int> unevaluated_org; //Stores the organism number for the individuals which haven't been evaluated in the population 
   time_t start_seconds, end_seconds;
   int genome_size;
-  int new_hidden_nodes; 
+  int new_hidden_nodes;
+  int winner_outputs;
+  int winner_size; 
+  Genome *winner_genome = NULL; //Current winner 
 
   //If the startgenome was frozen, create the archive of the independent activations (of frozen outputs) at the start
   if (NEAT::frozen_startgenome == 1 && generation==1) {
@@ -1092,18 +1103,21 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   //start_seconds = time(NULL); //Current Time in seconds since January 1, 1970
   #pragma omp parallel for //Parallelization of for loop 
   for (int i=0; i < unevaluated_org.size(); i++) {
-          org_win[i] = memory_evaluate(pop->organisms[unevaluated_org[i]], generation, i, num_active_outputs, output_start_index, output_end_index, independent_archive, output_activations, max_nw_size, max_fitness);
+          org_win[i] = memory_evaluate(pop->organisms[unevaluated_org[i]], generation, i, num_active_outputs, output_start_index, output_end_index, independent_archive, output_activations, max_feature_nw_size, max_feature_fitness);
   }
   //end_seconds = time(NULL); //Current Time in seconds since January 1, 1970
   //std::cout << "Total Organism Evaluation Time: "<< (double)(end_seconds-start_seconds)<< " seconds." << "\n";
  
-  //Save the first winner 
+  //Save the first winner
   for (int i=0; i < unevaluated_org.size(); i++) {
           if (org_win[i]==1) {
             win=true;
             winnernum=pop->organisms[unevaluated_org[i]]->gnome->genome_id;
             winnergenes=pop->organisms[unevaluated_org[i]]->gnome->extrons();
             winnernodes=(pop->organisms[unevaluated_org[i]]->gnome->nodes).size();
+            winner_outputs = (pop->organisms[unevaluated_org[i]])->net->outputs.size();
+            winner_size =  pop->organisms[unevaluated_org[i]]->gnome->compute_genome_size();
+            winner_genome=pop->organisms[unevaluated_org[i]]->gnome->duplicate(1);
             ////Push in the num_active_outputs features
             //for (int j=0; j<num_active_outputs; j++) {
             //        independent_archive.push_back(output_activations[i*num_active_outputs+j]);
@@ -1111,7 +1125,16 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
             break;
           }
   }
-  
+  if (task_mode==0 && generation==max_gen && win==false) {
+            win=true;
+            winnernum=pop->overall_champ->gnome->genome_id;
+            winnergenes=pop->overall_champ->gnome->extrons();
+            winnernodes=(pop->overall_champ->gnome->nodes).size();
+            winner_outputs = pop->overall_champ->net->outputs.size();
+            winner_size =  pop->overall_champ->gnome->compute_genome_size();
+            winner_genome=pop->overall_champ->gnome->duplicate(1);
+
+  }  
   ////Average and max their fitnesses for dumping to file and snapshot
   //for(curspecies=(pop->species).begin();curspecies!=(pop->species).end();++curspecies) {
 
@@ -1136,27 +1159,22 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
   }
 
   if (win) {
-    char temp[200];
-    for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
-      if ((*curorg)->winner) {
-        genome_size = ((*curorg)->gnome)->compute_genome_size();
+        char temp[200];
         //new_hidden_nodes = ((*curorg)->gnome)->nodes.size()-2-2; //When starting with two input nodes and two output nodes 
 	if (NEAT::task_mode == 0) { 
-             cout<<"WINNER IS #"<<((*curorg)->gnome)->genome_id <<" Generation IS "<<generation<<" Num outputs "<<((*curorg)->net->outputs.size()) <<" Size IS "<< genome_size<<endl;
-	     sprintf (temp, "/scratch/cluster/aditya/memory_expt_files//winner/winner_%d_%d", generation,((*curorg)->net->outputs.size()));
+             cout<<"WINNER IS #"<<winnernum <<" Generation IS "<<generation<<" Num outputs "<<winner_outputs <<" Size IS "<< winner_size<<endl;
+	     sprintf (temp, "/scratch/cluster/aditya/memory_expt_files//winner/winner_%d_%d", generation,winner_outputs);
         }
         else {
-             cout<<"TASK WINNER IS #"<<((*curorg)->gnome)->genome_id <<" Generation IS "<<generation<<" Num outputs "<<((*curorg)->net->outputs.size()) <<" Size IS "<< genome_size<<endl;
-	     sprintf (temp, "/scratch/cluster/aditya/memory_expt_files//winner/task_winner_%d_%d", generation,((*curorg)->net->outputs.size()));
+             cout<<"TASK WINNER IS #"<<winnernum <<" Generation IS "<<generation<<" Num outputs "<<winner_outputs <<" Size IS "<< winner_size<<endl;
+	     sprintf (temp, "/scratch/cluster/aditya/memory_expt_files//winner/task_winner_%d_%d", generation,winner_outputs);
         }
-	print_Genome_tofile((*curorg)->gnome,temp);
-        break;
-      }
-    }
+	print_Genome_tofile(winner_genome, temp);
+        delete winner_genome;
   }
   else {
 //  if(generation <= 999)
-        pop->epoch(generation, filename);
+        pop->epoch(generation, filename, max_feature_nw_size);
         //pop->epoch_multiobj(generation, filename); //Aditya (NSGA-2)
   //if  (win||
   //     ((generation%(NEAT::print_every))==0))
@@ -1424,7 +1442,7 @@ int xor_epoch(Population *pop,int generation,char *filename,int &winnernum,int &
     
   }
 
-  pop->epoch(generation, filename);
+  pop->epoch(generation, filename, 1000);
 
   if (win) return 1;
   else return 0;
@@ -1571,7 +1589,7 @@ int pole1_epoch(Population *pop,int generation,char *filename) {
   }
 
   //Create the next generation
-  pop->epoch(generation, filename);
+  pop->epoch(generation, filename, 1000);
 
   if (win) return ((generation-1)*NEAT::pop_size+winnernum);
   else return 0;
@@ -2196,7 +2214,7 @@ int pole2_epoch(Population *pop,int generation,char *filename,bool velocity,
   print_Genome_tofile(champ->gnome,"champ");
 
   //Create the next generation
-  pop->epoch(generation, filename);
+  pop->epoch(generation, filename, 1000);
 
   return (int) champ_fitness;
 }
