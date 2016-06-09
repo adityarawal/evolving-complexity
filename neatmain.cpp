@@ -61,7 +61,8 @@ int main(int argc, char *argv[]) {
   //***********RANDOM SETUP***************//
   /* Seed the random-number generator with current time so that
       the numbers will be different every time we run.    */
-  srand( getpid() );//Aditya: To ensure multiple simultaneous runs can be fired on condor 
+  int pid = getpid();
+  srand( pid );//Aditya: To ensure multiple simultaneous runs can be fired on condor 
 
   if (argc != 2) {
     cerr << "A NEAT parameters file (.ne file) is required to run the experiments!" << endl;
@@ -122,7 +123,7 @@ int main(int argc, char *argv[]) {
       p=xor_test(100);
       break;
     case 5:
-      p = memory_test(18000);
+      p = memory_test(18000, pid);
       break;
     default:
       cout<<"Not an available option."<<endl;

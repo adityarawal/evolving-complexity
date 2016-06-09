@@ -44,10 +44,9 @@ bool xor_evaluate(Organism *org);
 int xor_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes);
 
 //The memory evolution routines *************************
-Population *memory_test(int gens);
+Population *memory_test(int gens, int pid);
 bool memory_test(Organism *org);
-int memory_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, vector< vector <double> > &independent_archive, int num_trials, int aisle_length, int max_nw_size, double max_fitness, int max_gen);
-
+int memory_epoch(Population *pop,int generation,char *filename, int &winnernum, int &winnergenes,int &winnernodes, const std::vector < vector < double > > &input_data, vector< vector <double> > &independent_archive, int num_trials, int aisle_length, int max_nw_size, double max_fitness, int max_gen, int pid, Organism *&winner_org);
 
 //Single pole balancing evolution routines ***************************
 Population *pole1_test(int gens); 
