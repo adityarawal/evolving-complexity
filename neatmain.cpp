@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
       p=xor_test(100);
       break;
     case 5:
-      p = memory_test(18000, pid);
+      p = memory_test(30000, pid);
       break;
     default:
       cout<<"Not an available option."<<endl;

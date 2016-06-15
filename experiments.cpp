@@ -315,8 +315,15 @@ Population *memory_test(int gens, int pid) {
           generate_Tmaze_input_data(num_input_nodes, input_data, num_trials, aisle_length);
          
           int max_feature_nw_size[5] = {4, 5, 5, 5, 5};//length of array =  maximum output nodes (usually input_sequence_len + 1)
-          double max_feature_fitness[5] = {99.0, 95.0, 95.0, 95.0, 90};//length of array =  maximum output nodes (usually input_sequence_len + 1)
-          int max_feature_gen[5] = {1000, 4000, 7000, 10000, 13000};//length of array =  maximum output nodes (usually input_sequence_len + 1)
+          //double max_feature_fitness[5] = {99.0, 95.0, 95.0, 95.0, 90};//length of array =  maximum output nodes (usually input_sequence_len + 1)
+          vector <double> max_feature_fitness;
+          max_feature_fitness.push_back(NEAT::feature1_fitness_thresh);
+          max_feature_fitness.push_back(NEAT::feature2_fitness_thresh);
+          max_feature_fitness.push_back(NEAT::feature3_fitness_thresh);
+          max_feature_fitness.push_back(NEAT::feature4_fitness_thresh);
+          max_feature_fitness.push_back(NEAT::feature5_fitness_thresh);
+
+          int max_feature_gen[5] = {1000, 5000, 10000, 15000, 20000};//length of array =  maximum output nodes (usually input_sequence_len + 1)
          
           int cur_feature_max_nw_size; //Target network size (includes only non-frozen components) with each additional output feature
           double cur_feature_max_fitness; //Target fitness with each additional output feature
@@ -720,10 +727,10 @@ double normalized_mi(const vector <double> &X, const vector <double> &Y, const d
         }
         else {
                 mi = compute_mutual_information(num_bin, X, Y);
-                std::cout<<"Binned Entropy: "<<entropy_X<<" "<<entropy_Y<<std::endl;
-                //mi = slow_kraskov_mutual_information(K, X, Y);
-                //mi = fraser_mutual_information(X, Y);
-                std::cout<<"Binned MI: "<<mi<<std::endl;
+                //std::cout<<"Binned Entropy: "<<entropy_X<<" "<<entropy_Y<<std::endl;
+                ////mi = slow_kraskov_mutual_information(K, X, Y);
+                ////mi = fraser_mutual_information(X, Y);
+                //std::cout<<"Binned MI: "<<mi<<std::endl;
                 if (entropy_X<entropy_Y) {
                         //if(entropy_X < 0.5) { //If entropy is very small, no point looking at the mutual information
                         //        norm_mi = (1.0/entropy_X);
@@ -876,10 +883,10 @@ bool memory_evaluate(Organism *org, int generation, int org_index, int num_activ
   }
 
   #ifndef NO_SCREEN_OUT
-  cout<<"Org "<<(org->gnome)->genome_id<<"                                     error: "<<org->error<<endl;
-  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness1: "<<org->fitness1<<endl;
-  cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness2: "<<org->fitness2<<endl;
-  cout<<"Org "<<(org->gnome)->genome_id<<"                                     Size: "<<nw_size<<endl;
+  //cout<<"Org "<<(org->gnome)->genome_id<<"                                     error: "<<org->error<<endl;
+  //cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness1: "<<org->fitness1<<endl;
+  //cout<<"Org "<<(org->gnome)->genome_id<<"                                     fitness2: "<<org->fitness2<<endl;
+  //cout<<"Org "<<(org->gnome)->genome_id<<"                                     Size: "<<nw_size<<endl;
   #endif
   //exit(0);
   org->evaluated = true; //Aditya: for speed-up by preventing re-evaluation of the elites
@@ -1172,11 +1179,11 @@ int memory_epoch(Population *pop,int generation,char *filename,int &winnernum,in
              else {
                   cout<<pid<<" INFOMAX WINNER IS #"<<winnernum <<" Generation IS "<<generation<<" Num outputs "<<winner_outputs <<" Size IS "<< winner_size<<endl;
              }
-	     sprintf (temp, "winner/%d_winner_%d_%d", pid, generation,winner_outputs);
+	     sprintf (temp, "/scratch/cluster/aditya/memory_expt_files/winner/%d_winner_%d_%d", pid, generation,winner_outputs);
         }
         else {
              cout<<pid<<" TASK WINNER IS #"<<winnernum <<" Generation IS "<<generation<<" Num outputs "<<winner_outputs <<" Size IS "<< winner_size<<endl;
-	     sprintf (temp, "winner/%d_task_winner_%d_%d", pid, generation,winner_outputs);
+	     sprintf (temp, "/scratch/cluster/aditya/memory_expt_files/winner/%d_task_winner_%d_%d", pid, generation,winner_outputs);
         }
 	print_Genome_tofile(winner_genome, temp);
         delete winner_genome;

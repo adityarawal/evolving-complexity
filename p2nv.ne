@@ -37,3 +37,8 @@ frozen_startgenome 0
 input_sequence_len 3
 mutate_add_lstm_node_prob 0.00
 nw_size_cost_factor 0.25
+feature1_fitness_thresh 95.0
+feature2_fitness_thresh 95.0
+feature3_fitness_thresh 95.0
+feature4_fitness_thresh 95.0
+feature5_fitness_thresh 95.0

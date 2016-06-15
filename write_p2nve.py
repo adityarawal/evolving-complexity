@@ -1,9 +1,12 @@
 import numpy as np
 import sys
 import os 
-min_value = 0.35
-max_value = 0.75
-step_size = 0.05
+min_cost_value = 0.45 #0.35
+max_cost_value = 0.50 #0.75
+cost_step_size = 0.05
+min_fitness_thresh_value = 95.0
+max_fitness_thresh_value = 100.0
+fitness_thresh_step_size = 4.0
 p2nv_path = '/scratch/cluster/aditya/memory_expt_files/p2nv_files/'
 log_path  = '/scratch/cluster/aditya/memory_expt_files/log_files/'
 dump_p2nv = True 
@@ -17,9 +20,13 @@ if dump_p2nv:
     #                        for param7 in np.arange(0.2,max_value,max_value):
     #                            for param8 in np.arange(min_value,max_value,step_size): #recur_only
     #                                for param9 in np.arange(min_value,max_value,step_size):#Mmutate_add_lstm_node
-                                        for param10 in np.arange(min_value,max_value,step_size):#nw_size_cost_factor
+                                       for param10 in np.arange(min_cost_value,max_cost_value,cost_step_size):#nw_size_cost_factor
+                                        for param11 in np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size):
+                                         for param12 in np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size):
+                                          for param13 in np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size):
+                                           for param14 in np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size):
                                             #param_str = str(param1)+'_'+str(param2)+'_'+str(param3)+'_'+str(param4)+'_'+str(param5)+'_'+str(param6)+'_'+str(param7)+'_'+str(param8)+'_'+str(param9)
-                                            param_str = str(param10)
+                                            param_str = str(param10)+'_'+str(param11)+'_'+str(param12)+'_'+str(param13)+'_'+str(param14)
                                             p2nv_file = p2nv_path+'p2nv_'+param_str+'.ne'
                                             f_wr = open (p2nv_file, "w")
                                             lines = []
@@ -63,6 +70,11 @@ if dump_p2nv:
                                             lines.append('input_sequence_len 4\n')
                                             lines.append('mutate_add_lstm_node_prob 0.00\n')#+ str(param9)+'\n')
                                             lines.append('nw_size_cost_factor '+str(param10)+'\n')
+                                            lines.append('feature1_fitness_thresh 99.0\n')
+                                            lines.append('feature2_fitness_thresh '+str(param11)+'\n')
+                                            lines.append('feature3_fitness_thresh '+str(param12)+'\n')
+                                            lines.append('feature4_fitness_thresh '+str(param13)+'\n')
+                                            lines.append('feature5_fitness_thresh '+str(param14)+'\n')
                                             
                                             f_wr.writelines(lines)
                                             f_wr.close()

@@ -7,22 +7,35 @@ from pylab import *
 import sys, os
 import fnmatch
 import numpy
+import string 
 
 
-def average_network_size(fname, num_runs, search_str):
+def average_network_size(fname, num_runs, num_features, task_search_str, feature_search_str):
         avg_size = 0
         avg_gen = 0
         success_count = 0;
-        total_runs = 0
+        num_completed_runs = 0
+        feature_success_list = [0]*num_features
         for run_count in np.arange(0,num_runs,1):#nw_size_cost_factor
                 temp_fname = fname
                 temp_fname = temp_fname+str(run_count) + '.txt'
                 #Check if the file has been dumped
                 if (os.path.isfile(temp_fname)): 
-                        lines = os.popen("tail -20 " + temp_fname).readlines()
-                        for line in lines:
-                                if search_str in line:
-                                        total_runs += 1
+                        #lines = os.popen("tail -20 " + temp_fname).readlines()
+                        for line in open(temp_fname, 'r'):
+
+                                #Extract success/fail information for each feature
+                                for i in xrange(0, num_features):
+                                        temp_feature_str = string.replace(feature_search_str, "X", str(i+1))
+                                        #temp_feature_str = list(feature_search_str)
+                                        #temp_feature_str[-9] = str(i+1) #Replace X in "Num outputs X Size IS"
+                                        #"".join(temp_feature_str)
+                                        if (temp_feature_str in line) and ("INFOMAX WINNER" in line):
+                                                feature_success_list[i] += 1
+                                
+                                #Extract success/fail information for the task
+                                if task_search_str in line:
+                                        num_completed_runs += 1
                                         success_count += 1
                                         words = line.strip().split()
                                         size = words[-1] #Last element in the line is the network size 
@@ -30,17 +43,17 @@ def average_network_size(fname, num_runs, search_str):
                                         avg_size += float(size)
                                         avg_gen += float(gen)
                                 elif 'Failures' in line: 
-                                        total_runs += 1
+                                        num_completed_runs += 1
                                         words = line.strip().split()
                                         flag = int(words[1])
                                         #Success
                                         if flag == 0:
-                                                total_runs -= 1 #Decrement total_runs because it will be incremented again with the winner info
+                                                num_completed_runs -= 1 #Decrement num_completed_runs because it will be incremented again with the winner info
 
         if success_count!=0:
                 avg_size = avg_size/success_count
                 avg_gen = avg_gen/success_count
-        return (avg_size, avg_gen, success_count, total_runs) 
+        return (avg_size, avg_gen, success_count, num_completed_runs, feature_success_list) 
                 
 
 def plot_bar_func (y,x_min,x_max,step_sz, label_x, label_y, plot_title, plot_color):
@@ -69,22 +82,34 @@ def shorten_float(float_num):
 if __name__ == "__main__":
 
         dirname = str(sys.argv[1])
-        min_val = 0.35
-        max_val = 0.75
+        min_val = 0.45 #0.35
+        max_val = 0.50 #0.75
         step_sz = 0.05
+        min_fitness_thresh_value = 95.0
+        max_fitness_thresh_value = 100.0
+        fitness_thresh_step_size = 4.0
         num_runs = 30
-        search_str = "TASK WINNER"
-        avg_nw_size = [None]*len(np.arange(min_val,max_val,step_sz))
-        avg_win_gen = [None]*len(np.arange(min_val,max_val,step_sz))
-        num_success = [None]*len(np.arange(min_val,max_val,step_sz))
-        total_runs = [None]*len(np.arange(min_val,max_val,step_sz))
+        num_features = 5
+        task_search_str = "TASK WINNER"
+        feature_search_str = "Num outputs X Size IS"
+        total_param_config =  len(np.arange(min_val,max_val,step_sz))*(len(np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size))**4)
+        avg_nw_size = [None]*total_param_config
+        avg_win_gen = [None]*total_param_config
+        num_success = [None]*total_param_config
+        num_completed_runs = [None]*total_param_config
         i = 0
         for param10 in np.arange(min_val,max_val,step_sz):#nw_size_cost_factor
-            fname = dirname+'/output_'+str(param10)+'.'
-            (avg_nw_size[i], avg_win_gen[i], num_success[i], total_runs[i]) = average_network_size(fname, num_runs, search_str) #Primary fitness in NEAT + Mutual Info
-            avg_nw_size[i] = shorten_float(avg_nw_size[i]) #Round-off to only one decimal precision (For priniting)
-            print fname, '(avg_nw_size, avg_win_gen, num_success, total_runs):',avg_nw_size[i], int(avg_win_gen[i]), num_success[i], total_runs[i]
-            i += 1
+         for param11 in np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size):
+          for param12 in np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size):
+           for param13 in np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size):
+            for param14 in np.arange(min_fitness_thresh_value,max_fitness_thresh_value,fitness_thresh_step_size):
+             fname = dirname+'/output_'+str(param10)+'_'+str(param11)+'_'+str(param12)+'_'+str(param13)+'_'+str(param14)+'.'
+             (avg_nw_size[i], avg_win_gen[i], num_success[i], num_completed_runs[i], feature_success_list) = average_network_size(fname, num_runs, num_features, task_search_str, feature_search_str) #Primary fitness in NEAT + Mutual Info
+             avg_nw_size[i] = shorten_float(avg_nw_size[i]) #Round-off to only one decimal precision (For priniting)
+             print fname, '(avg_nw_size, avg_win_gen, num_success, num_completed_runs):',avg_nw_size[i], int(avg_win_gen[i]), num_success[i], num_completed_runs[i]
+             for f in xrange(0, num_features): 
+                     print 'feature ', str(f+1), 'success',feature_success_list[f]  
+             i += 1
 
         sys.exit()
         figure(1)

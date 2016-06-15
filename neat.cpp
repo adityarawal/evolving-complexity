@@ -60,6 +60,11 @@ int NEAT::input_sequence_len = 2;
 double NEAT::mutate_add_lstm_node_prob = 0;
 double NEAT::nw_size_cost_factor = 0;//(varies between 0-1)
 int NEAT::task_mode = 0; //(0/1) 0 - Info-max phase is ON, 1 - Task phase is ON
+double NEAT::feature1_fitness_thresh = 95.0;//At this value of feature fitness, current feature search stops and the feature is included 
+double NEAT::feature2_fitness_thresh = 95.0;//At this value of feature fitness, current feature search stops and the feature is included 
+double NEAT::feature3_fitness_thresh = 95.0;//At this value of feature fitness, current feature search stops and the feature is included 
+double NEAT::feature4_fitness_thresh = 95.0;//At this value of feature fitness, current feature search stops and the feature is included 
+double NEAT::feature5_fitness_thresh = 95.0;//At this value of feature fitness, current feature search stops and the feature is included 
 //MRandomR250 NEAT::NEATRandGen = MRandomR250(Platform::getRealMilliseconds()); // Random number generator; can pass seed value as argument here
 //MRandomR250 NEAT::NEATRandGen = MRandomR250();
 
@@ -402,6 +407,21 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
     paramFile>>curword;
 	paramFile>>NEAT::nw_size_cost_factor;
     
+    paramFile>>curword;
+	paramFile>>NEAT::feature1_fitness_thresh;
+
+    paramFile>>curword;
+	paramFile>>NEAT::feature2_fitness_thresh;
+
+    paramFile>>curword;
+	paramFile>>NEAT::feature3_fitness_thresh;
+
+    paramFile>>curword;
+	paramFile>>NEAT::feature4_fitness_thresh;
+
+    paramFile>>curword;
+	paramFile>>NEAT::feature5_fitness_thresh;
+
     if(output) {
 	    printf("trait_param_mut_prob=%f\n",trait_param_mut_prob);
 	    printf("trait_mutation_power=%f\n",trait_mutation_power);
@@ -443,6 +463,11 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
 	    printf("mutate_add_lstm_node_prob=%f\n",mutate_add_lstm_node_prob);
 	    printf("nw_size_cost_factor=%f\n",nw_size_cost_factor);
 	    printf("task_mode=%d\n",task_mode);
+	    printf("feature1_fitness_thresh=%f\n",feature1_fitness_thresh);
+	    printf("feature2_fitness_thresh=%f\n",feature2_fitness_thresh);
+	    printf("feature3_fitness_thresh=%f\n",feature3_fitness_thresh);
+	    printf("feature4_fitness_thresh=%f\n",feature4_fitness_thresh);
+	    printf("feature5_fitness_thresh=%f\n",feature5_fitness_thresh);
     }
 
 	paramFile.close();

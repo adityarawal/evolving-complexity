@@ -76,6 +76,11 @@ namespace NEAT {
         extern int input_sequence_len;//Indicates the number of time steps for which the input sequence has valid inputs 
         extern double mutate_add_lstm_node_prob;//Probability of adding a new LSTM memory cell 
         extern double nw_size_cost_factor;//Factor to scale the network size (varies between 0-1) 
+        extern double feature1_fitness_thresh; //At this value of feature fitness, current feature search stops and the feature is included
+        extern double feature2_fitness_thresh; //At this value of feature fitness, current feature search stops and the feature is included
+        extern double feature3_fitness_thresh; //At this value of feature fitness, current feature search stops and the feature is included
+        extern double feature4_fitness_thresh; //At this value of feature fitness, current feature search stops and the feature is included
+        extern double feature5_fitness_thresh; //At this value of feature fitness, current feature search stops and the feature is included
         extern int task_mode; //(0/1) 0 - Info-max phase is ON, 1 - Task phase is ON
 	//extern MRandomR250 NEATRandGen; // Random number generator; can pass seed value as argument
 
