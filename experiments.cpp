@@ -106,10 +106,11 @@ Population *lstm_test(int gens, int pid) {
      double gen_best_fitness = 0.0;
      double overall_best_fitness = 0.0;
      char temp[50];
+     int max_gpus = 4;
+
      if (NEAT::pop_size == 1) {//For a single standalone genome testing without modification
              gens = 1;
      }
-
      
      //Create Log directory for the experiment with the current date time information
      int datetime = currentDateTime();
@@ -153,8 +154,9 @@ Population *lstm_test(int gens, int pid) {
 
             //Evaluate the population and store the fitness inside organism gene file (Done in Python)
             for (int n = 0; n < NEAT::pop_size; n=n+4) {
+                if (NEAT::pop_size == 1) max_gpus=1; 
                 #pragma omp parallel for //Parallelization of for loop 
-                for (int i=0; i < 4, n+i<NEAT::pop_size; i++) {
+                for (int i=0; i<max_gpus; i++) {
                      char cmd[500];
                      sprintf(cmd, "cd ../evolstm/; CUDA_VISIBLE_DEVICES=%d python ptb_word_lm.py --data_path=data/ --model small --model_path %s/gen_%d_org_%d_ --gene_file %s/gen_%d_org_%d_gene --gpu_frac 0.8 > %s/gen_%d_org_%d_outfile.txt", i, model_dir, gen, n+i, model_dir, gen, n+i, model_dir, gen, n+i);  
                      system(cmd);
