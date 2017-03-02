@@ -38,6 +38,9 @@ using namespace std;
 
 using namespace NEAT;
 
+//The LSTM layer evolution routines *************************
+Population *lstm_test(int gens, int pid);
+
 //The XOR evolution routines *****************************************
 Population *xor_test(int gens);
 bool xor_evaluate(Organism *org);

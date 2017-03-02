@@ -20,6 +20,164 @@
 #include <math.h>
 #include <iterator>     // std::ostream_iterator
 #include <algorithm>    // std::copy
+#include <ctime>
+#include <string> 
+#include <sstream>
+#include <sys/stat.h>
+
+int currentDateTime() {
+    time_t     now = time(0);
+    char       buf[80];
+    tm *tstruct = localtime(&now);
+    sprintf(buf, "%d%d%d%d", 1+tstruct->tm_mon,tstruct->tm_mday, tstruct->tm_hour, tstruct->tm_min);
+    int var1=0;// = std::stoi(buf);
+    std::string s(buf);
+    std::stringstream convert(s);//object from the class stringstream
+    convert>>var1;
+    return var1;
+}
+
+
+//Read fitness from the output files stored in model directory
+double update_org_fitness(Population *pop, char model_dir[100], int gen){
+
+    int org_count = 0;
+    double best_fitness = 0.0;
+    vector<Organism*>::iterator curorg;
+    
+    for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
+             
+         char fname[50];
+         char curword[128];  //max word size of 128 characters
+         sprintf(fname, "%s/gen_%d_org_%d_outfile.txt", model_dir,gen,org_count);
+         ifstream myfile (fname);
+         std::string curline, lastline;
+         int linecount;
+         if (myfile) {
+                 while (getline (myfile,curline))
+                 {
+                    linecount++;//Not required
+                    lastline = curline;
+                 }              
+                 std::stringstream ss(lastline);
+                 while (ss >> curword) {
+                         if (strcmp(curword,"Test")==0) {
+                                 ss >> curword; //Perplexity
+                                 ss >> curword; //Value
+                                 //std::cout<<"Test perplexity: "<<atof(curword)<<std::endl;
+                                 (*curorg)->fitness1 = (1.0/atof(curword))*100.0;
+                                 if ((*curorg)->fitness1 > best_fitness) {
+                                         best_fitness = (*curorg)->fitness1;
+                                 }
+                         }
+                         else {
+                                 std::cout << "Error: Missing Test perplexity"<<std::endl;
+                                 (*curorg)->fitness1 = 0.0;
+                         } 
+                 }
+                 org_count++;
+                 myfile.close();
+         }
+         else {
+                 std::cout <<"File " <<fname<<" does not exist"<<std::endl;
+         }
+     }
+     return best_fitness;
+}
+
+void print_pop_tofile(Population *pop, char model_dir[100], int gen) {
+     int org_count = 0;
+     vector<Organism*>::iterator curorg;
+     
+     for(curorg=(pop->organisms).begin();curorg!=(pop->organisms).end();++curorg) {
+         char fname[50];
+         sprintf(fname, "%s/gen_%d_org_%d_gene", model_dir,gen,org_count);
+         print_Genome_tofile((*curorg)->gnome,fname);
+         org_count++;
+     }
+}
+
+Population *lstm_test(int gens, int pid) {
+     
+     Population *pop=0;
+     Genome *start_genome;
+     int id;
+     char curword[20];
+     double gen_best_fitness = 0.0;
+     double overall_best_fitness = 0.0;
+     char temp[50];
+     if (NEAT::pop_size == 1) {//For a single standalone genome testing without modification
+             gens = 1;
+     }
+
+     
+     //Create Log directory for the experiment with the current date time information
+     int datetime = currentDateTime();
+     char model_dir[100];
+     sprintf(model_dir, "../evolstm/logs/%d", datetime);
+     std::cout<<"Log Directory "<<model_dir<<std::endl;
+     struct stat sb;
+
+     if (stat(model_dir, &sb) == 0 && S_ISDIR(sb.st_mode)){
+         printf("Log Directory already exists\n");
+     }
+     else{
+             char cmd[50];
+             sprintf(cmd, "mkdir %s", model_dir);
+             system(cmd);
+     }
+
+     //Read the memory_startgenes file
+     ifstream iFile("memory_startgenes",ios::in);
+     cout<<"START LSTM Evolution TEST"<<endl;
+     cout<<"Reading in the start genome"<<endl;
+     //Read in the start Genome
+     iFile>>curword;
+     iFile>>id;
+     cout<<"Reading in Genome id "<<id<<endl;
+     start_genome=new Genome(id,iFile);
+     iFile.close();
+
+    //Create a new population using the memory_startgenes
+    cout<<"Spawning Population off Genome "<<start_genome->genome_id<<endl;;
+    pop=new Population(start_genome,NEAT::pop_size);
+    cout<<"Verifying Spawned Pop"<<endl;
+    pop->verify();
+    
+
+    for (int gen=0;gen<gens;gen++) {
+            cout<<"Generation "<<gen<<endl;	
+
+            //Dump the population in gene files (one for each org)
+            print_pop_tofile(pop, model_dir, gen);
+
+            //Evaluate the population and store the fitness inside organism gene file (Done in Python)
+            for (int n = 0; n < NEAT::pop_size; n=n+4) {
+                #pragma omp parallel for //Parallelization of for loop 
+                for (int i=0; i < 4, n+i<NEAT::pop_size; i++) {
+                     char cmd[500];
+                     sprintf(cmd, "cd ../evolstm/; CUDA_VISIBLE_DEVICES=%d python ptb_word_lm.py --data_path=data/ --model small --model_path %s/gen_%d_org_%d_ --gene_file %s/gen_%d_org_%d_gene --gpu_frac 0.8 > %s/gen_%d_org_%d_outfile.txt", i, model_dir, gen, n+i, model_dir, gen, n+i, model_dir, gen, n+i);  
+                     system(cmd);
+                }
+            }
+
+            //Read the gene files to extract the fitness values of each organism
+            //Print the max fitness from this generation (Basically print the champ)
+            gen_best_fitness = update_org_fitness(pop, model_dir, gen);
+            std::cout<<"Generation: "<<gen<<" Best Fitness: "<<gen_best_fitness<<" Test Perplexity: "<< (1.0/gen_best_fitness)*100.0<<std::endl;
+            if (gen_best_fitness > overall_best_fitness) {
+                    std::cout<<"Generation: "<<gen<<" New Overall Best Fitness: "<<gen_best_fitness<<" Test Perplexity: "<< (1.0/gen_best_fitness)*100.0<<std::endl;
+                    gen_best_fitness = overall_best_fitness;
+            }
+
+            //Reproduce
+            sprintf (temp, "%sgen_%d", model_dir, gen);//Added to maintain legacy code
+            pop->epoch(gen, temp, 1000);
+    }
+        
+    return pop;
+
+}
 
 int toBin(double v, int num_bin) {
 	if(v>0.999) {

@@ -89,7 +89,7 @@ namespace NEAT {
 
 		functype ftype; // type is either SIGMOID ..or others that can be added
 		nodetype type; // type is either NEURON or SENSOR 
-
+                int activation_type; //(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu) Evolving LSTM with Tensorflow
 		double activesum;  // The incoming activity of input data before being processed 
 		double activesum_wr, activesum_rd, activesum_fg;  // The incoming activity of LSTM control gates before being processed 
 		double activation; // The total activation entering the NNode 
@@ -129,7 +129,7 @@ namespace NEAT {
 
 		NNode(nodetype ntype,int nodeid);
 
-		NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze, bool freeze_ip, bool freeze_rd, bool freeze_wr, bool freeze_fg);
+		NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze, bool freeze_ip, bool freeze_rd, bool freeze_wr, bool freeze_fg, int nactivation_type);
 		
 		// Construct a NNode off another NNode for genome purposes
 		NNode(NNode *n,Trait *t);

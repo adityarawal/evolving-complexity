@@ -10,7 +10,16 @@
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
+   See the Licens{
+
+    //This experiment control routine issues commands to collect ave
+    //and max fitness, as opposed to having the snapshot do it, 
+    //because this allows flexibility in terms of what time
+    //to observe fitnesses at
+
+    (*curspecies)->compute_average_fitness();
+    (*curspecies)->compute_max_fitness();
+  }e for the specific language governing permissions and
    limitations under the License.
 */
 //#include <stdlib.h>
@@ -104,10 +113,11 @@ int main(int argc, char *argv[]) {
   cout<<"3 - 2-pole balancing, no velocity info provided (non-markov)"<<endl;
   cout<<"4 - XOR"<<endl;
   cout<<"5 - Memory Evolution"<<endl;
+  cout<<"6 - LSTM layer Evolution"<<endl;
   cout<<"Number: ";
 
   //cin>>choice;
-  choice = 5;
+  choice = 6;
   switch ( choice )
     {
     case 1:
@@ -124,6 +134,9 @@ int main(int argc, char *argv[]) {
       break;
     case 5:
       p = memory_test(30000, pid);
+      break;
+    case 6:
+      p = lstm_test(5, pid);
       break;
     default:
       cout<<"Not an available option."<<endl;

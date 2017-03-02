@@ -378,11 +378,12 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 	newtrait=new Trait(1,0,0,0,0,0,0,0,0,0);
 	traits.push_back(newtrait);
 
+        int activation_type = 0; //(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu)
 	//Build the input nodes
 	for(ncount=1;ncount<=i;ncount++) {
 		if (ncount<i)
-			newnode=new NNode(SENSOR,ncount,INPUT, false, false, false, false, false);
-		else newnode=new NNode(SENSOR,ncount,BIAS, false, false, false, false, false);
+			newnode=new NNode(SENSOR,ncount,INPUT, false, false, false, false, false, activation_type);
+		else newnode=new NNode(SENSOR,ncount,BIAS, false, false, false, false, false, activation_type);
 
 		newnode->nodetrait=newtrait;
 
@@ -392,7 +393,7 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 
 	//Build the hidden nodes
 	for(ncount=i+1;ncount<=i+n;ncount++) {
-		newnode=new NNode(NEURON,ncount,HIDDEN, false, false, false, false, false);
+		newnode=new NNode(NEURON,ncount,HIDDEN, false, false, false, false, false, activation_type);
 		newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -400,7 +401,7 @@ Genome::Genome(int new_id,int i, int o, int n,int nmax, bool r, double linkprob)
 
 	//Build the output nodes
 	for(ncount=first_output;ncount<=totalnodes;ncount++) {
-		newnode=new NNode(NEURON,ncount,OUTPUT, false, false, false, false, false);
+		newnode=new NNode(NEURON,ncount,OUTPUT, false, false, false, false, false, activation_type);
 		newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -521,12 +522,13 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 
 	//Create the inputs and outputs
 
+        int activation_type = 0; //(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu)
 	//Build the input nodes
 	for(ncount=1;ncount<=num_in;ncount++) {
 		if (ncount<num_in)
-			newnode=new NNode(SENSOR,ncount,INPUT, false, false, false, false, false);
+			newnode=new NNode(SENSOR,ncount,INPUT, false, false, false, false, false, activation_type);
 		else { 
-			newnode=new NNode(SENSOR,ncount,BIAS, false, false, false, false, false);
+			newnode=new NNode(SENSOR,ncount,BIAS, false, false, false, false, false, activation_type);
 			bias=newnode;
 		}
 
@@ -539,7 +541,7 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 
 	//Build the hidden nodes
 	for(ncount=num_in+1;ncount<=num_in+num_hidden;ncount++) {
-		newnode=new NNode(NEURON,ncount,HIDDEN, false, false, false, false, false);
+		newnode=new NNode(NEURON,ncount,HIDDEN, false, false, false, false, false, activation_type);
 		//newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -548,7 +550,7 @@ Genome::Genome(int num_in,int num_out,int num_hidden,int type) {
 
 	//Build the output nodes
 	for(ncount=num_in+num_hidden+1;ncount<=num_in+num_hidden+num_out;ncount++) {
-		newnode=new NNode(NEURON,ncount,OUTPUT, false, false, false, false, false);
+		newnode=new NNode(NEURON,ncount,OUTPUT, false, false, false, false, false, activation_type);
 		//newnode->nodetrait=newtrait;
 		//Add the node to the list of nodes
 		nodes.push_back(newnode);
@@ -766,7 +768,7 @@ Network *Genome::genesis(int id) {
 
 	//Create the nodes
 	for(curnode=nodes.begin();curnode!=nodes.end();++curnode) {
-		newnode=new NNode((*curnode)->type,(*curnode)->node_id, (*curnode)->gen_node_label, (*curnode)->frozen, (*curnode)->frozen_ip, (*curnode)->frozen_rd, (*curnode)->frozen_wr, (*curnode)->frozen_fg);
+		newnode=new NNode((*curnode)->type,(*curnode)->node_id, (*curnode)->gen_node_label, (*curnode)->frozen, (*curnode)->frozen_ip, (*curnode)->frozen_rd, (*curnode)->frozen_wr, (*curnode)->frozen_fg, (*curnode)->activation_type);
 
 		//Derive the node parameters from the trait pointed to
 		curtrait=(*curnode)->nodetrait;
@@ -1755,7 +1757,7 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 
 			//Create the new LSTM NNode
 			//By convention, it will point to the first trait
-			newnode=new NNode(LSTM,curnode_id++,HIDDEN, false, false, false, false, false);
+			newnode=new NNode(LSTM,curnode_id++,HIDDEN, false, false, false, false, false, 0);
 			newnode->nodetrait=(*(traits.begin()));
 
         
@@ -1803,7 +1805,7 @@ bool Genome::mutate_add_lstm_node(std::vector<Innovation*> &innovs,int &curnode_
 			traitptr=thelink->linktrait;
 
 			//Create the new NNode
-			newnode=new NNode(LSTM,(*theinnov)->newnode_id,HIDDEN, false, false, false, false, false);      
+			newnode=new NNode(LSTM,(*theinnov)->newnode_id,HIDDEN, false, false, false, false, false, 0);      
 			//By convention, it will point to the first trait
 			//Note: In future may want to change this
 			newnode->nodetrait=(*(traits.begin()));
@@ -1992,7 +1994,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 
 			//Create the new NNode
 			//By convention, it will point to the first trait
-			newnode=new NNode(NEURON,curnode_id++,HIDDEN, false, false, false, false, false);
+			newnode=new NNode(NEURON,curnode_id++,HIDDEN, false, false, false, false, false, 0);
 			newnode->nodetrait=(*(traits.begin()));
 
 			//Create the new Genes
@@ -2033,7 +2035,7 @@ bool Genome::mutate_add_node(std::vector<Innovation*> &innovs,int &curnode_id,do
 			traitptr=thelink->linktrait;
 
 			//Create the new NNode
-			newnode=new NNode(NEURON,(*theinnov)->newnode_id,HIDDEN, false, false, false, false, false);      
+			newnode=new NNode(NEURON,(*theinnov)->newnode_id,HIDDEN, false, false, false, false, false, 0);      
 			//By convention, it will point to the first trait
 			//Note: In future may want to change this
 			newnode->nodetrait=(*(traits.begin()));
@@ -2074,7 +2076,8 @@ void Genome::add_output_nodes(int block_size, double &curinnov, int ftype){//blo
                 int last_node_id = get_last_node_id();
                 NNode *newnode;
                 if (ftype==3) {//Output nodes are LSTM if activation type is LINEAR
-                        newnode=new NNode(LSTM,last_node_id,OUTPUT,false, false, true, false, false); //Freeze the read gate
+                        int activation_type = 0;//(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu) 
+                        newnode=new NNode(LSTM,last_node_id,OUTPUT,false, false, true, false, false, activation_type); //Freeze the read gate
                         node_insert(nodes,newnode);
 
                         //Connect the newly added node to the BIAS node (this prevents hanging outputs and thus allows network activations)
@@ -2092,7 +2095,8 @@ void Genome::add_output_nodes(int block_size, double &curinnov, int ftype){//blo
                         add_link(nodenum1, nodenum2, weight, curinnov, recurflag, WRITE);
                 }
                 else if (ftype==2) {//tanh activation
-                        newnode=new NNode(NEURON,last_node_id,OUTPUT,false, false, false, false, false);
+                        int activation_type = 3;//(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu) 
+                        newnode=new NNode(NEURON,last_node_id,OUTPUT,false, false, false, false, false, activation_type);
                         node_insert(nodes,newnode);
 
                         //Connect the newly added node to the BIAS node (this prevents hanging outputs and thus allows network activations)

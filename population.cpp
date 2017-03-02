@@ -291,8 +291,11 @@ bool Population::spawn(Genome *g,int size) {
 		//cout<<"CREATING ORGANISM "<<count<<endl;
 
 		new_genome=g->duplicate(count); 
-		//new_genome->mutate_link_weights(1.0,1.0,GAUSSIAN);
-		new_genome->mutate_link_weights(1.0,1.0,COLDGAUSSIAN);
+		if (size > 1){//For a single standalone genome testing without modification 
+		        //new_genome->mutate_link_weights(1.0,1.0,GAUSSIAN);
+		        //new_genome->mutate_link_weights(1.0,1.0,COLDGAUSSIAN);
+                        new_genome->mutate_toggle_enable(100);
+                }
 		//new_genome->randomize_traits(); Aditya: No need to change traits since they are not being used
 		new_organism=new Organism(0.0, 0.0, new_genome,1);//(Aditya: for NSGA-2)
 		organisms.push_back(new_organism);
@@ -901,15 +904,15 @@ bool Population::epoch(int generation, char *filename, int max_feature_nw_size) 
 	//Flag the lowest performing species over age 20 every 30 generations 
 	//NOTE: THIS IS FOR COMPETITIVE COEVOLUTION STAGNATION DETECTION
 
-	curspecies=sorted_species.end();
-	curspecies--;
-	while((curspecies!=sorted_species.begin())&&
-		((*curspecies)->age<20))
-		--curspecies;
-	if ((generation%30)==0)
-        {     
-                (*curspecies)->obliterate=true;
-        }
+        //curspecies=sorted_species.end();
+	//curspecies--;
+	//while((curspecies!=sorted_species.begin())&&
+	//	((*curspecies)->age<20))
+	//	--curspecies;
+	//if ((generation%30)==0)
+        //{     
+        //        (*curspecies)->obliterate=true;
+        //}
 
 
 	std::cout<<"Number of Species: "<<num_species<<std::endl;

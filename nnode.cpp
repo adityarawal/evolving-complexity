@@ -50,7 +50,7 @@ NNode::NNode(nodetype ntype,int nodeid) {
         exit(0);
 }
 
-NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze, bool freeze_ip, bool freeze_rd, bool freeze_wr, bool freeze_fg) {
+NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze, bool freeze_ip, bool freeze_rd, bool freeze_wr, bool freeze_fg, int nactivation_type) {
 	active_in_flag=false;
 	active_out_flag=false;
 	visited=false;
@@ -68,6 +68,8 @@ NNode::NNode(nodetype ntype,int nodeid, nodeplace placement, bool freeze, bool f
 	node_id=nodeid;
 	nodetrait=0;
 	gen_node_label=placement;
+        activation_type = nactivation_type;//(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu) Evolving LSTM with Tensorflow
+
 	if (gen_node_label == OUTPUT) {//ftype is ignored if the node is LSTM
                 ftype=TANH; //Output nodes have tanh non-linearity
         }
@@ -103,6 +105,8 @@ NNode::NNode(NNode *n,Trait *t) {
 	node_id=n->node_id;
 	nodetrait=0;
 	gen_node_label=n->gen_node_label;
+        activation_type = n->activation_type;//(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu) Evolving LSTM with Tensorflow
+
 	if (gen_node_label == OUTPUT) {//ftype is ignored if the node is LSTM
                 ftype=TANH; //Output nodes have tanh non-linearity
         }
@@ -153,9 +157,11 @@ NNode::NNode (const char *argline, std::vector<Trait*> &traits) {
 	//strcpy(curword, NEAT::getUnit(argline, curwordnum++, delimiters));
 	//gen_node_label = (nodeplace)atoi(curword);
 
-        int nodety, nodepl;
-        ss >> node_id >> traitnum >> nodety >> nodepl;
+        int nodety, nodepl,nactivation_type;
+        ss >> node_id >> nactivation_type >> nodety >> nodepl;
         type = (nodetype)nodety;
+        activation_type = nactivation_type;//(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu) Evolving LSTM with Tensorflow
+
         gen_node_label = (nodeplace)nodepl;
 
         //The following lines to assign ftype have been missing from the code previously. 
@@ -206,7 +212,9 @@ NNode::NNode (const NNode& nnode)
 	type = nnode.type; //NEURON or SENSOR OR (LSTM NEURON) type
 	activation_count = nnode.activation_count; //Inactive upon creation
 	node_id = nnode.node_id;
-	ftype = nnode.ftype;
+	activation_type = nnode.activation_type;//(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu) Evolving LSTM with Tensorflow
+
+        ftype = nnode.ftype;
 	nodetrait = nnode.nodetrait;
 	gen_node_label = nnode.gen_node_label;
 	dup = nnode.dup;
@@ -447,8 +455,10 @@ void NNode::activate_override() {
 
 void NNode::print_to_file(std::ofstream &outFile) {
   outFile<<"node "<<node_id<<" ";
-  if (nodetrait!=0) outFile<<nodetrait->trait_id<<" ";
-  else outFile<<"0 ";
+//if (nodetrait!=0) outFile<<nodetrait->trait_id<<" ";
+//else outFile<<"0 ";
+  outFile<<activation_type<<" ";//(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu) Evolving LSTM with Tensorflow
+
   outFile<<type<<" ";
   outFile<<gen_node_label<<std::endl;
 }
@@ -460,6 +470,8 @@ void NNode::print_to_file(std::ostream &outFile) {
 	//else outFile<<"0 ";
 	//outFile<<type<<" ";
 	//outFile<<gen_node_label<<std::endl;
+        std::cout<<"Should not be HERE in node print to file"<<std::endl;
+        exit(0);
 
 	char tempbuf[128];
 	sprintf(tempbuf, "node %d ", node_id);
