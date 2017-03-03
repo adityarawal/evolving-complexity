@@ -137,6 +137,9 @@ namespace NEAT {
 		// Change random link's trait. Repeat times times
 		void mutate_link_trait(int times);
 
+		// Change random node's activation type 
+		void mutate_node_activation_type();
+
 		// Change random node's trait times times 
 		void mutate_node_trait(int times);
 

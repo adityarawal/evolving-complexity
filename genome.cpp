@@ -1250,6 +1250,27 @@ void Genome::mutate_link_trait(int times) {
 	}
 }
 
+void Genome::mutate_node_activation_type() {
+	int nodenum, count;
+        int activation_type;
+        int max_activation_type = 5;//(0-Identity, 1-Multiply, 2-Sigmoid, 3-Tanh, 4-ReLu)
+
+	std::vector<NNode*>::iterator thenode;     //Link to be mutated
+
+        //Choose a random nodenum
+	nodenum=randint(0,nodes.size()-1);
+        
+        //Choose a random activation type
+	activation_type=randint(0,max_activation_type-1);
+
+	//set the link to point to the new trait
+	thenode=nodes.begin();
+	for(count=0;count<nodenum;count++)
+		++thenode;
+        (*thenode)->activation_type=activation_type;
+}
+
+
 void Genome::mutate_node_trait(int times) {
 	int traitnum;
 	int nodenum;
