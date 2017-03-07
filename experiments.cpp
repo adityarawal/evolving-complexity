@@ -106,7 +106,7 @@ Population *lstm_test(int gens, int pid) {
      double gen_best_fitness = 0.0;
      double overall_best_fitness = 0.0;
      char temp[50];
-     int max_gpus = 4;
+     int max_gpus = 2;
 
      if (NEAT::pop_size == 1) {//For a single standalone genome testing without modification
              gens = 1;
@@ -152,9 +152,9 @@ Population *lstm_test(int gens, int pid) {
             //Dump the population in gene files (one for each org)
             print_pop_tofile(pop, model_dir, gen);
 
+            if (NEAT::pop_size == 1) max_gpus=1; //To run single genes
             //Evaluate the population and store the fitness inside organism gene file (Done in Python)
-            for (int n = 0; n < NEAT::pop_size; n=n+4) {
-                if (NEAT::pop_size == 1) max_gpus=1; 
+            for (int n = 0; n < NEAT::pop_size; n=n+max_gpus) {
                 #pragma omp parallel for //Parallelization of for loop 
                 for (int i=0; i<max_gpus; i++) {
                      char cmd[500];
