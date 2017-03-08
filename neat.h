@@ -56,6 +56,7 @@ namespace NEAT {
 	extern double mutate_gene_reenable_prob;
 	extern double mutate_add_node_prob;
 	extern double mutate_add_link_prob;
+	extern double mutate_node_actv_prob;
 	extern double interspecies_mate_rate;    // Prob. of a mate being outside species 
 	extern double mate_multipoint_prob;     
 	extern double mate_multipoint_avg_prob;

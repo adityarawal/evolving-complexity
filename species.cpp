@@ -616,6 +616,10 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 					//std::cout<<"mutate_node_trait"<<std::endl;
 					new_genome->mutate_node_trait(1);
 				}
+				if (randfloat()<NEAT::mutate_node_actv_prob) {
+					//std::cout<<"mutate_node_activation_type"<<std::endl;
+					new_genome->mutate_node_activation_type();
+				}
 				if (randfloat()<NEAT::mutate_link_weights_prob) {
 					//std::cout<<"mutate_link_weights"<<std::endl;
 			                Genome *last_genome=(new_genome)->duplicate(1);
@@ -726,6 +730,10 @@ bool Species::reproduce_multiobj(int generation, Population *pop) {//(Aditya - N
 					if (randfloat()<NEAT::mutate_node_trait_prob) {
 						new_genome->mutate_node_trait(1);
 						//std::cout<<"mutate_node_trait: "<<new_genome<<std::endl;
+					}
+					if (randfloat()<NEAT::mutate_node_actv_prob) {
+						//std::cout<<"mutate_node_activation_type"<<std::endl;
+						new_genome->mutate_node_activation_type();
 					}
 					if (randfloat()<NEAT::mutate_link_weights_prob) {
 			                        Genome *last_genome=(new_genome)->duplicate(1);
@@ -993,6 +1001,10 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 							//std::cout<<"mutate_node_trait"<<std::endl;
 							new_genome->mutate_node_trait(1);
 						}
+						if (randfloat()<NEAT::mutate_node_actv_prob) {
+							//std::cout<<"mutate_node_activation_type"<<std::endl;
+							new_genome->mutate_node_activation_type();
+						}
 						if (randfloat()<NEAT::mutate_link_weights_prob) {
 			                                Genome *last_genome=(new_genome)->duplicate(1);
 							//std::cout<<"mutate_link_weights"<<std::endl;
@@ -1193,6 +1205,10 @@ bool Species::reproduce(int generation, Population *pop,std::vector<Species*> &s
 						if (randfloat()<NEAT::mutate_node_trait_prob) {
 							new_genome->mutate_node_trait(1);
 							//std::cout<<"mutate_node_trait: "<<new_genome<<std::endl;
+						}
+						if (randfloat()<NEAT::mutate_node_actv_prob) {
+							//std::cout<<"mutate_node_activation_type"<<std::endl;
+							new_genome->mutate_node_activation_type();
 						}
 						if (randfloat()<NEAT::mutate_link_weights_prob) {
 			                                Genome *last_genome=(new_genome)->duplicate(1);

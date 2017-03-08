@@ -19,13 +19,14 @@ mutate_toggle_enable_prob 0.2
 mutate_gene_reenable_prob 0.15
 mutate_add_node_prob 0.00
 mutate_add_link_prob 0.4
+mutate_node_actv_prob 0.1
 interspecies_mate_rate 0.001
 mate_multipoint_prob 0.6
 mate_multipoint_avg_prob 0.4
 mate_singlepoint_prob 0.0
 mate_only_prob 0.2
 recur_only_prob 0.0
-pop_size 1 
+pop_size 20 
 dropoff_age 150
 newlink_tries 200
 print_every 10000

@@ -41,6 +41,7 @@ double NEAT::mutate_toggle_enable_prob = 0;
 double NEAT::mutate_gene_reenable_prob = 0;
 double NEAT::mutate_add_node_prob = 0;
 double NEAT::mutate_add_link_prob = 0;
+double NEAT::mutate_node_actv_prob = 0;
 double NEAT::interspecies_mate_rate = 0; // Prob. of a mate being outside species 
 double NEAT::mate_multipoint_prob = 0;     
 double NEAT::mate_multipoint_avg_prob = 0;
@@ -305,6 +306,9 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
     paramFile>>curword;
 	paramFile>>NEAT::mutate_add_link_prob;
 	
+    paramFile>>curword;
+	paramFile>>NEAT::mutate_node_actv_prob;
+	
     //strcpy(curword, getUnit(filestring, curwordnum, delimiters));
 	//NEAT::mutate_add_link_prob = atof(curword);
 	//curwordnum += 2;
@@ -444,6 +448,7 @@ bool NEAT::load_neat_params(const char *filename, bool output) {
 	    printf("mutate_gene_reenable_prob=%f\n",mutate_gene_reenable_prob);
 	    printf("mutate_add_node_prob=%f\n",mutate_add_node_prob);
 	    printf("mutate_add_link_prob=%f\n",mutate_add_link_prob);
+	    printf("mutate_node_actv_prob=%f\n",mutate_node_actv_prob);
 	    printf("interspecies_mate_rate=%f\n",interspecies_mate_rate);
 	    printf("mate_multipoint_prob=%f\n",mate_multipoint_prob);
 	    printf("mate_multipoint_avg_prob=%f\n",mate_multipoint_avg_prob);
