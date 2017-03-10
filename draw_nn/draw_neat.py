@@ -12,7 +12,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from networkx.drawing.nx_agraph import graphviz_layout
 
-def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, graph_layout,
+def draw_graph(neat_fname, graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, graph_layout,
                node_size=1600, node_alpha=0.3,
                node_text_size=12,
                edge_alpha=0.3, edge_tickness=1,
@@ -64,6 +64,7 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_col
                                  label_pos=edge_text_pos)
 
     # show graph
+    plt.title(neat_fname)
     plt.show()
 
 if __name__ == '__main__':
@@ -189,13 +190,13 @@ if __name__ == '__main__':
                 edge_color_list += [edge_dict[edges][1]] #[List of weights] #Uncomment this to visualize weights
 
 
-        draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, 
+        draw_graph(neat_fname, graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, 
                                   graph_layout='shell', #None, shell, spring, spectral, random
                                   node_size=1600, 
                                   node_alpha=0.3,
                                   node_text_size=12,
                                   edge_alpha=0.3,
-                                  edge_tickness=1,
+                                  edge_tickness=3,
                                   edge_text_pos=0.3,
                                   text_font='sans-serif')
 
