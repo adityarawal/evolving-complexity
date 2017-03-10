@@ -10,6 +10,7 @@ from __future__ import division
 import sys
 import networkx as nx
 import matplotlib.pyplot as plt
+from networkx.drawing.nx_agraph import graphviz_layout
 
 def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_color_list, graph_layout,
                node_size=1600, node_alpha=0.3,
@@ -29,16 +30,16 @@ def draw_graph(graph, labels, graph_pos, node_id_list, node_color_list, edge_col
 
     # these are different layouts for the network you may try
     # shell seems to work best
-    if graph_layout is not None:
-            if graph_layout == 'spring':
-                graph_pos=nx.spring_layout(G)
-            elif graph_layout == 'spectral':
-                graph_pos=nx.spectral_layout(G)
-            elif graph_layout == 'random':
-                graph_pos=nx.random_layout(G)
-            else:
-                graph_pos=nx.shell_layout(G)
-
+    #if graph_layout is not None:
+    #        if graph_layout == 'spring':
+    #            graph_pos=nx.spring_layout(G)
+    #        elif graph_layout == 'spectral':
+    #            graph_pos=nx.spectral_layout(G)
+    #        elif graph_layout == 'random':
+    #            graph_pos=nx.random_layout(G)
+    #        else:
+    #            graph_pos=nx.shell_layout(G)
+    graph_pos=graphviz_layout(G)
     #Delete floating (unconnected) nodes in the graph 
     i = 0
     while (i < len(node_id_list)): 
@@ -85,12 +86,26 @@ if __name__ == '__main__':
                 if 'node' in line:#(node <node_id> <trait_number> <sensory-1/0> <hidden/input/output/bias>) 
                         words = line.strip().split()
                         node_id = str(words[1])
+                        node_activation_type = str(words[2])
                         node_place = str(words[-1])
                         node_type = str(words[-2])
                         node_id_list += [node_id]
                         if node_place == '0' and node_type == '0': #Regular Hidden Node
                                 hidden_nodes += [node_id]
-                                node_color_list += ['gray']
+                                if node_activation_type == '0':
+                                    node_color_list += ['pink']
+                                elif node_activation_type == '1':
+                                    node_color_list += ['brown']
+                                elif node_activation_type == '2':
+                                    node_color_list += ['white']
+                                elif node_activation_type == '3':
+                                    node_color_list += ['gray']
+                                elif node_activation_type == '4':
+                                    node_color_list += ['orange']
+                                else:
+                                    print ('ERROR: Uncrecognized node activation type')
+                                    import sys
+                                    sys.exit()
                         elif node_place == '0' and node_type == '7': #LSTM Hidden Node
                                 hidden_nodes += [node_id]
                                 node_color_list += ['yellow']
@@ -170,7 +185,7 @@ if __name__ == '__main__':
         labels = []
         for edges in edge_dict:
                 graph += [edges]#List tuples containing edges
-                labels += [edge_dict[edges][0]] #[List of weights] #Uncomment this to visualize weights
+                #labels += [edge_dict[edges][0]] #[List of weights] #Uncomment this to visualize weights
                 edge_color_list += [edge_dict[edges][1]] #[List of weights] #Uncomment this to visualize weights
 
 
