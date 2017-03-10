@@ -106,10 +106,11 @@ Population *lstm_test(int gens, int pid) {
      double gen_best_fitness = 0.0;
      double overall_best_fitness = 0.0;
      char temp[50];
-     int max_gpus = 2;
+     int max_gpus = 4;
 
      if (NEAT::pop_size == 1) {//For a single standalone genome testing without modification
              gens = 1;
+             max_gpus=1; 
      }
      
      //Create Log directory for the experiment with the current date time information
@@ -152,7 +153,6 @@ Population *lstm_test(int gens, int pid) {
             //Dump the population in gene files (one for each org)
             print_pop_tofile(pop, model_dir, gen);
 
-            if (NEAT::pop_size == 1) max_gpus=1; //To run single genes
             //Evaluate the population and store the fitness inside organism gene file (Done in Python)
             for (int n = 0; n < NEAT::pop_size; n=n+max_gpus) {
                 #pragma omp parallel for //Parallelization of for loop 
@@ -169,7 +169,7 @@ Population *lstm_test(int gens, int pid) {
             std::cout<<"Generation: "<<gen<<" Best Fitness: "<<gen_best_fitness<<" Test Perplexity: "<< (1.0/gen_best_fitness)*100.0<<std::endl;
             if (gen_best_fitness > overall_best_fitness) {
                     std::cout<<"Generation: "<<gen<<" New Overall Best Fitness: "<<gen_best_fitness<<" Test Perplexity: "<< (1.0/gen_best_fitness)*100.0<<std::endl;
-                    gen_best_fitness = overall_best_fitness;
+                    overall_best_fitness = gen_best_fitness;
             }
 
             //Reproduce

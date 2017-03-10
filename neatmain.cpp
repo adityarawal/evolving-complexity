@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
       p = memory_test(30000, pid);
       break;
     case 6:
-      p = lstm_test(10, pid);
+      p = lstm_test(20, pid);
       break;
     default:
       cout<<"Not an available option."<<endl;
